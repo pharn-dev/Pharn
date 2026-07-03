@@ -11,7 +11,7 @@ obeyed. Floor first, then the four advisory lenses.
 
 ## The four lenses
 
-### L-floor → P0 — CLEAN (no finding). Exemplary discipline.
+### L-floor → P0 — CLEAN (no finding); exemplary discipline
 
 Every guarantee the griller claims is reduced or labeled. Membership → FLOOR (the sole runtime
 guarantee); the entire comprehension assessment → ADVISORY; fixture behavior → eval-time
@@ -20,13 +20,13 @@ floor-**checked** (explicitly "NOT a runtime guarantee"); a launderable "mention
 the axis most at risk of over-claiming (the product's founding thesis), the P0 audit is the strongest of
 the griller family. No unlabeled guarantee exists to flag.
 
-### L-eval → P1 — CLEAN (no finding). Floor and lens agree.
+### L-eval → P1 — CLEAN (no finding); floor and lens agree
 
 Two eval cases (`plan-comprehension-debt`, `plan-clear`) + four expected fixtures. `enforces: ["P7"]` is
 bound: the DEBT expected carries `field_equals rule_id P7`, so "P7" is produced by ≥1 eval (fix #6) — and
 `validate` GREEN confirms the same binding. No disagreement between floor and lens.
 
-### L-trust → P2 — CLEAN (no floor-gate finding). The fence held.
+### L-trust → P2 — CLEAN (no floor-gate finding); the fence held
 
 - The griller's finding output honors the enum-gated (`type`/`rule_id`/`severity`/`file`) vs free-text
   (`problem`/`evidence`) split; free-text is labeled untrusted DATA.
@@ -37,7 +37,7 @@ bound: the DEBT expected carries `field_equals rule_id P7`, so "P7" is produced 
   griller's only guarantee (membership) is computed from frontmatter, structurally unreachable by fixture
   content.
 
-### L-axis → P3 — CLEAN (no finding).
+### L-axis → P3 — CLEAN (no finding)
 
 `comprehension.md` has one axis of change (the comprehension griller). `reads:` =
 `pharn-contracts/finding-shape.md` (the contracts bottom) + the PLAN input — **no sibling leaf
