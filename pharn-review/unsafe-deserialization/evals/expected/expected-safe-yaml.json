@@ -1,0 +1,11 @@
+{
+  "skill_kind": "llm",
+  "assertions": {
+    "structural": [{ "kind": "finding_count", "op": "==", "value": 0 }],
+    "semantic": [
+      {
+        "judge": "the scanner is clean because yaml.safe_load and JSON.parse are safe by themselves (no arbitrary-object construction, no code execution); the lens emits NO finding and does NOT manufacture one. It may note advisory prototype-pollution risk if parsed data were later merged into an object via __proto__, but that is judgment surfaced for the human, never a floor finding."
+      }
+    ]
+  }
+}
