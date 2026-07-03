@@ -4,14 +4,14 @@ Thin, advisory roll-up of the gated chain for the `secrets-in-code` lens increme
 
 ## Stages run, in order, and where the run ended
 
-| stage | command | outcome |
-| ----- | ------- | ------- |
-| plan | `/pharn-dev-plan` | PLAN.md written; **GATE 1** — human approved **as written** (ratified the new-scanner path) |
-| grill | `/pharn-dev-grill` | GRILL.md — advisory, 4 minor concerns, 0 blocking; gates nothing → proceeded |
-| build | `/pharn-dev-build` | 12 files written; floor GREEN |
-| regress | `/pharn-dev-regress` | regression-report.json — no regressions |
-| verify | `/pharn-dev-verify` | verify-report.json — PASS |
-| review | `/pharn-dev-review` | REVIEW.md — GREEN, 0 blocking, 4 advisory → **GATE 2** (run ends here) |
+| stage   | command              | outcome                                                                                     |
+| ------- | -------------------- | ------------------------------------------------------------------------------------------- |
+| plan    | `/pharn-dev-plan`    | PLAN.md written; **GATE 1** — human approved **as written** (ratified the new-scanner path) |
+| grill   | `/pharn-dev-grill`   | GRILL.md — advisory, 4 minor concerns, 0 blocking; gates nothing → proceeded                |
+| build   | `/pharn-dev-build`   | 12 files written; floor GREEN                                                               |
+| regress | `/pharn-dev-regress` | regression-report.json — no regressions                                                     |
+| verify  | `/pharn-dev-verify`  | verify-report.json — PASS                                                                   |
+| review  | `/pharn-dev-review`  | REVIEW.md — GREEN, 0 blocking, 4 advisory → **GATE 2** (run ends here)                      |
 
 **The run ended at GATE 2** (post-review human decision), not at a RED-verdict STOP.
 

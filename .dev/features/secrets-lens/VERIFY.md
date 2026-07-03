@@ -4,13 +4,13 @@
 
 ## FLOOR layer — deterministic gates (whole-repo, at HEAD)
 
-| gate           | exit | meaning                                                        |
-| -------------- | ---- | ------------------------------------------------------------- |
-| `test`         | 0    | `npm test` — 240 tests pass (incl. the scanner's 9, both ★)   |
-| `validate`     | 0    | `.dev/floor/validate.mjs .` — GREEN, 15 capabilities          |
-| `lint`         | 0    | `npm run lint` — eslint clean                                 |
-| `format:check` | 0    | `npm run format:check` — prettier clean                       |
-| `lint:md`      | 0    | `npm run lint:md` — markdownlint clean                        |
+| gate           | exit | meaning                                                     |
+| -------------- | ---- | ----------------------------------------------------------- |
+| `test`         | 0    | `npm test` — 240 tests pass (incl. the scanner's 9, both ★) |
+| `validate`     | 0    | `.dev/floor/validate.mjs .` — GREEN, 15 capabilities        |
+| `lint`         | 0    | `npm run lint` — eslint clean                               |
+| `format:check` | 0    | `npm run format:check` — prettier clean                     |
+| `lint:md`      | 0    | `npm run lint:md` — markdownlint clean                      |
 
 - **No `structural:*` gate:** the feature ships committed eval `expected/*.json` but **no committed actual `findings.json`** — the lens's live emission is produced when the lens is run (the live lens/eval runner is deferred, P7), so there is no actual-vs-expected pair to check at verify time. Absent from the map, exactly as the contract allows.
 
@@ -22,7 +22,7 @@
 
 **VERIFIED: floor gates PASS** — `check-verify.mjs` returned `"verdict":"PASS"` (exit 0), `failing_gates: []`.
 
-**Honest residual (P0/P7):** verified = **the named gates passed**; this is **NOT** a guarantee of correctness beyond what those gates check. The lens's *judgment* behavior on its evals (does it emit the right finding under injection?) is exercised when the lens is run live — the floor here covers the scanner's determinism (its own tests), the structural floor (`validate`), and whole-repo style/tests, **not** the lens's live output. Verifier concerns would be advisory help, not assurance — and there are none registered.
+**Honest residual (P0/P7):** verified = **the named gates passed**; this is **NOT** a guarantee of correctness beyond what those gates check. The lens's _judgment_ behavior on its evals (does it emit the right finding under injection?) is exercised when the lens is run live — the floor here covers the scanner's determinism (its own tests), the structural floor (`validate`), and whole-repo style/tests, **not** the lens's live output. Verifier concerns would be advisory help, not assurance — and there are none registered.
 
 ## Orchestration note (advisory)
 
