@@ -4,14 +4,14 @@
 
 ## Stages run, in order, and where the run ended
 
-| stage             | outcome                                                                                       |
-| ----------------- | --------------------------------------------------------------------------------------------- |
-| `/pharn-dev-plan`  | PLAN.md written; **GATE 1** (human approved as written — sink set confirmed as the three-kind set) |
-| `/pharn-dev-grill` | GRILL.md — advisory, gates nothing: 3 minor concerns (all absorbed into the build)            |
-| `/pharn-dev-build` | 12 files written within the plan's `## Files` scope (fix #7); floor run                       |
-| `/pharn-dev-regress` | regression-report.json written                                                              |
-| `/pharn-dev-verify` | verify-report.json written                                                                   |
-| `/pharn-dev-review` | REVIEW.md — **GATE 2**, run ended here                                                        |
+| stage                | outcome                                                                                            |
+| -------------------- | -------------------------------------------------------------------------------------------------- |
+| `/pharn-dev-plan`    | PLAN.md written; **GATE 1** (human approved as written — sink set confirmed as the three-kind set) |
+| `/pharn-dev-grill`   | GRILL.md — advisory, gates nothing: 3 minor concerns (all absorbed into the build)                 |
+| `/pharn-dev-build`   | 12 files written within the plan's `## Files` scope (fix #7); floor run                            |
+| `/pharn-dev-regress` | regression-report.json written                                                                     |
+| `/pharn-dev-verify`  | verify-report.json written                                                                         |
+| `/pharn-dev-review`  | REVIEW.md — **GATE 2**, run ended here                                                             |
 
 ## Structural floor verdicts read (verbatim — the only proceed/stop inputs, P5)
 

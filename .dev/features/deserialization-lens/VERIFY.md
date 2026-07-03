@@ -4,13 +4,13 @@ Two layers, kept strictly separate: the **FLOOR layer** owns the verdict (every 
 
 ## FLOOR layer — deterministic gates (whole-repo, run once at HEAD)
 
-| gate           | exit | meaning                                                    |
-| -------------- | ---- | ---------------------------------------------------------- |
+| gate           | exit | meaning                                                                     |
+| -------------- | ---- | --------------------------------------------------------------------------- |
 | `test`         | 0    | `npm test` — 279/279 hermetic tests (incl. the feature's own scanner suite) |
-| `validate`     | 0    | `.dev/floor/validate.mjs .` — FLOOR GREEN, 18 capabilities |
-| `lint`         | 0    | `eslint .` clean                                           |
-| `format:check` | 0    | `prettier --check .` clean                                 |
-| `lint:md`      | 0    | `markdownlint-cli2` clean                                  |
+| `validate`     | 0    | `.dev/floor/validate.mjs .` — FLOOR GREEN, 18 capabilities                  |
+| `lint`         | 0    | `eslint .` clean                                                            |
+| `format:check` | 0    | `prettier --check .` clean                                                  |
+| `lint:md`      | 0    | `markdownlint-cli2` clean                                                   |
 
 No `structural:*` gate: the feature ships expected fixtures but no committed actual `findings.json` (the live lens runner is deferred, P7) — so there is no committed eval-actual pair to check, exactly as for the `injection` lens.
 

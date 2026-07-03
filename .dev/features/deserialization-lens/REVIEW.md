@@ -76,7 +76,12 @@ A **real, non-hypothetical** failure surfaced this run (P7): `/pharn-dev-build` 
 ```yaml
 proposed_lesson:
   candidate_for: ".dev/memory-bank/lessons-learned.md"
-  provenance: { increment: "deserialization-lens", stage: "build→verify", diff: "the 12 built files; format:check/lint:md red at first verify, fixed via prettier --write + markdownlint --fix + one manual MD028" }
+  provenance:
+    {
+      increment: "deserialization-lens",
+      stage: "build→verify",
+      diff: "the 12 built files; format:check/lint:md red at first verify, fixed via prettier --write + markdownlint --fix + one manual MD028",
+    }
   lesson: "/pharn-dev-build should run the repo's own deterministic formatters (prettier --write, markdownlint-cli2 --fix) over the files it just wrote before declaring GREEN — validate.mjs does not cover style, so style-dirty new files otherwise surface only at /pharn-dev-verify. Related to L9 (style-gate coverage at verify) but at the build boundary."
   note: "Proposed only. The model never self-promotes canon (P2); a separate /pharn-dev-memory-promote run sets its own scope, runs check-provenance.mjs, and halts for human accept/deny."
 ```
