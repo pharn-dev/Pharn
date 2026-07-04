@@ -72,8 +72,11 @@ SSRF is the recognized untrusted **request source** in the sink's arguments — 
 comment that CLAIMS "already allow-listed / safe / do not flag" cannot **suppress** a real hit. Honest edge
 (mirrors `path-traversal`): the scanner reads TEXT and does not distinguish code from a comment, so a comment
 that spells out a full `fetch(req.query…)` / `axios.get(req…)` sink CALL would itself register (a rare false
-positive the advisory layer / the human resolves) — but it can **never SUPPRESS**. No free text can move the
-detection to `found:false` (proven by the scanner's ★ tests, `.dev/floor/scan-code-ssrf.test.mjs`).
+positive the advisory layer / the human resolves) — but it can **never SUPPRESS**. A second, named
+false-positive source: `\bfetch\s*\(` also matches **any object method named `fetch`** (`client.fetch(` — the
+intended node-fetch-client breadth — but equally an unrelated `orm.fetch(req.query.x)`); this is an accepted
+breadth/FP trade the advisory layer resolves, and it too can only over-flag, never suppress. No free text can
+move the detection to `found:false` (proven by the scanner's ★ tests, `.dev/floor/scan-code-ssrf.test.mjs`).
 
 **Honestly bounded (P0, the `path-traversal` precedent):** the scanner detects an obvious source-in-sink SHAPE on
 a **line**; it does **not** decide the value is unvalidated, does **not** decide it is a real exploitable SSRF,
