@@ -15,11 +15,11 @@ approval, or a `PHARN ✓ reviewed` seal (P0). The run ended at **GATE 2** — t
 
 ## Structural verdicts read, verbatim (the floor clocks — each owned by its sub-stage, not by `/pharn-dev-ship`)
 
-| stage             | verdict source                          | verdict                     |
-| ----------------- | --------------------------------------- | --------------------------- |
-| `/pharn-dev-build`   | `node .dev/floor/validate.mjs .` exit   | **0 — GREEN, 26 capabilities** |
-| `/pharn-dev-regress` | `regression-report.json` `.verdict`     | **`no-regressions`** (exit 0) |
-| `/pharn-dev-verify`  | `verify-report.json` `.verdict`         | **`PASS`** (exit 0; gates test/validate/lint/format:check/lint:md all 0) |
+| stage                | verdict source                        | verdict                                                                  |
+| -------------------- | ------------------------------------- | ------------------------------------------------------------------------ |
+| `/pharn-dev-build`   | `node .dev/floor/validate.mjs .` exit | **0 — GREEN, 26 capabilities**                                           |
+| `/pharn-dev-regress` | `regression-report.json` `.verdict`   | **`no-regressions`** (exit 0)                                            |
+| `/pharn-dev-verify`  | `verify-report.json` `.verdict`       | **`PASS`** (exit 0; gates test/validate/lint/format:check/lint:md all 0) |
 
 ## Advisory stages (gate nothing — pointers, not restated, P4)
 

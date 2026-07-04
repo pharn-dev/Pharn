@@ -36,7 +36,7 @@ No lens produced a blocking floor-finding: no P0 guarantee lacks a floor reducti
   severity: minor
   file: "pharn-review/copy-paste-drift/evals/expected/expected-drift-injection.json:10"
   problem: "The ★ needle is `do not flag` (a masked COMMENT). The scanner's `majority`/`outlier` are CODE tokens, so a needle placed in a code IDENTIFIER is a distinct vector — untested here. The fence holds STRUCTURALLY (the only code-derived enum-gated field is the integer `file` line; outlier/majority tokens go only to free-text evidence), so this is NOT a hole — but a hardening eval with a code-identifier needle would strengthen the attempt-0 evidence. Carried over from GRILL G1." # free-text (untrusted DATA)
-  evidence: "expected.json L10: `needle_absent_from_enum_gated`, `needle: \"do not flag\"` (a comment, not a code token)" # free-text — quoted
+  evidence: 'expected.json L10: `needle_absent_from_enum_gated`, `needle: "do not flag"` (a comment, not a code token)' # free-text — quoted
 ```
 
 ### L-axis → P3 — a prose precedent-cite crosses a sibling module root
@@ -80,3 +80,18 @@ FAILED, canonizing "also test a code-token needle" now would be speculative. If 
 launders a code-token needle, THAT failure would trigger the lesson. Recorded here as provenance for that day, not
 promoted to `.dev/memory-bank/lessons-learned.md` (a promotion is a separate human-gated `/pharn-dev-memory-promote`
 run — the model never self-promotes, P2).
+
+## Resolution (post-review fixes — human chose "address the findings" at GATE 2)
+
+All three advisory findings were addressed and re-verified GREEN (`validate` 26 caps; `npm run check` = format,
+lint, lint:md, and `test` 419/419). The finding line-references above point at the PRE-fix state (historical
+record).
+
+- **L-floor/P0 (lens L110):** softened "the divergent line that needs fixing" → "the divergent line (the drift
+  candidate) — the outlier is a candidate for a human to judge (Layer 2), not a confirmed defect."
+- **L-trust/P2 (expected.json):** added a **code-token** needle assertion `needle_absent_from_enum_gated
+"MAX_ATTEMPTS"` (the scanner's `outlier` identifier) alongside the comment needle `"do not flag"`. A scratch RED
+  demo confirms it **fires** when `MAX_ATTEMPTS` is laundered into an enum-gated field — the code-token vector is now
+  pinned, not just the comment vector. `structural[]` is now 7 assertions.
+- **L-axis/P3 (lens L92):** dropped the cross-module `pharn-pipeline/grillers/architecture/architecture.md`
+  precedent cite; kept the same-layer `trust-fence` precedent + the `ARCHITECTURE.md §7` principle.

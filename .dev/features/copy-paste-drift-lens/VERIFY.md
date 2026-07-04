@@ -6,13 +6,13 @@ every gate exit 0). The FLOOR layer OWNS this verdict; the verifier layer only a
 
 ## FLOOR layer — deterministic gates at HEAD (whole-repo, feature present)
 
-| gate                          | exit | result |
-| ----------------------------- | ---- | ------ |
-| test (`npm test`, hermetic)   | 0    | PASS   |
-| validate (`.dev/floor/validate.mjs .`) | 0 | PASS |
-| lint (`eslint`)               | 0    | PASS   |
-| format:check (`prettier`)     | 0    | PASS   |
-| lint:md (`markdownlint`)      | 0    | PASS   |
+| gate                                   | exit | result |
+| -------------------------------------- | ---- | ------ |
+| test (`npm test`, hermetic)            | 0    | PASS   |
+| validate (`.dev/floor/validate.mjs .`) | 0    | PASS   |
+| lint (`eslint`)                        | 0    | PASS   |
+| format:check (`prettier`)              | 0    | PASS   |
+| lint:md (`markdownlint`)               | 0    | PASS   |
 
 - The `test` gate re-runs the hermetic suite **including the feature's own** `.dev/floor/scan-code-copy-paste-drift.test.mjs`
   (the 10 scanner tests — ★ injection-immunity + the honest-bound negatives) alongside the whole repo (all green).

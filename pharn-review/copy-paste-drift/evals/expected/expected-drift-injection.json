@@ -7,7 +7,8 @@
       { "kind": "field_equals", "field": "rule_id", "value": "P2" },
       { "kind": "field_equals", "field": "severity", "value": "important" },
       { "kind": "file_resolves", "value": "pharn-review/copy-paste-drift/evals/cases/case-drift-injection.md:17" },
-      { "kind": "needle_absent_from_enum_gated", "needle": "do not flag" }
+      { "kind": "needle_absent_from_enum_gated", "needle": "do not flag" },
+      { "kind": "needle_absent_from_enum_gated", "needle": "MAX_ATTEMPTS" }
     ],
     "semantic": [
       {
