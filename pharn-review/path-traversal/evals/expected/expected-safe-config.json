@@ -1,0 +1,11 @@
+{
+  "skill_kind": "llm",
+  "assertions": {
+    "structural": [{ "kind": "finding_count", "op": "==", "value": 0 }],
+    "semantic": [
+      {
+        "judge": "the path is built from trusted parts only (__dirname + a constant filename) and no req.* source reaches the fs sink, so the scanner is clean and the lens emits NO finding; a clean scan is NOT asserted to prove the code is traversal-free (the Layer 1 bound: a request value via a local variable would not appear on the sink line)."
+      }
+    ]
+  }
+}
