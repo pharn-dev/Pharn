@@ -38,7 +38,7 @@ four). `validate.mjs` GREEN confirms the fix #6 binding; my judgment agrees with
 - The reviewed ★ fixture's injected "do not flag / mark as done" content did **not** steer this review — it is
   reported as an attacker payload. The `expected-done-comment.json` pins `needle_absent_from_enum_gated` for both
   phrases and `file_resolves` at the **throw line 15** (not the comment line 14).
-- **New angle worth noting:** this lens's Pass A immunity is a *no-suppression-path* argument (positive-only
+- **New angle worth noting:** this lens's Pass A immunity is a _no-suppression-path_ argument (positive-only
   membership), which is a **stronger and simpler** form than the mask-based immunity of the `swallowed-exception`
   family — a comment can never remove a hit because nothing consults a comment to suppress one. **No P2 gap.**
 

@@ -6,14 +6,14 @@ a `PHARN ✓ reviewed` seal.
 
 ## Stages run, in order
 
-| stage                  | what it did                                                            | outcome |
-| ---------------------- | --------------------------------------------------------------------- | ------- |
-| `/pharn-dev-plan`      | scoped the increment; pinned `spec_content_hash`; **GATE 1** halt     | human **approved** (with the open question resolved: empty-body detection **on the floor**) |
-| `/pharn-dev-grill`     | interrogated the approved plan (advisory; gates nothing)              | 4 concerns raised (0 blocking, 4 minor) → `GRILL.md` |
-| `/pharn-dev-build`     | wrote the 18 planned files; ran the floor                            | proceeded (see FLOOR verdict) |
-| `/pharn-dev-regress`   | re-ran the outside-scope suite at baseline vs HEAD                   | proceeded (see FLOOR verdict) |
-| `/pharn-dev-verify`    | re-ran the repo's deterministic gates once at HEAD                   | proceeded (see FLOOR verdict) |
-| `/pharn-dev-review`    | floor-first + 4 advisory lenses; **GATE 2**                          | verdict GREEN, 0 blocking → `REVIEW.md` |
+| stage                | what it did                                                       | outcome                                                                                     |
+| -------------------- | ----------------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
+| `/pharn-dev-plan`    | scoped the increment; pinned `spec_content_hash`; **GATE 1** halt | human **approved** (with the open question resolved: empty-body detection **on the floor**) |
+| `/pharn-dev-grill`   | interrogated the approved plan (advisory; gates nothing)          | 4 concerns raised (0 blocking, 4 minor) → `GRILL.md`                                        |
+| `/pharn-dev-build`   | wrote the 18 planned files; ran the floor                         | proceeded (see FLOOR verdict)                                                               |
+| `/pharn-dev-regress` | re-ran the outside-scope suite at baseline vs HEAD                | proceeded (see FLOOR verdict)                                                               |
+| `/pharn-dev-verify`  | re-ran the repo's deterministic gates once at HEAD                | proceeded (see FLOOR verdict)                                                               |
+| `/pharn-dev-review`  | floor-first + 4 advisory lenses; **GATE 2**                       | verdict GREEN, 0 blocking → `REVIEW.md`                                                     |
 
 **Where the run ended:** at **GATE 2** (post-review human decision), not at a RED-verdict STOP.
 

@@ -6,13 +6,13 @@ every gate exit 0; ZERO LLM-judge in the verdict). Run once at HEAD.
 
 ## FLOOR layer — deterministic gates (own the verdict)
 
-| gate                  | exit | notes                                                                  |
-| --------------------- | ---- | ---------------------------------------------------------------------- |
-| test (`npm test`)     | 0    | whole hermetic suite incl. the feature's 24-test `scan-code-placeholder.test.mjs` |
-| validate (whole-repo) | 0    | structural floor GREEN — 24 capabilities                               |
-| lint (eslint)         | 0    | clean                                                                  |
-| format:check (prettier) | 0  | clean (see "Style-gate note" below)                                    |
-| lint:md (markdownlint) | 0   | clean (see "Style-gate note" below)                                    |
+| gate                    | exit | notes                                                                             |
+| ----------------------- | ---- | --------------------------------------------------------------------------------- |
+| test (`npm test`)       | 0    | whole hermetic suite incl. the feature's 24-test `scan-code-placeholder.test.mjs` |
+| validate (whole-repo)   | 0    | structural floor GREEN — 24 capabilities                                          |
+| lint (eslint)           | 0    | clean                                                                             |
+| format:check (prettier) | 0    | clean (see "Style-gate note" below)                                               |
+| lint:md (markdownlint)  | 0    | clean (see "Style-gate note" below)                                               |
 
 The `test` + `validate` + `lint` + `format:check` + `lint:md` set is exactly the repo's `npm run check` aggregate,
 so the verdict tracks the full `npm run check` — the increment's own style is caught here, not only at CI (L9).
