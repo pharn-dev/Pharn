@@ -133,6 +133,43 @@ test("TRUE-NEGATIVE: createCipheriv('aes-256-gcm') and a describe('des'...) subs
   });
 });
 
+// --- weak-cipher-rc4 (GATE-2) -----------------------------------------------
+
+test("createCipheriv('rc4', …) is detected as weak-cipher-rc4", () => {
+  const body = `const c = crypto.createCipheriv("rc4", key, null);\n`;
+  withCode(body, (p) => {
+    const r = run(p);
+    assert.deepEqual(json(r), { found: true, hits: [{ line: 1, kind: "weak-cipher-rc4" }] });
+  });
+});
+
+test("Cipher.getInstance('RC4') (Java) is detected as weak-cipher-rc4", () => {
+  const body = `Cipher c = Cipher.getInstance("RC4");\n`;
+  withCode(body, (p) => {
+    const r = run(p);
+    assert.deepEqual(json(r), { found: true, hits: [{ line: 1, kind: "weak-cipher-rc4" }] });
+  });
+});
+
+// --- deprecated-createcipher (GATE-2) ---------------------------------------
+
+test("crypto.createCipher(...) (deprecated no-IV form) is detected", () => {
+  const body = `const c = crypto.createCipher("aes-256-cbc", password);\n`;
+  withCode(body, (p) => {
+    const r = run(p);
+    assert.deepEqual(json(r), { found: true, hits: [{ line: 1, kind: "deprecated-createcipher" }] });
+  });
+});
+
+test("TRUE-NEGATIVE: the SAFE createCipheriv(...) is NOT flagged as deprecated-createcipher", () => {
+  const body = `const c = crypto.createCipheriv("aes-256-gcm", key, iv);\n`;
+  withCode(body, (p) => {
+    const r = run(p);
+    assert.equal(r.status, 0);
+    assert.deepEqual(json(r), { found: false, hits: [] });
+  });
+});
+
 // --- ecb-mode ---------------------------------------------------------------
 
 test("an 'aes-256-ecb' cipher string is detected as ecb-mode", () => {
@@ -175,6 +212,14 @@ test("TRUE-NEGATIVE: a bare Math.random() shuffle (no security material on the l
     const r = run(p);
     assert.equal(r.status, 0);
     assert.deepEqual(json(r), { found: false, hits: [] });
+  });
+});
+
+test("Math.random() building a credential (broadened word list, GATE-2) is detected", () => {
+  const body = `const credential = "c_" + Math.random().toString(36);\n`;
+  withCode(body, (p) => {
+    const r = run(p);
+    assert.deepEqual(json(r), { found: true, hits: [{ line: 1, kind: "insecure-random" }] });
   });
 });
 

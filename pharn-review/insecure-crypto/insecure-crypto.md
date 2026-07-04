@@ -53,9 +53,10 @@ node .dev/floor/scan-code-crypto.mjs <artifact-under-review>
 ```
 
 It prints `{"found":<bool>,"hits":[{"line":<int>,"kind":"<pattern-kind>"}]}` — a **fixed regex set** over the
-file's lines detecting six named-weak primitives: `weak-hash-md5`, `weak-hash-sha1`, `weak-cipher-des`,
-`ecb-mode`, `insecure-random` (Math.random named alongside security material), `hardcoded-iv-salt` — reducing
-to `ARCHITECTURE.md §2` primitive #3. **For each hit, emit one FLOOR-grade finding** (below), taking `file`'s
+file's lines detecting eight named-weak primitives: `weak-hash-md5`, `weak-hash-sha1`, `weak-cipher-des`,
+`weak-cipher-rc4`, `deprecated-createcipher` (Node's no-IV `crypto.createCipher`), `ecb-mode`,
+`insecure-random` (Math.random named alongside security material), `hardcoded-iv-salt` — reducing to
+`ARCHITECTURE.md §2` primitive #3. **For each hit, emit one FLOOR-grade finding** (below), taking `file`'s
 line **from the scanner's `line`** (deterministic, not your judgment).
 
 **Injection-immune by construction (P2):** the scanner's verdict is regex membership over the text ONLY. A
@@ -91,9 +92,9 @@ the finding and **ask the human** (P5) — never silently suppress, never guess.
 This lens scans **one code file** per invocation (the scanner takes a single `<code-file>`, mirroring
 `scan-code-secrets.mjs`). Applying it across a multi-file diff / directory is done by invoking it **per file**.
 A built-in multi-file / directory sweep is a **future increment** (P7 — not built speculatively now). The
-weak-primitive set is likewise a deliberately-bounded **subset** (six primitives); same-tier additions (e.g.
-RC4, the deprecated `crypto.createCipher` without an IV, low-iteration PBKDF2) are candidate **future
-increments**, added when a real need surfaces — never speculatively (P7).
+weak-primitive set is likewise a deliberately-bounded **subset** (eight primitives); further same-tier
+additions (e.g. low-iteration PBKDF2, short RSA `modulusLength`) remain candidate **future increments**, added
+when a real need surfaces — never speculatively (P7).
 
 ## Procedure (membership tests; terminal fallback is ask — P5)
 
@@ -150,8 +151,8 @@ injection, stays **advisory** — the named residual (`finding-shape.md` §Emiss
   registers.
 - **Weak-primitive detection over CODE** (`.dev/floor/scan-code-crypto.mjs`, a fixed regex set over the code
   text) → **FLOOR** (regex; `ARCHITECTURE.md §2` primitive #3), and **injection-immune by construction**. Named
-  precisely: **"detects known-weak-crypto-primitive patterns (MD5/SHA-1/DES/ECB/insecure-random/
-  hardcoded-IV-salt) in the code deterministically."** Bounded: it detects a pattern, not "a real
+  precisely: **"detects known-weak-crypto-primitive patterns (MD5/SHA-1/DES/RC4/deprecated-createCipher/ECB/
+  insecure-random/hardcoded-IV-salt) in the code deterministically."** Bounded: it detects a pattern, not "a real
   vulnerability", not the algorithm's context, and not "the crypto is correct / secure". **Two clocks:** the
   scanner's output is floor; the model's inline invocation of it (pre-runner) is advisory orchestration,
   backstopped by the scanner's tests + the eval.
