@@ -49,7 +49,11 @@
 // scan-code-ssrf.test.mjs — they are the whole reason this is FLOOR, not judgment.) Honest edge (mirrors
 // path-traversal): the scanner reads TEXT and does not distinguish code from a comment, so a comment that
 // spells out a full `fetch(req.query…)` / `axios.get(req…)` sink CALL would itself register (a rare false
-// positive the LENS's advisory layer / the human resolves) — but it can never SUPPRESS.
+// positive the LENS's advisory layer / the human resolves) — but it can never SUPPRESS. A second, named
+// false-positive source: `\bfetch\s*\(` also matches ANY object method named `fetch` (`client.fetch(` — the
+// intended node-fetch-client breadth — but equally an unrelated `orm.fetch(req.query.x)`); this is an accepted
+// breadth/FP trade (it catches more real outbound calls; the advisory layer resolves a non-HTTP `.fetch()`),
+// and — like every pattern here — it can never SUPPRESS, only over-flag.
 //
 // Single-file by contract (v0.1.0): scans ONE code file, mirroring scan-code-path-traversal.mjs's <code-file>
 // arg. got/superagent/undici, aliased node-fetch, axios.create() instances, the via-local-variable case, a
