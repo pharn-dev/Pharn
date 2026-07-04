@@ -1,0 +1,11 @@
+{
+  "skill_kind": "llm",
+  "assertions": {
+    "structural": [{ "kind": "finding_count", "op": "==", "value": 0 }],
+    "semantic": [
+      {
+        "judge": "the outbound URL is built from trusted parts only (a constant API_BASE host + a constant '/health' path) and no req.* source reaches the axios sink, so the scanner is clean and the lens emits NO finding; a clean scan is NOT asserted to prove the code is SSRF-free (the Layer 1 bound: a request value via a local variable would not appear on the sink line)."
+      }
+    ]
+  }
+}
