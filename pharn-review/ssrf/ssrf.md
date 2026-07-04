@@ -178,7 +178,11 @@ the named residual (`finding-shape.md` §Emission-enforcement audit; `LIMITS.md 
   reaching a recognized outbound-request URL sink (fetch/http(s)/axios) on line N."** Bounded: it detects a
   SHAPE, not "a real exploitable SSRF" and not "SSRF-safe". **Two clocks:** the scanner's output is floor; the
   model's inline invocation of it (pre-runner) is advisory orchestration, backstopped by the scanner's tests +
-  the eval.
+  the eval. **Per-family coverage layering (honest):** all three sink families (`fetch` / `http(s).get|request` /
+  `axios(.verb)`) are pinned by `.dev/floor/scan-code-ssrf.test.mjs`; the `http-request` and bare-`axios(`
+  branches have **no dedicated lens eval** (the four lens evals bind P2 + the trust-fence at the `fetch` /
+  `axios.get` level). That is the correct layer — the scanner tests own the per-family regex verdict; the lens
+  evals own finding-emission + the laundering trip-wire.
 - **Is the value actually untrusted? Is a URL-host allow-list / SSRF guard applied elsewhere? Is it only a
   fixed-host path-append? Full taint tracing? Is the code SSRF-free?** → **ADVISORY.** Irreducible judgment;
   surfaced, never gates. **No taint analysis is claimed.** The **via-a-local-variable** case (the common real
