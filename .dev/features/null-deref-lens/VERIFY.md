@@ -7,13 +7,13 @@ codes (ints), never a finding's free-text (P2).
 
 ## FLOOR layer — deterministic gates (own the verdict)
 
-| gate         | exit | meaning                                                            |
-| ------------ | ---- | ----------------------------------------------------------------- |
+| gate         | exit | meaning                                                                   |
+| ------------ | ---- | ------------------------------------------------------------------------- |
 | test         | 0    | `npm test` — full hermetic suite incl. the feature's 24 new scanner tests |
-| validate     | 0    | `.dev/floor/validate.mjs .` — structural floor GREEN, 27 capabilities |
-| lint         | 0    | `npm run lint` — eslint clean                                     |
-| format:check | 0    | `npm run format:check` — prettier clean (whole-repo)             |
-| lint:md      | 0    | `npm run lint:md` — markdownlint clean (whole-repo)             |
+| validate     | 0    | `.dev/floor/validate.mjs .` — structural floor GREEN, 27 capabilities     |
+| lint         | 0    | `npm run lint` — eslint clean                                             |
+| format:check | 0    | `npm run format:check` — prettier clean (whole-repo)                      |
+| lint:md      | 0    | `npm run lint:md` — markdownlint clean (whole-repo)                       |
 
 No `structural:<expected>` gate: the feature ships eval `expected` fixtures but **no committed actual
 `findings.json`** (the live lens runner is deferred, P7), so there is no eval-actual pair to range over — exactly as

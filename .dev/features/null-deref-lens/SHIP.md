@@ -6,14 +6,14 @@ every verdict below belongs to a sub-stage. This file records **that the chain r
 
 ## Stages run, in order — ended at GATE 2 (post-review human decision)
 
-| # | stage             | structural verdict (read verbatim)            | source                                    |
-| - | ----------------- | --------------------------------------------- | ----------------------------------------- |
-| 1 | `/pharn-dev-plan`   | GATE 1 — approved as written (human)          | `PLAN.md` + approval halt                 |
-| 2 | `/pharn-dev-grill`  | advisory — 2 minor concerns, 0 blocking       | `GRILL.md` (gates nothing)                |
-| 3 | `/pharn-dev-build`  | **FLOOR: `validate.mjs` exit `0` (GREEN, 27 caps)** | build floor gate                    |
-| 4 | `/pharn-dev-regress`| **FLOOR: `.verdict` = `no-regressions`**      | `regression-report.json` (exit 0)         |
-| 5 | `/pharn-dev-verify` | **FLOOR: `.verdict` = `PASS`**                | `verify-report.json` (exit 0, 0 verifiers)|
-| 6 | `/pharn-dev-review` | advisory — GREEN, 0 floor-gate findings, 2 advisory notes | `REVIEW.md`                    |
+| #   | stage                | structural verdict (read verbatim)                        | source                                     |
+| --- | -------------------- | --------------------------------------------------------- | ------------------------------------------ |
+| 1   | `/pharn-dev-plan`    | GATE 1 — approved as written (human)                      | `PLAN.md` + approval halt                  |
+| 2   | `/pharn-dev-grill`   | advisory — 2 minor concerns, 0 blocking                   | `GRILL.md` (gates nothing)                 |
+| 3   | `/pharn-dev-build`   | **FLOOR: `validate.mjs` exit `0` (GREEN, 27 caps)**       | build floor gate                           |
+| 4   | `/pharn-dev-regress` | **FLOOR: `.verdict` = `no-regressions`**                  | `regression-report.json` (exit 0)          |
+| 5   | `/pharn-dev-verify`  | **FLOOR: `.verdict` = `PASS`**                            | `verify-report.json` (exit 0, 0 verifiers) |
+| 6   | `/pharn-dev-review`  | advisory — GREEN, 0 floor-gate findings, 2 advisory notes | `REVIEW.md`                                |
 
 The chain reached the end (no RED-verdict STOP); it ends here at **GATE 2** for the human to decide **merge / fix /
 abandon**.
