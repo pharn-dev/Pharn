@@ -4,14 +4,14 @@
 
 ## Stages run, in order — ended at GATE 2 (post-review human decision)
 
-| # | stage             | structural verdict read                                             | result             | proceed? |
-| - | ----------------- | ------------------------------------------------------------------ | ------------------ | -------- |
-| 1 | `/pharn-dev-plan`    | — (GATE 1: human plan approval)                                    | **approved**       | ✓ (gate) |
-| 2 | `/pharn-dev-grill`   | — (advisory; gates nothing)                                        | 3 advisory-minor   | ✓        |
-| 3 | `/pharn-dev-build`   | `validate.mjs` exit code                                           | **0** (GREEN — 30) | ✓        |
-| 4 | `/pharn-dev-regress` | `regression-report.json` `.verdict`                               | **`no-regressions`** | ✓      |
-| 5 | `/pharn-dev-verify`  | `verify-report.json` `.verdict`                                   | **`PASS`**         | ✓        |
-| 6 | `/pharn-dev-review`  | — (no structural verdict; advisory lenses) → **GATE 2**           | GREEN, 0 blocking  | **STOP for human** |
+| #   | stage                | structural verdict read                                 | result               | proceed?           |
+| --- | -------------------- | ------------------------------------------------------- | -------------------- | ------------------ |
+| 1   | `/pharn-dev-plan`    | — (GATE 1: human plan approval)                         | **approved**         | ✓ (gate)           |
+| 2   | `/pharn-dev-grill`   | — (advisory; gates nothing)                             | 3 advisory-minor     | ✓                  |
+| 3   | `/pharn-dev-build`   | `validate.mjs` exit code                                | **0** (GREEN — 30)   | ✓                  |
+| 4   | `/pharn-dev-regress` | `regression-report.json` `.verdict`                     | **`no-regressions`** | ✓                  |
+| 5   | `/pharn-dev-verify`  | `verify-report.json` `.verdict`                         | **`PASS`**           | ✓                  |
+| 6   | `/pharn-dev-review`  | — (no structural verdict; advisory lenses) → **GATE 2** | GREEN, 0 blocking    | **STOP for human** |
 
 **Where the run ended:** GATE 2 — the post-review human decision (merge / fix / abandon). No RED-verdict STOP occurred.
 

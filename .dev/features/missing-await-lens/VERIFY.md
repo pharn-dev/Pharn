@@ -6,7 +6,7 @@
 ## Floor gates (whole-repo, at HEAD with the feature present)
 
 | gate           | exit | what it checks                                                                                          |
-| -------------- | ---- | ------------------------------------------------------------------------------------------------------ |
+| -------------- | ---- | ------------------------------------------------------------------------------------------------------- |
 | `test`         | 0    | `npm test` — full hermetic suite, incl. the feature's own `scan-code-missing-await.test.mjs` (17 cases) |
 | `validate`     | 0    | `.dev/floor/validate.mjs .` — structural floor GREEN (30 capabilities)                                  |
 | `lint`         | 0    | `npm run lint` — eslint clean                                                                           |
