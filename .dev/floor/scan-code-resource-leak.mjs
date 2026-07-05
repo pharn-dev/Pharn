@@ -31,9 +31,11 @@
 //     (deferred to the advisory layer / a future increment, P7). The bare broad names `open`/`connect`/
 //     `createStream` (optional receiver) can over-match a non-resource `const modal = open(...)` → a HIT the
 //     advisory layer owns ("is this actually a resource / does close happen elsewhere?").
-//   • FIXED CLEANUP SET { close, closeSync, end, destroy, disconnect, release, unref }: a custom disposer
+//   • FIXED CLEANUP SET { close, closeSync, end, destroy, disconnect, release }: a custom disposer
 //     (`dispose(res)`, `res.free()`) is not recognized → the binding reads as unclosed (a HIT the advisory layer
-//     owns). Conversely, `end` is treated as closing (stream/socket semantics).
+//     owns). Conversely, `end` is treated as closing (stream/socket semantics). `unref()` is deliberately NOT in
+//     the set — it de-refcounts a handle from the event loop, it does NOT close/dispose it, so an unref'd-but-
+//     never-closed resource is correctly still flagged (a resource-leak review finding, addressed).
 //   • A bare `finally` block is NOT itself cleanup — only a detected cleanup CALL on the binding counts. A
 //     try/finally whose finally does not close THIS binding (an empty finally, or one that closes a different
 //     object) still flags the open. (Correct, but noted: the `finally` keyword carries no weight; the close call
@@ -180,7 +182,7 @@ function escapeRe(x) {
 // FIXED set of resource-acquisition methods (P5). The binding initializer must be `[await] (recv.)*OPEN(`.
 const OPEN = "open|openSync|createReadStream|createWriteStream|createConnection|connect|createStream|createSocket";
 // FIXED set of cleanup methods (P5) — presence (as a call on / with the BOUND NAME) ⇒ the resource is cleaned up.
-const CLEANUP = "close|closeSync|end|destroy|disconnect|release|unref";
+const CLEANUP = "close|closeSync|end|destroy|disconnect|release";
 const CLEANUP_ARG = "close|closeSync|end|destroy|disconnect|release"; // argument-form heads (e.g. fs.closeSync(fd))
 
 // \b(DECL) NAME = [await] (ident(.ident)*.)? OPEN (

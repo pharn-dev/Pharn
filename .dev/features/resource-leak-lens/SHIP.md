@@ -30,6 +30,10 @@ See **`.dev/features/resource-leak-lens/REVIEW.md`** — verdict **GREEN, 0 floo
 - Build apparatus: `.dev/floor/scan-code-resource-leak.mjs` (deterministic unclosed-resource scanner) + `.dev/floor/scan-code-resource-leak.test.mjs` (19 hermetic tests incl. ★ injection-immunity + fail-closed).
 - Trace: `.dev/features/resource-leak-lens/` — PLAN, GRILL, REGRESSION(+json), VERIFY(+json), REVIEW, this SHIP.
 
+## GATE 2 iteration (post-review, human-directed)
+
+At GATE 2 the human chose **"address the `unref` advisory first"** rather than merge immediately. Acted on it within the approved plan's `## Files`: `unref` was dropped from the scanner's cleanup set (it de-refcounts a handle, it does not close/dispose it) and a locking test added (scanner suite **19 → 20**). **Verify was re-run → PASS** (`test`/`validate`/`lint`/`format:check`/`lint:md` all 0). `REVIEW.md` marks the finding **RESOLVED**; `VERIFY.md` records the re-run. The build stayed in-scope (fix #7). The decision is handed back to the human below.
+
 ## Standing decision
 
 **The decision is the human's** (GATE 2: merge / fix / abandon). The chain ran; the named floor verdicts are as shown — **this is NOT a judgment that the increment is good or wise; that is the human's call at the post-review gate.** `/pharn-dev-ship` does not merge, push, commit, or seal.

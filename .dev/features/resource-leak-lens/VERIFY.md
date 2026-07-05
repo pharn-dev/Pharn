@@ -8,7 +8,7 @@ and an **ADVISORY** verifier layer that only annotates (none registered today).
 
 | gate           | exit | meaning                                                         |
 | -------------- | ---- | --------------------------------------------------------------- |
-| `test`         | 0    | `npm test` — full hermetic suite incl. the 19 new scanner tests |
+| `test`         | 0    | `npm test` — full hermetic suite incl. the 20 new scanner tests |
 | `validate`     | 0    | `.dev/floor/validate.mjs .` — GREEN, 28 capabilities            |
 | `lint`         | 0    | `npm run lint` — eslint clean                                   |
 | `format:check` | 0    | `npm run format:check` — prettier clean (whole-repo)            |
@@ -22,6 +22,8 @@ and an **ADVISORY** verifier layer that only annotates (none registered today).
   eval-bound).
 
 **VERIFIED: floor gates PASS** (`check-verify.mjs` → `"PASS"`, exit 0; `failing_gates: []`).
+
+> **Re-run at GATE 2 (post-unref-fix).** After the initial PASS the human elected to address REVIEW's minor `unref` advisory before merging: `unref` was dropped from the scanner's cleanup set and a locking test added (scanner suite 19 → 20). These gates are the **re-run** over that change — still `test`/`validate`/`lint`/`format:check`/`lint:md` all `0`, verdict **PASS**.
 
 ### Honest note — an initial `format:check` FAIL, fixed (disclosed, not hidden)
 

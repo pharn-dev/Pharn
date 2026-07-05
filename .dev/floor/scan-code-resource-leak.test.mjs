@@ -105,6 +105,15 @@ test("`const s = fs.createReadStream(p)` never destroyed → found", () => {
   });
 });
 
+test("`socket.unref()` is NOT cleanup (event-loop de-refcount, not a close) → an unref'd-but-never-closed resource is found", () => {
+  const body = `const socket = net.createConnection(opts);\nsocket.unref();\n`;
+  withCode(body, (p) => {
+    const r = run(p);
+    assert.equal(r.status, 0);
+    assert.deepEqual(json(r), { found: true, hits: [{ line: 1, kind: "unclosed-resource" }] });
+  });
+});
+
 // ---------------------------------------------------------------------------
 // TRUE-NEGATIVES — the cleanup discriminator keeps closed resources CLEAN
 
