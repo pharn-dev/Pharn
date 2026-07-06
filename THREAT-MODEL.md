@@ -83,7 +83,7 @@ The red-team's verdict: a **single disease in five places — "written in the co
    input's untrusted tag; guaranteed decisions read only enum-gated fields (`ARCHITECTURE.md §8`,
    fix #1). _Closed structurally; residual named in §5._
 2. **Trust-by-location without write-protection** — trusted source files are write-protected by a
-   hook (`ARCHITECTURE.md §7`, fix #2). _Closed._
+   hook (`ARCHITECTURE.md §7`, fix #2). _Closed against the Write/Edit/MultiEdit surface; Bash-based writes rest on the Claude Code permission layer (residual)._
 3. **Deterministic gate over probabilistic severity** — split into floor-gate (blocks guaranteed
    invariants from actual content) vs advisory-gate (reads LLM severity, never sole basis for a
    guaranteed block) (fix #3). _Closed by separation; the advisory half is labeled, not "fixed."_
