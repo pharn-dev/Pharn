@@ -449,3 +449,46 @@ test("integration: setter unlocks memory-bank/lessons-learned.md; hook then allo
   assert.equal(hook(cwd, "memory-bank/lessons-learned.md").status, 0);
   assert.equal(hook(cwd, "pharn-core/x.md").status, 2);
 });
+
+// --- Symlink escape (fix #7 hardening): scope is judged on the REAL target, not the innocent name ---
+// A committed symlink in an allowed dir must not launder a write onto a trusted doc / out-of-scope path.
+// The decision is still pure path-membership (P2) — realpath just canonicalizes the path first.
+
+test("no scope: a symlink in features/ resolving to a trusted doc is DENIED (real target outside safe-set)", () => {
+  const cwd = tmp();
+  fs.writeFileSync(join(cwd, "CONSTITUTION.md"), "trusted\n");
+  fs.mkdirSync(join(cwd, "features"));
+  fs.symlinkSync(join("..", "CONSTITUTION.md"), join(cwd, "features", "notes.md"));
+  const r = hook(cwd, "features/notes.md");
+  assert.equal(r.status, 2);
+  assert.match(r.stderr, /writes-scope guard/);
+  assert.match(r.stderr, /Blocked path : CONSTITUTION\.md/);
+});
+
+test("no scope: a real (non-symlink) file in features/ is still ALLOWED (no false positive from realpath)", () => {
+  const cwd = tmp();
+  fs.mkdirSync(join(cwd, "features"));
+  fs.writeFileSync(join(cwd, "features", "notes.md"), "ordinary\n");
+  assert.equal(hook(cwd, "features/notes.md").status, 0);
+});
+
+test("scope [features/foo/**]: a symlink inside resolving OUTSIDE scope is DENIED (judged on real target)", () => {
+  const cwd = tmp();
+  fs.mkdirSync(join(cwd, "pharn-core"), { recursive: true });
+  fs.writeFileSync(join(cwd, "pharn-core", "x.md"), "real\n");
+  fs.mkdirSync(join(cwd, "features", "foo"), { recursive: true });
+  fs.symlinkSync(join("..", "..", "pharn-core", "x.md"), join(cwd, "features", "foo", "link.md"));
+  setScope(cwd, ["features/foo/**"]);
+  const r = hook(cwd, "features/foo/link.md");
+  assert.equal(r.status, 2);
+  assert.match(r.stderr, /writes-scope guard/);
+});
+
+test("scope [features/foo/**]: a symlink resolving to an IN-scope real target is ALLOWED (allow-side symmetry)", () => {
+  const cwd = tmp();
+  fs.mkdirSync(join(cwd, "features", "foo"), { recursive: true });
+  fs.writeFileSync(join(cwd, "features", "foo", "real.md"), "in scope\n");
+  fs.symlinkSync("real.md", join(cwd, "features", "foo", "link.md")); // both under features/foo/**
+  setScope(cwd, ["features/foo/**"]);
+  assert.equal(hook(cwd, "features/foo/link.md").status, 0);
+});

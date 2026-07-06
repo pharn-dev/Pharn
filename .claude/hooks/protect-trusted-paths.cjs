@@ -10,9 +10,46 @@
 // could delete the human-only review requirement and collapse the GitHub-layer trust control (P2).
 // Extend further with the PHARN_PROTECTED env var (comma-separated basenames or path fragments).
 //
-// Wire it via .claude/hooks/settings.snippet.json (matcher: Write|Edit|MultiEdit).
+// Symlink-safe: the write target is canonicalized with fs.realpathSync (a nearest-existing-ancestor
+// walk) BEFORE the protected test, so a committed symlink in an allowed dir (e.g. features/notes.md
+// -> ../CONSTITUTION.md) that resolves onto a trusted file is denied — not merely the literal name.
+//
+// Wired via .claude/settings.json (PreToolUse matcher: Write|Edit|MultiEdit).
 
 "use strict";
+
+const fs = require("fs");
+const path = require("path");
+
+// Repo root with symlinks resolved, so a canonicalized target below shares a common prefix with it.
+const ROOT = (() => {
+  try {
+    return fs.realpathSync(process.cwd());
+  } catch {
+    return process.cwd();
+  }
+})();
+
+// Canonicalize a (possibly not-yet-existent) write target through symlinks: realpath the nearest
+// existing ancestor — which resolves any committed symlink at any depth — then re-append the missing
+// tail. Deterministic; no LLM. A new file whose ancestors contain no symlink resolves to its lexical
+// path, so ordinary writes are unaffected.
+function resolveWriteTarget(p) {
+  const abs = path.resolve(ROOT, String(p));
+  const missing = [];
+  let cur = abs;
+  for (;;) {
+    try {
+      const real = fs.realpathSync(cur);
+      return missing.length ? path.join(real, ...missing) : real;
+    } catch {
+      const parent = path.dirname(cur);
+      if (parent === cur) return abs; // reached filesystem root; nothing existed -> lexical fallback
+      missing.unshift(path.basename(cur));
+      cur = parent;
+    }
+  }
+}
 
 const DEFAULT_PROTECTED = ["CONSTITUTION.md", "ARCHITECTURE.md", "THREAT-MODEL.md", "LIMITS.md", "CODEOWNERS"];
 const extra = (process.env.PHARN_PROTECTED || "")
@@ -23,7 +60,7 @@ const PROTECTED = [...DEFAULT_PROTECTED, ...extra];
 
 function readStdin() {
   try {
-    return require("fs").readFileSync(0, "utf8");
+    return fs.readFileSync(0, "utf8");
   } catch {
     return "";
   }
@@ -62,9 +99,14 @@ const toolInput = payload.tool_input || payload.toolInput || {};
 const isWrite = /^(Write|Edit|MultiEdit)$/i.test(toolName) || (!toolName && extractPaths(toolInput).length);
 
 if (isWrite) {
-  const hit = extractPaths(toolInput).find(isProtected);
-  if (hit) {
-    const reason = `BLOCKED by PHARN floor: ${hit} is a trusted file (CONSTITUTION P2 / fix #2). Trusted spec is human-only; the build agent may not write it. If a change is genuinely needed, a human edits it outside the agent loop.`;
+  // Deny if EITHER the literal path OR its symlink-resolved real target is protected. The literal
+  // check is kept first, so a direct write to a trusted file behaves exactly as before (no regression).
+  const offender = extractPaths(toolInput)
+    .map((rawPath) => ({ rawPath, real: resolveWriteTarget(rawPath) }))
+    .find(({ rawPath, real }) => isProtected(rawPath) || isProtected(real));
+  if (offender) {
+    const shown = isProtected(offender.rawPath) ? offender.rawPath : `${offender.rawPath} -> ${offender.real}`;
+    const reason = `BLOCKED by PHARN floor: ${shown} is (or resolves to) a trusted file (CONSTITUTION P2 / fix #2). Trusted spec is human-only; the build agent may not write it. If a change is genuinely needed, a human edits it outside the agent loop.`;
     // Current Claude Code form:
     process.stdout.write(
       JSON.stringify({

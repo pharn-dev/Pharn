@@ -38,7 +38,13 @@ HALT-concern check (reporter's condition — "HALT if realpath of a non-existent
 Add to BOTH hooks (duplicated, matching the existing pattern where `extractPaths`/`readStdin` are already duplicated — avoids a leaf→leaf `require` between two floor executables, P3):
 
 ```js
-const ROOT = (() => { try { return fs.realpathSync(process.cwd()); } catch { return process.cwd(); } })();
+const ROOT = (() => {
+  try {
+    return fs.realpathSync(process.cwd());
+  } catch {
+    return process.cwd();
+  }
+})();
 
 // Canonicalize a (possibly not-yet-existent) write target: realpath the nearest existing ancestor —
 // which resolves any committed symlink at any depth — then re-append the missing tail. Fully
