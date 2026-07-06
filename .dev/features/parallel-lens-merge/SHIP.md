@@ -31,6 +31,10 @@
 - **FLOOR (new):** `merge-findings.mjs` (deterministic dedup keyed on enum-gated `(type,rule_id,file)`, fail-closed, drops laundered enum-gated fields, order-independent bytes) · `count-lenses.mjs` (frontmatter membership → 22 live) · `lens-scanner-map.json` + consistency test (18 mapped / 4 scanner-less, drift-guarded). All under `npm test` (+27 tests).
 - **ADVISORY:** `/pharn-review` (parallel subagent spawn + scanner-prefiltered slices) and the thin `/pharn-dev-review` mirror. Parallelism, slicing, and lens judgment are **not** floor-backed — labeled so throughout.
 
+## Post-GATE-2 action (human-directed)
+
+At GATE 2 the human chose **Address A1**: the `/pharn-dev-review` mirror was reduced from a 22-line duplicated procedure to a **6-line pointer** to `/pharn-review` (`.claude/commands/pharn-dev-review.md:104`), minimizing the second-concern footprint (P3). **Re-verified:** all five gates green again (`test, validate, lint, format:check, lint:md` = 0; `check-verify` exit 0 → PASS; floor GREEN — 35). REVIEW.md's A1 stands as the record of the finding; this is its resolution.
+
 ## Standing decision — the human's
 
 Chain ran; the named floor verdicts are as shown (build `validate` exit 0 · regress `no-regressions` · verify `PASS`) — **this is NOT a judgment that the increment is good or wise; that is the human's call at the post-review gate.** `/pharn-dev-ship` does not merge, push, or seal.

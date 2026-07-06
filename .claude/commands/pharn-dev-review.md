@@ -101,28 +101,13 @@ Emit each finding in the exact object shape, with the split honored:
   **inform**; they are never the sole basis for blocking a guaranteed/constitutional invariant. Mark
   them clearly as advisory.
 
-## Parallel lens orchestration + deterministic merge (mirror of `/pharn-review`)
+## Many-lens reviews → see `/pharn-review` (pointer, not a second procedure)
 
-The four lenses above interrogate a **PHARN increment** (markdown capabilities) and are few enough to
-apply inline. When a review instead ranges over **many** lenses each emitting a `findings.json` — e.g.
-running the `pharn-review/*` **code** lenses over a code increment — **do not** apply them one-by-one
-in this single agent. **Reuse `/pharn-review`'s recipe** (cited, not restated — P4):
-
-1. **Membership (FLOOR):** `node .dev/floor/count-lenses.mjs .` — which `role: lens` capabilities run
-   (frontmatter, not prose).
-2. **Slice (ADVISORY):** per-lens scope via `.dev/floor/lens-scanner-map.json` (scanner-prefilter;
-   scanner-less lenses get the whole target — the honest bound).
-3. **Spawn (ADVISORY):** one subagent per lens **in parallel**, each over its slice as `trust:
-untrusted` DATA, each writing its own `findings.json`.
-4. **Merge (FLOOR):** `node .dev/floor/merge-findings.mjs <out> <in…>` — the **only** floor-grade
-   combine: enum-validates + drops laundered input, dedups by the enum-gated key `(type, rule_id,
-file)`, carries free-text as quoted DATA. It **assembles; it does not judge.**
-
-**Honest scope of the mirror (P0/P3):** this shares the parallel-spawn + merge **machinery** only. It
-does **not** repoint the code lenses at PHARN's own markdown (the code lenses review **code**; this
-command reviews PHARN **increments**) — the axes differ, so the code-lens set is not what runs against
-a markdown increment. Parallelism + slicing stay **advisory**; only `count-lenses` and `merge-findings`
-are FLOOR. Nothing here changes the four inline lenses above or this stage's advisory nature.
+The four inline lenses above suffice for a PHARN **increment**. When a review needs **many** lenses each
+emitting a `findings.json` (the `pharn-review/*` **code** lenses over a code increment), use
+**`/pharn-review`** — it runs them as parallel subagents and merges deterministically (`count-lenses` +
+`merge-findings`, FLOOR; spawn + slicing ADVISORY). This command keeps its four inline principle-lenses
+and does **not** repoint the code lenses at PHARN markdown (different axes, P3).
 
 ## Step — Write `.dev/features/<name>/REVIEW.md` and feed lessons
 
