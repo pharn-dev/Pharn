@@ -101,6 +101,14 @@ Emit each finding in the exact object shape, with the split honored:
   **inform**; they are never the sole basis for blocking a guaranteed/constitutional invariant. Mark
   them clearly as advisory.
 
+## Many-lens reviews → see `/pharn-review` (pointer, not a second procedure)
+
+The four inline lenses above suffice for a PHARN **increment**. When a review needs **many** lenses each
+emitting a `findings.json` (the `pharn-review/*` **code** lenses over a code increment), use
+**`/pharn-review`** — it runs them as parallel subagents and merges deterministically (`count-lenses` +
+`merge-findings`, FLOOR; spawn + slicing ADVISORY). This command keeps its four inline principle-lenses
+and does **not** repoint the code lenses at PHARN markdown (different axes, P3).
+
 ## Step — Write `.dev/features/<name>/REVIEW.md` and feed lessons
 
 Write `.dev/features/<name>/REVIEW.md`: the findings, grouped floor-gate vs advisory, and a one-line verdict (GREEN /
