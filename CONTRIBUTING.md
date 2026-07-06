@@ -19,8 +19,8 @@ The four trusted docs — `CONSTITUTION.md`, `ARCHITECTURE.md`, `THREAT-MODEL.md
 ## Setup
 
 ```bash
-git clone https://github.com/pharn-dev/pharn-oss.git
-cd pharn-oss
+git clone https://github.com/pharn-dev/pharn.git
+cd pharn
 npm install   # dev-only tooling (ESLint, Prettier, markdownlint).
               # The methodology itself is Node stdlib only — zero runtime dependencies, Node 24.
 ```
@@ -38,7 +38,7 @@ node .dev/floor/validate.mjs .     # the deterministic floor (exits non-zero on 
 
 ## The build loop
 
-PHARN is built one increment at a time, via three slash commands:
+PHARN is built one increment at a time. The core build loop is three commands — the fuller dev chain adds `/pharn-dev-grill`, `-regress`, `-verify`, and `/pharn-dev-ship` (which orchestrates the whole loop):
 
 ```text
 /pharn-dev-plan  →  approve/correct PLAN.md  →  /pharn-dev-build  →  .dev/floor/validate.mjs  →  /pharn-dev-review  →  fold lessons  →  next

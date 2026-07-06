@@ -77,16 +77,18 @@ echo '{"tool_name":"Edit","tool_input":{"file_path":"CONSTITUTION.md"}}' | node 
 echo '{"tool_name":"Write","tool_input":{"file_path":"pharn-core/rules/x.md"}}' | node .claude/hooks/protect-trusted-paths.cjs  # → exit 0, allowed
 ```
 
-- **Slash commands `/pharn-dev-plan`, `/pharn-dev-build`, `/pharn-dev-review`** (`.claude/commands/*.md`) are the core workflow. **Command-naming convention (dev/product boundary):** build-apparatus commands carry the **`pharn-dev-`** prefix (contributor tooling — `pharn-dev-plan` / `-build` / `-grill` / `-regress` / `-verify` / `-review` / `-ship` / `-memory-promote` / `-eval`); **product** commands carry **`pharn-`** without `-dev-` (what a PHARN user runs — e.g. a future `/pharn-spec`). The split is by **name (prefix)**, since `.claude/commands/` cannot move. The prefix is naming/menu UX only — **not** an access gate (Apache-2.0; a user who wants a dev command can still type it).
+- **Slash commands `/pharn-dev-plan`, `/pharn-dev-build`, `/pharn-dev-review`** (`.claude/commands/*.md`) are the core workflow. **Command-naming convention (dev/product boundary):** build-apparatus commands carry the **`pharn-dev-`** prefix (contributor tooling — `pharn-dev-plan` / `-build` / `-grill` / `-regress` / `-verify` / `-review` / `-ship` / `-memory-promote` / `-eval`); **product** commands carry **`pharn-`** without `-dev-` (what a PHARN user runs — `/pharn-spec` / `-plan` / `-grill` / `-build` / `-regress` / `-verify` / `-ship` / `-review`, now built). The split is by **name (prefix)**, since `.claude/commands/` cannot move. The prefix is naming/menu UX only — **not** an access gate (Apache-2.0; a user who wants a dev command can still type it).
 - **Dev tooling is real; the methodology stays stdlib-only.** The floor, the hook, and the commands
   have **zero runtime dependencies** (Node stdlib; Node 24). The repo carries **dev-only**
   devDependencies (ESLint, Prettier, markdownlint) wired as npm scripts: `npm run check`
   (`format:check` + `lint` + `lint:md` + `test`) is the aggregate gate, and `npm test` runs
   `node --test` over the hook and floor suites (`.claude/hooks/*.test.cjs` + `.dev/floor/*.test.mjs`) —
   **green** at this writing; read the count live (`npm test`), never assert it from this doc (P6).
-- `node .dev/floor/validate.mjs .` currently reports `GREEN — 1 capabilities checked` — **attempt 0 is
-  built**: the `trust-fence` lens (`pharn-review/trust-fence/`) with its `pharn-contracts/finding-shape`
-  contract and hostile eval; `.dev/features/trust-fence/REVIEW.md` records the dogfood `/pharn-dev-review` of it. Read this count live;
+- `node .dev/floor/validate.mjs .` currently reports `GREEN — 35 capabilities checked` — the product
+  surface spans **22 `pharn-review/*` code-review lenses** and **13 `pharn-pipeline/grillers/*`
+  grillers**, over the `pharn-contracts/{finding-shape,eval-format,seam-config}` contracts.
+  `pharn-review/trust-fence/` (attempt 0) remains the injection-residual probe, its dogfood
+  `/pharn-dev-review` recorded in `.dev/features/trust-fence/REVIEW.md`. Read this count live;
   never assert repo state from memory (P6). The floor still deliberately ignores this repo's own
   tooling (`.claude/commands/`, `.dev/`).
 

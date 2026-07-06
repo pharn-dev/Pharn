@@ -4,7 +4,7 @@
 
 **Ship at agent speed. Keep the understanding of a craftsman.**
 
-PHARN is an agent-orchestrated intent layer for Claude Code that prevents comprehension debt. This
+PHARN is an agent-orchestrated intent layer for Claude Code that keeps comprehension debt legible instead of silent. This
 repository, **PHARN-OSS**, is its open-source edition.
 
 [![Version](https://img.shields.io/badge/version-1.0.0-blue)](./CHANGELOG.md)
@@ -19,9 +19,10 @@ repository, **PHARN-OSS**, is its open-source edition.
 
 > **Status: early, active development.** The architecture is specified and the methodology is being
 > built incrementally, in the open, using its own tooling (PHARN builds PHARN). The `1.0.0` version
-> tags that foundation — the spec and the build tooling — **not** an adoptable pipeline. It is **not
-> yet ready to adopt** — there is no installable pipeline yet. Star or watch to follow along; see
-> [Current state](#current-state) for exactly what exists today.
+> tags that foundation — the spec, the build tooling, and the pipeline commands — **not** an adoptable
+> release. It is **not yet ready to adopt**: the pipeline runs here (self-hosting), but there is no
+> installer or packaged release you can drop into your own repo yet. Star or watch to follow along;
+> see [Current state](#current-state) for exactly what exists today.
 
 ---
 
@@ -29,7 +30,7 @@ repository, **PHARN-OSS**, is its open-source edition.
 
 - [Why PHARN?](#why-pharn)
 - [What makes it different](#what-makes-it-different)
-- [The pipeline (designed)](#the-pipeline-designed)
+- [The pipeline](#the-pipeline)
 - [The design](#the-design)
 - [Principles](#principles)
 - [Current state](#current-state)
@@ -52,9 +53,7 @@ This isn't hypothetical. A [2026 Anthropic RCT](https://www.anthropic.com/resear
 measured developers scoring ~17% lower on comprehension of code they shipped with AI assistance, even
 as the volume of AI-generated code keeps climbing — more code, understood less.
 
-PHARN is the intent layer that closes the gap. It keeps the spec, the constitution, and a
-markdown-canonical record in your repo — readable, diffable, and versioned in git. The agent does the
-typing; PHARN makes sure a human (and the next agent) can still reason about the result.
+PHARN doesn't force you to understand the code — nothing can, and anything that tries just gets bypassed. Instead it does two things it can guarantee: a deterministic floor that holds without you (secrets blocked, authorization checked, the plan actually built), and a markdown-canonical record — spec, constitution, diff, audit trail — kept in your repo, readable and diffable, available the moment you need it. The agent does the typing. PHARN keeps the result legible for whoever reads it next — if anyone does.
 
 > **Your chat history is gone. Your spec isn't.**
 
@@ -81,9 +80,9 @@ architect and reviewer, everyone working off the same artifact. It does **not** 
 
 ---
 
-## The pipeline (designed)
+## The pipeline
 
-The target workflow is a spine of typed stages — each emits a versioned artifact that links back to
+The workflow is a spine of typed stages — each emits a versioned artifact that links back to
 the spec (`ARCHITECTURE.md §6`):
 
 ```text
@@ -94,9 +93,11 @@ Each stage reads the artifacts the previous stage produced, and every downstream
 `spec_id` (the plan additionally pins the spec's `spec_content_hash`, so a spec edited after planning
 is detectable, not silent).
 
-> **What runs today:** the build _tooling_ — `/pharn-dev-plan`, `/pharn-dev-build`, `/pharn-dev-review` — not the user-facing
-> pipeline. The seven-stage spine above is the architecture PHARN is being built _to_, not a shipped
-> feature. See [Current state](#current-state).
+> **What runs today:** the seven-stage spine now exists as runnable commands — `/pharn-spec` →
+> `/pharn-plan` → `/pharn-grill` → `/pharn-build` → `/pharn-regress` → `/pharn-verify` → `/pharn-ship`
+> — exercised by PHARN on itself (self-hosting), alongside the `/pharn-dev-*` build tooling. What does
+> **not** exist yet is packaging: no installer, no versioned release you can drop into your own repo.
+> See [Current state](#current-state).
 
 ---
 
@@ -140,26 +141,33 @@ building PHARN itself. A violation is always blocking and is flagged for a human
 
 ## Current state
 
-What exists today:
+What exists today (read the live count with `node .dev/floor/validate.mjs .`):
 
 - **The architecture spec** — the four trusted documents above.
-- **The build tooling** — three slash commands ([`/pharn-dev-plan`](./.claude/commands/pharn-dev-plan.md),
-  [`/pharn-dev-build`](./.claude/commands/pharn-dev-build.md), [`/pharn-dev-review`](./.claude/commands/pharn-dev-review.md)), a deterministic
-  validator ([`.dev/floor/validate.mjs`](./.dev/floor/validate.mjs)), and a write-guard hook
-  ([`.claude/hooks/protect-trusted-paths.cjs`](./.claude/hooks/protect-trusted-paths.cjs)) that keeps
-  the trusted spec human-only.
-- **The first built increment** — a trust-boundary lens (`pharn-review/trust-fence/`) with its
-  contract (`pharn-contracts/finding-shape.md`) and a hostile eval, reviewed and recorded in
+- **The floor and its guards** — the deterministic validator
+  ([`.dev/floor/validate.mjs`](./.dev/floor/validate.mjs)) plus a family of `.dev/floor/*.mjs`
+  checkers, and **two** `PreToolUse` hooks: the trusted-doc write-guard
+  ([`.claude/hooks/protect-trusted-paths.cjs`](./.claude/hooks/protect-trusted-paths.cjs)) and the
+  writes-scope guard (`enforce-writes-scope.cjs`, fix #7) that confines every command to its declared
+  `writes:`.
+- **The product pipeline as commands** — `/pharn-spec` → `/pharn-plan` → `/pharn-grill` →
+  `/pharn-build` → `/pharn-regress` → `/pharn-verify` → `/pharn-ship`, plus `/pharn-review` (parallel
+  code-review lenses, deterministically merged) — and the `/pharn-dev-*` tooling PHARN builds itself
+  with.
+- **35 built capabilities** — **22 code-review lenses** (`pharn-review/*`, e.g. `injection`,
+  `path-traversal`, `ssrf`, `null-deref`, `n-plus-one`) and **13 grillers**
+  (`pharn-pipeline/grillers/*`, e.g. `security`, `architecture`, `coupling`), each shipping evals —
+  over three contracts (`pharn-contracts/{finding-shape,eval-format,seam-config}`).
+  `pharn-review/trust-fence/` (attempt 0) is the injection-residual probe, recorded in
   [`.dev/features/trust-fence/REVIEW.md`](./.dev/features/trust-fence/REVIEW.md).
 
-The two module folders that exist (`pharn-contracts`, the schemas-only root; and `pharn-review`) are
-the bottom of the layer tree described in `ARCHITECTURE.md §4`. The remaining layers
-(`pharn-core`, `pharn-pipeline`, `pharn-audits`, `pharn-skills-*`, `pharn-stack-*`) are **planned**,
-not built.
+The built module folders (`pharn-contracts` the schemas-only root, `pharn-review`, `pharn-pipeline`)
+are the bottom of the layer tree in `ARCHITECTURE.md §4`; `pharn-core`, `pharn-audits`,
+`pharn-skills-*`, and `pharn-stack-*` are still **planned**.
 
-What does **not** exist yet: the user-facing pipeline (`spec → … → ship` as runnable commands), the
-methodology modules above, and any installer or wizard. This repository is the foundation and the
-tooling, not a finished product. Please do not adopt it yet.
+What does **not** exist yet: any installer, wizard, or packaged release. The pipeline runs _here_, on
+PHARN itself; it is not yet something you can drop into your own repo. This repository is the
+foundation and the tooling, not a finished product. Please do not adopt it yet.
 
 ---
 
