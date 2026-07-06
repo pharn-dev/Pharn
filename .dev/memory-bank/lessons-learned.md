@@ -325,3 +325,38 @@ input/orchestration trust boundary).
 - surfaced by: `.dev/features/product-pipeline-probe/PROBE.md` (CF-A) + `.dev/features/product-pipeline-probe/REVIEW.md`
   (proposed lesson).
 - promoted: 2026-06-30 via gated `/pharn-dev-memory-promote` (human-approved).
+
+## L12 — Prevent an increment's own style misses at BUILD (format written files), don't only DETECT them at verify
+
+**Lesson.** L9 made `/pharn-dev-verify` CATCH an increment's own style misses (it added `format:check` +
+`lint:md` to verify's gate map). But detection-at-verify means every increment that writes `.md`/`.js` first
+REDS verify and needs a manual format pass — recurring friction, and a wrong-direction one (the floor found
+it, but only after the build declared itself done). Add PREVENTION at BUILD: `/pharn-dev-build` runs the
+project formatter over its just-written files (new Step 2b, ADVISORY) BEFORE its Step-3 floor, so style
+conformance is a build-completion step. Prevention (build) and detection (verify, L9) are COMPLEMENTARY, not
+substitutes: the format step is advisory orchestration — running `npm run format` / `markdownlint --fix` is
+not a floor op, and a prettier↔markdownlint conflict (e.g. an indented fenced block inside a list item) needs
+a manual resolve — so it REDUCES the recurring verify red but NEVER REPLACES verify's deterministic style
+gate, which stays the real check.
+
+**Why it matters.** "The build formats its output" cannot be a guarantee — running a formatter is advisory
+(the P0 two-clocks split: orchestration is advisory, only the floor verdict guarantees), so making it a build
+STEP lowers friction while the guarantee stays at verify's `check-verify.mjs` gate map (L9). Concretely this
+run: the `product-loop` increment's new files (`pharn-loop.md`, `check-loop.test.mjs`) plus its
+`.dev/features/product-loop/*` pipeline artifacts reddened `format:check` + `lint:md` at `/pharn-dev-verify`
+(L9's gates caught them, as designed), forcing `prettier --write` + `markdownlint --fix` + one manual
+indented-fence→inline edit before verify went green; `build-format-step` adds Step 2b so future builds
+format-then-floor. Also re-confirmed L5 this same run: `/pharn-dev-regress`'s `tests` gate hit the EXACT zsh
+unquoted-word-split bug L5 documents (`node --test $LIST` under zsh passed all paths as one bogus arg → "could
+not find" → a false pre-existing red equal at base and head), re-corrected with `xargs` per L5's remedy —
+evidence L5's input-capture boundary recurs and its fix holds. Complements L9 (detection at verify) and L5
+(input-capture robustness); the remedy lives in the build ORCHESTRATION layer (Step 2b), not a floor checker.
+
+**Provenance.**
+
+- feature: `product-loop` (trigger) → `build-format-step` (remedy)
+- commit: `6e23a4b66e2ea496ca71ee07ccaf61dfe35b1c70` (working-tree dogfood; the Step 2b remedy edit to
+  `.claude/commands/pharn-dev-build.md` is uncommitted at promotion time)
+- source: `.dev/features/product-loop/REVIEW.md` (proposed lesson candidate) +
+  `.dev/features/build-format-step/PLAN.md`
+- promoted: 2026-07-06 via gated `/pharn-dev-memory-promote` (human-approved).
