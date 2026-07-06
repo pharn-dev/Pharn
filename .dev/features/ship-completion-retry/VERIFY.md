@@ -15,8 +15,9 @@
 - The feature ships **no** `<cap>/evals/expected/*.json` ↔ `findings.json` pair (it is floor infrastructure +
   command prose, not a `role:`-bearing Capability), so there is **no** `structural:*` gate — its correctness
   signal is the two new hermetic suites collected by `npm test`:
-  - `check-build-complete.test.mjs` — 10 tests incl. the **★ parity** cross-check vs `set-writes-scope.cjs`'s
-    `--from-plan` scope, and the P2 shell-metacharacter-is-a-literal-operand test;
+  - `check-build-complete.test.mjs` — 11 tests incl. the **★ parity** cross-check vs `set-writes-scope.cjs`'s
+    `--from-plan` scope, the P2 shell-metacharacter-is-a-literal-operand test, and the read-error catch
+    (post-review finding 2);
   - `check-verify.test.mjs` — the 6 new `--complete` cases (INCOMPLETE @ exit 3; FAIL-beats-incompleteness
     precedence; `--complete 2`/malformed → INCONCLUSIVE; and the **★ backward-compat** guard that an ABSENT
     `--complete` can never yield INCOMPLETE), plus the pre-existing spine tests unchanged.

@@ -88,6 +88,18 @@ DETECTION axis and the verdict-THRESHOLD axis are in separate files. `pharn-veri
 - **advisory-gate (warn):** the 3 minor findings above (P0 wording precision, P1 read-error coverage, P3
   boundary-to-keep) — informational; none blocks the increment.
 
+## Post-review resolution (applied this run, re-verified GREEN)
+
+- **Finding 1 (P0) — RESOLVED.** `pharn-verify.md` guarantee bullet reworded to "every **concrete**
+  plan-declared `## Files` path exists" (+ the `Bounded` clause now states placeholder/glob entries are
+  skipped). The claim now matches exactly what `check-build-complete.mjs` checks.
+- **Finding 2 (P1) — RESOLVED.** Added `check-build-complete.test.mjs` "UNREADABLE PLAN (a directory) → exit 2"
+  test — a portable `EISDIR` trigger that exercises the `cannot read` catch (the branch that was previously
+  unexercised). Suite is now 11 tests; `npm test` 599 pass.
+- **Finding 3 (P3) — no change needed** (a boundary-to-keep note, not a defect).
+- Re-ran the verify gate set after the fixes: `test`/`validate`/`lint`/`format:check`/`lint:md` all exit 0 →
+  `check-verify.mjs` verdict **PASS**.
+
 ## Proposed lesson for canon (P7 — proposed, NOT written here)
 
 Candidate for `.dev/memory-bank/lessons-learned.md` (provenance: increment `ship-completion-retry`, this run):

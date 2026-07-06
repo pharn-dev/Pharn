@@ -33,6 +33,9 @@ approval, or a `PHARN ✓ reviewed` seal.
 
 - `.dev/features/ship-completion-retry/REVIEW.md` — the 4-lens advisory review (GREEN; 3 minor: a P0 wording
   precision on the pharn-verify guarantee bullet, a P1 read-error coverage gap, a P3 boundary-to-keep).
+  **Post-review (human GATE-2 "fix"): findings 1 & 2 applied and re-verified GREEN** — the guarantee bullet now
+  says "every **concrete** declared path", and a read-error test was added (suite 11 → `npm test` 599 pass);
+  finding 3 needed no change. See REVIEW.md "Post-review resolution".
 - `.dev/features/ship-completion-retry/GRILL.md` — the advisory interrogation (its important concerns 1–4 were
   folded into the built command prose/audits: bounded firing, transient-only value, fail-closed on a missing
   post-retry verdict, and the command-prose-is-untested honesty).
@@ -43,7 +46,7 @@ approval, or a `PHARN ✓ reviewed` seal.
 The **single build-completion retry (Step 2b)** did **not** fire in this run — it exists only in the built
 `/pharn-ship` prose and triggers on a live product-pipeline `INCOMPLETE` verify; the dev loop that built it
 does not exercise it (the dev-verify never emits `INCOMPLETE`). Its floor core (`check-build-complete.mjs` +
-`check-verify.mjs`'s precedence) is proven by the 16 new hermetic tests.
+`check-verify.mjs`'s precedence) is proven by the 17 new hermetic tests.
 
 ## The honest line
 
