@@ -62,6 +62,23 @@ For each file in the plan:
   STOP — relabel it `advisory` or add the floor backstop named in the plan.
 - Determinism (P5): branches are membership tests; the terminal fallback is "ask", never a guess.
 
+## Step 2b — Format the written files (build-completion; ADVISORY)
+
+After writing the plan's `## Files`, make them style-conformant **before** the floor, so a style miss is
+a **build** step rather than a `/pharn-dev-verify` surprise (`.dev/memory-bank/lessons-learned.md` L9 —
+cite, don't restate, P4):
+
+- Run the project formatter over the just-written files — `npm run format` (prettier `--write`) — and
+  `npx markdownlint-cli2 --fix` on any written `.md`.
+- Confirm `npm run format:check`, `npm run lint:md`, and `npm run lint` are clean. Resolve any residual
+  prettier↔markdownlint conflict (e.g. an indented fenced code block inside a list item) **by hand**.
+
+This step is **ADVISORY** (P0): running a formatter is orchestration, **not** a floor guarantee — the
+floor gate remains `validate.mjs` (Step 3), and the deterministic style gate remains `/pharn-dev-verify`'s
+`check-verify.mjs` (which already tracks `format:check` + `lint:md`, L9). Step 2b changes **no** verdict;
+it only prevents a foreseeable red at verify, and it **never blocks** — if a conflict cannot be resolved,
+the style miss simply surfaces at `/pharn-dev-verify` as it does today.
+
 ## Step 3 — Run the floor (the deterministic gate)
 
 Run: `node .dev/floor/validate.mjs <target-dir>`
