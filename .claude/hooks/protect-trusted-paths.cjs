@@ -13,6 +13,10 @@
 // Symlink-safe: the write target is canonicalized with fs.realpathSync (a nearest-existing-ancestor
 // walk) BEFORE the protected test, so a committed symlink in an allowed dir (e.g. features/notes.md
 // -> ../CONSTITUTION.md) that resolves onto a trusted file is denied — not merely the literal name.
+// Residual: this resolves EXISTING symlink targets (the committed-symlink vector); a broken symlink
+// (target absent) falls back to the lexical path, but it can only create a new file at a missing path
+// — it cannot reach an existing trusted doc, so the trusted-doc guarantee holds. (Bash-tool writes
+// bypass PreToolUse hooks entirely — a separate, pre-existing limit, not addressed here.)
 //
 // Wired via .claude/settings.json (PreToolUse matcher: Write|Edit|MultiEdit).
 

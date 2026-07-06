@@ -9,7 +9,9 @@
 //
 // Symlink-safe: the target is canonicalized with fs.realpathSync BEFORE the scope test, so a write
 // through a committed symlink is judged by its REAL target — a symlink onto a trusted doc or out of
-// scope is denied, not laundered by an innocent-looking name.
+// scope is denied, not laundered by an innocent-looking name. Residual: this resolves EXISTING symlink
+// targets; a broken symlink (target absent) falls back to the lexical path — a narrow
+// scope-escape-to-create, outside the reported committed-symlink vector and no worse than prior behavior.
 //
 // ADDITIVE to fix #2 (protect-trusted-paths.cjs): both hooks run on every write; a deny from EITHER
 // blocks. fix #7 is scope-only and does NOT re-implement the trusted-doc denylist — fix #2 remains the

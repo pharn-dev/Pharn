@@ -86,3 +86,14 @@ change warranted (L9 already documents both the failure and the implemented reme
   is a basis for blocking a guaranteed or constitutional invariant. "Reviewed GREEN" means the floor is
   GREEN and the lenses raised only advisory concerns — **not** that the increment is guaranteed correct
   beyond what the floor + tests check (P0).
+
+## Follow-up — advisories dispositioned (human chose "fix advisories first" at GATE 2)
+
+- **P0 (comment-residual) → ADDRESSED.** Both hook headers now name the broken-symlink lexical-fallback
+  residual (`protect-trusted-paths.cjs`, `enforce-writes-scope.cjs`). Comment-only; re-ran the gates —
+  `test` / `validate` / `lint` / `format:check` / `lint:md` all exit 0.
+- **P3 (two-reason header) → WON'T-FIX (defensible).** The `settings.snippet.json` ref correction and the
+  new symlink note are both "keep this hook's header accurate" — one axis under that framing; splitting
+  would fight the reporter's explicit one-PR request.
+- **P7 (bundling) → WON'T-FIX (reporter-sanctioned).** The security fix + two nits are the reporter's
+  explicit "integrity cascade / one PR." Unbundling is available on request but not done unilaterally.
