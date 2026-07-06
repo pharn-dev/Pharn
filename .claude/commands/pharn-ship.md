@@ -1,5 +1,5 @@
 ---
-description: "Run the PRODUCT pipeline in order so a PHARN user need not re-type or memorize it: /pharn-spec → [human approves the SPEC] → /pharn-plan → /pharn-grill → /pharn-build → /pharn-regress → /pharn-verify → [human decides merge/fix/abandon]. The seventh, terminal pipeline stage (ARCHITECTURE.md §6), realized as a GATED meta-orchestrator over stages 1–6 — the agent INVOKES each stage (advisory); WHETHER to proceed past a stage is read from that stage's STRUCTURAL floor verdict (check-spec-approved / check-plan-spec-agree exits, the build project-gate exit, regression-report.json .verdict, verify-report.json .verdict), NEVER the agent's judgment. Reuses the six product stage commands and their existing floor checkers; reimplements none; adds NO new floor primitive. Two human gates — SPEC approval (Draft→Approved) and the post-verify decision — are NON-NEGOTIABLE; NO --yolo, NO self-approval. Default (gated) mode is the only mode; --loop is a separate follow-up increment. FLOOR verdicts; ADVISORY orchestration. '/pharn-ship reached the end' NEVER means 'the feature is good' — it means the deterministic gates passed and the human approved intent (P0)."
+description: "Run the PRODUCT pipeline in order so a PHARN user need not re-type or memorize it: /pharn-spec → [human approves the SPEC] → /pharn-plan → /pharn-grill → /pharn-build → /pharn-regress → /pharn-verify → [human decides merge/fix/abandon]. The seventh, terminal pipeline stage (ARCHITECTURE.md §6), realized as a GATED meta-orchestrator over stages 1–6 — the agent INVOKES each stage (advisory); WHETHER to proceed past a stage is read from that stage's STRUCTURAL floor verdict (check-spec-approved / check-plan-spec-agree exits, the build project-gate exit, regression-report.json .verdict, verify-report.json .verdict), NEVER the agent's judgment. Reuses the six product stage commands and their existing floor checkers; reimplements none; adds NO new floor primitive. Two human gates — SPEC approval (Draft→Approved) and the post-verify decision — are NON-NEGOTIABLE; NO --yolo, NO self-approval. Gated mode with at most ONE bounded build-completion retry on an INCOMPLETE verify (Step 2b — a single re-build, NOT a loop; the ≤1 bound is structural, the firing reads /pharn-verify's deterministic INCOMPLETE verdict); --loop is still a separate follow-up increment. FLOOR verdicts; ADVISORY orchestration. '/pharn-ship reached the end' NEVER means 'the feature is good' — it means the deterministic gates passed and the human approved intent (P0)."
 kind: pharn-owned
 trust: trusted
 model_tier: sonnet
@@ -170,11 +170,13 @@ human (terminal fallback = hand to the human, never a guess).
    `.verdict == "no-regressions"`), never a silent proceed.
 
 6. **`/pharn-verify`** → writes `features/<name>/verify-report.json` (+ `VERIFY.md`). **Verdict read (FLOOR):**
-   that file's `.verdict` (the `check-verify.mjs` output). `"PASS"` (every gate exit 0 at HEAD) → **proceed**
-   to GATE 2. `"FAIL"` (offenders in `.failing_gates[]`) or `"INCONCLUSIVE"` (fail-closed — e.g. a RED chain;
-   `/pharn-verify` **always** emits this machine artifact) → **STOP**, present, hand to the human. The advisory
-   `verifiers` block is **NOT** a proceed input — a verifier finding never flips the verdict (fix #3,
-   `ARCHITECTURE.md §7`).
+   that file's `.verdict` (the `check-verify.mjs` output). `"PASS"` (every gate green ∧ build complete) →
+   **proceed** to GATE 2. `"INCOMPLETE"` (all gates green but a plan-declared `## Files` path is absent —
+   `.completeness.missing[]` names it) → **the single build-completion retry (Step 2b), EXACTLY once**.
+   `"FAIL"` (a real gate red — offenders in `.failing_gates[]`; a real failure **beats** incompleteness, so
+   this is **never** retried) or `"INCONCLUSIVE"` (fail-closed — e.g. a RED chain; `/pharn-verify` **always**
+   emits this machine artifact) → **STOP**, present, hand to the human. The advisory `verifiers` block is
+   **NOT** a proceed input — a verifier finding never flips the verdict (fix #3, `ARCHITECTURE.md §7`).
 
 7. **GATE 2 — post-verify decision.** On a `PASS` verify, this is the chain's end. `/pharn-ship` **presents**
    the standing verdicts (steps 1–6) + the `GRILL.md` / `REGRESSION.md` / `VERIFY.md` (and `BUILD.md`)
@@ -188,6 +190,47 @@ verify** (the 2nd/3rd/4th enforcing consumers). A chain that breaks after grill 
 (step 4 STOP), a missing `regression-report.json` (step 5 fail-closed STOP), or an `INCONCLUSIVE`
 `verify-report.json` (step 6 STOP) — so "the chain held at each consuming stage" is covered by the stages'
 own `.verdict`s, not re-implemented here.
+
+## Step 2b — The single build-completion retry (INCOMPLETE only; EXACTLY once, no loop)
+
+**Only reachable from a step-6 `.verdict == "INCOMPLETE"`** — every gate is green but the build is
+incomplete (a plan-declared `## Files` path is absent; `.completeness.missing[]` names it). This is the
+**one** retryable verify outcome; `FAIL` and `INCONCLUSIVE` are **never** retried — a real gate failure
+**beats** incompleteness in `check-verify.mjs`'s precedence, so a genuine bug can never masquerade as
+`INCOMPLETE` and trigger a blind rebuild. This is a **narrow, bounded** convenience, **not** `--loop`
+(which is still a separate, deferred increment).
+
+**The retry, EXACTLY once (a straight-line block with NO back-edge — the ≤1 bound is structural):**
+
+1. Re-invoke **`/pharn-build <name>`** (it re-runs its **own** Step-0 writes-scope + Step-2 hash-chain gates
+   — the rebuild cannot escape the plan's `## Files` or build a stale plan, retry or not).
+2. Re-run **`/pharn-regress`**, then **`/pharn-verify`** (the same order, and the same per-stage Step-0
+   scope-setters, as the chain above).
+3. **Re-read the two `.verdict`s ONCE and branch (P5, deterministic):**
+   - re-verify `.verdict == "PASS"` **∧** re-regress `.verdict == "no-regressions"` → **proceed to GATE 2**.
+   - **anything else** — still `INCOMPLETE`, now `FAIL` / `INCONCLUSIVE`, a regression, **or** a retry
+     sub-stage that refused / HALTed and produced **no fresh** `verify-report.json` /
+     `regression-report.json` (fail-closed on a missing-or-stale post-retry verdict — a proceed is only ever
+     an **affirmative** floor verdict; the **absence** of one is a STOP) → **STOP**, present, hand to the
+     human. **There is NO second retry.**
+
+**What the retry does and does NOT guarantee (P0) — stated honestly:**
+
+- **Bounded firing.** It fires only for a **pure** incompleteness. If the missing file **also** reddens a
+  whole-repo gate (a test imports it), step 6 is `FAIL`, not `INCOMPLETE`, and the retry does **not** fire —
+  the human decides. So it covers "declared path silently absent," **not** "absent AND breaking a gate."
+- **Transient-only value.** The retry re-invokes the **same advisory `/pharn-build`** that produced the
+  incomplete result; it helps **only** when the first incompleteness was **transient** (an interrupted /
+  truncated build). A **systematically** unbuildable plan simply re-produces the gap and **STOPs** — the
+  retry guarantees the **bound (≤1)**, **never** that the rebuild **works** (that is irreducible model
+  work, re-checked by the deterministic re-verify — writing "the retry finishes the build" is the P0
+  disease, struck).
+- **Two clocks.** "The retry fires **only** on a deterministic `INCOMPLETE`, and proceeds **only** on `PASS`
+  ∧ `no-regressions`" is **FLOOR** (it reads only the sub-stages' `.verdict` enums). "At most one retry" is
+  **structural/advisory** — a single block with **no loop** (there is deliberately **no** `check-ship`-style
+  floor cap; one would be P7-speculative for a non-loop). And the **orchestration** of the retry (invoking
+  the sub-stages) is **advisory** command prose, **untested by construction** — only the verdicts it reads
+  are floor-grade, exactly like the gated chain.
 
 ## Step 3 — Set the writes-scope (fix #7, fail-closed), then write `features/<name>/SHIP.md`
 
@@ -210,9 +253,12 @@ Write **`features/<name>/SHIP.md`** — a thin, **advisory** roll-up:
 
 - **which stages ran**, in order, and **where the run ended** (GATE 2, or which stage's non-proceed verdict
   STOPped it);
+- **whether the single build-completion retry (Step 2b) fired** — and if so, the post-retry `/pharn-verify`
+  - `/pharn-regress` `.verdict`s, and whether it then reached GATE 2 or STOPped (never a second retry);
 - **each structural verdict read, verbatim:** `/pharn-spec` → `check-spec-approved.mjs` exit (Approved);
   `/pharn-grill` → `check-plan-spec-agree.mjs` exit (chain GREEN); `/pharn-build` → the project-gate exit;
-  `/pharn-regress` → `regression-report.json` `.verdict`; `/pharn-verify` → `verify-report.json` `.verdict`;
+  `/pharn-regress` → `regression-report.json` `.verdict`; `/pharn-verify` → `verify-report.json` `.verdict`
+  (incl. `INCOMPLETE`, with `.completeness.missing[]` quoted as DATA);
 - a **pointer** to `features/<name>/GRILL.md` / `REGRESSION.md` / `VERIFY.md` (cite the files; do **not**
   restate their findings — P4);
 - the **standing decision is the human's.** `SHIP.md` records **that the chain ran and its floor verdicts** —
@@ -230,7 +276,11 @@ increment** — the same split `/pharn-dev-ship` used (gated first, `--loop` sec
 command. When built, it would reuse the **already-existing, tested** `.dev/floor/check-ship.mjs` stop core
 (whose inputs are only the two verdict files + `iter`/`cap`, so no advisory stage could gate the loop), and
 it would still preserve **both** human gates and run **no** `--yolo`. Until then, `/pharn-ship` is
-**gated-only**: it runs the chain once and stops at GATE 2 or a STOP.
+**gated-only**: it runs the chain once — with **at most one** bounded build-completion retry on an
+`INCOMPLETE` verify (Step 2b, a single re-build, **not** a loop) — and stops at GATE 2 or a STOP. The
+distinction from `--loop`: Step 2b is a **single, structural ≤1** retry on the one `INCOMPLETE` outcome and
+adds **no** floor primitive to `/pharn-ship`; `--loop` iterates the whole body to a floor-grade stop under
+the `check-ship.mjs` cap.
 
 ## Guarantee audit (P0) — gated `/pharn-ship` adds ZERO new floor primitive
 
@@ -241,6 +291,13 @@ it would still preserve **both** human gates and run **no** `--yolo`. Until then
   `verify-report.json` `.verdict`, the build project-gate exit — `ARCHITECTURE.md §2` primitive #3);
   `/pharn-ship`'s **act** of reading them and stopping is **ADVISORY orchestration** — the same two-clocks
   split as `/pharn-regress` and `/pharn-verify` themselves.
+- **"The single build-completion retry fires only on a deterministic `INCOMPLETE`, at most once"** → the
+  **firing** is FLOOR (it reads `/pharn-verify`'s `.verdict == "INCOMPLETE"`, itself produced by that
+  sub-stage's new `check-build-complete.mjs` — so the new floor primitive belongs to **`/pharn-verify`**, not
+  to `/pharn-ship`, keeping the "zero new primitive in `/pharn-ship`" net below true); the **≤1 bound** is
+  **structural/advisory** (a single block, no loop, no `check-ship`-style cap — Step 2b); and proceeding
+  after the retry reads only `PASS` ∧ `no-regressions` (FLOOR verdicts). The retry **never** guarantees the
+  rebuild works (advisory model work). It is **not** `--loop`.
 - **The post-build gate's DISCOVERY is advisory (honest, mirrors `/pharn-regress` / `/pharn-verify`).** The
   build project-gate's **exit code** is FLOOR, but **which** gate to run for a non-PHARN project (`--gates`
   → allowlist ∩ scripts → ask) is **advisory orchestration, untested by construction** (it lives in this
@@ -287,7 +344,10 @@ it would still preserve **both** human gates and run **no** `--yolo`. Until then
   ship / seal / commit. The decision is the human's.
 - **No new floor primitive.** Every proceed verdict reuses an existing, tested checker; `/pharn-ship` adds
   none. Writing "`/pharn-ship` ensures the chain ran" or "ensures quality" is still the disease — struck.
-- **No `--loop` (this increment).** See the deferred-mode note above.
+- **No `--loop`, and the single build-completion retry is NOT a loop.** `--loop` (iterate to a floor-grade
+  stop with the `check-ship.mjs` cap) remains a separate deferred increment. Step 2b's retry is a **single,
+  bounded** re-build fired **only** on an `INCOMPLETE` verify — **at most once**, **no** second retry, **no**
+  iteration, and it **never** self-certifies the rebuild (still ends at GATE 2 / a STOP).
 
 ## A doc-reconciliation `/pharn-ship` surfaces (reported, never agent-edited)
 

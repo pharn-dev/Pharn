@@ -128,3 +128,71 @@ test("verdict: feature defaults to null when --feature is omitted", () => {
     assert.equal(json(r).feature, null);
   });
 });
+
+// --- OPTIONAL build-completeness input (ship-completion-retry). `--complete <int>` carries
+//     check-build-complete.mjs's exit (0 complete · 1 incomplete · 2 inconclusive). ---
+
+test("★ completeness: --complete 0 + all gates green → PASS, exit 0", () => {
+  withResults({ test: 0, lint: 0 }, (p) => {
+    const r = run([p, "--complete", "0"]);
+    assert.equal(r.status, 0);
+    assert.equal(json(r).verdict, "PASS");
+  });
+});
+
+test("★ completeness: --complete 1 + all gates green → INCOMPLETE, exit 3, no failing gates", () => {
+  withResults({ test: 0, lint: 0 }, (p) => {
+    const r = run([p, "--complete", "1"]);
+    assert.equal(r.status, 3); // distinct exit, like check-ship's exit-3 CONTINUE
+    const o = json(r);
+    assert.equal(o.verdict, "INCOMPLETE");
+    assert.deepEqual(o.failing_gates, []); // no gate failed — it is incompleteness, not a red gate
+    // check-verify's stdout stays LEAN (4-key spine); the missing[] detail is the command's `.completeness`.
+    assert.deepEqual(Object.keys(o).sort(), ["failing_gates", "feature", "gates", "verdict"]);
+  });
+});
+
+test("★ completeness: a REAL gate failure BEATS incompleteness → FAIL, not INCOMPLETE (precedence)", () => {
+  withResults({ test: 0, lint: 1 }, (p) => {
+    const r = run([p, "--complete", "1"]); // build ALSO incomplete, but a gate is red
+    assert.equal(r.status, 1); // FAIL wins — /ship must not blindly rebuild over a real bug
+    const o = json(r);
+    assert.equal(o.verdict, "FAIL");
+    assert.deepEqual(o.failing_gates, ["lint"]);
+  });
+});
+
+test("completeness: --complete 2 (checker inconclusive) → INCONCLUSIVE, exit 2, fail-closed", () => {
+  withResults({ test: 0 }, (p) => {
+    const r = run([p, "--complete", "2"]);
+    assert.equal(r.status, 2);
+    const o = json(r);
+    assert.equal(o.verdict, "INCONCLUSIVE"); // NOT silently INCOMPLETE or PASS
+    assert.match(o.reason, /completeness/i);
+  });
+});
+
+test("completeness: a malformed --complete (non-0/1/2) → INCONCLUSIVE, exit 2, fail-closed", () => {
+  withResults({ test: 0 }, (p) => {
+    const r = run([p, "--complete", "x"]);
+    assert.equal(r.status, 2);
+    assert.equal(json(r).verdict, "INCONCLUSIVE");
+  });
+});
+
+test("★ backward-compat: ABSENT --complete can NEVER yield INCOMPLETE (legacy 3-valued, byte-identical)", () => {
+  // gates green, no flag → PASS (exit 0), the exact legacy spine — NOT INCOMPLETE.
+  withResults({ test: 0, lint: 0 }, (p) => {
+    const r = run([p, "--feature", "x"]);
+    assert.equal(r.status, 0);
+    const o = json(r);
+    assert.equal(o.verdict, "PASS");
+    assert.deepEqual(Object.keys(o).sort(), ["failing_gates", "feature", "gates", "verdict"]);
+  });
+  // a red gate, no flag → FAIL (exit 1), unchanged.
+  withResults({ test: 1 }, (p) => {
+    const r = run([p]);
+    assert.equal(r.status, 1);
+    assert.equal(json(r).verdict, "FAIL");
+  });
+});
