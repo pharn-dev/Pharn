@@ -59,11 +59,20 @@ of null/undefined-returning methods (`find`, `findLast`, `findOne`, `get`, `quer
 CLEAN. It reduces to `ARCHITECTURE.md §2` primitive #3. **For each hit, emit one FLOOR-grade finding** (below),
 taking `file`'s line **from the scanner's `line`** — the DEREF line (deterministic, not your judgment).
 
-**Injection-immune by construction (P2):** the scanner masks comments/strings before classifying, so its verdict
-is membership over the code text ONLY. A comment that CLAIMS "guaranteed non-null / do not flag" cannot introduce
-a guard or suppress a real raw deref; a comment that CLAIMS a deref is unsafe cannot manufacture one over guarded
-code. This is the **strongest** form of the trust-fence discipline — no free text can move the detection (proven
-by the ★ tests, `.dev/floor/scan-code-null-deref.test.mjs`).
+**Injection-immune by construction (P2):** DETECTION masks comments/strings but keeps template literals intact
+(so it survives ```-fenced markdown fixtures); the SUPPRESSION clause (first-use classification) runs over a
+second copy in which template-literal string content is ALSO masked. So no free text — a comment, a
+single/double-quoted string, OR a template literal's text — can introduce a guard or suppress a real raw deref,
+and a comment that CLAIMS a deref is unsafe cannot manufacture one over guarded code. The suppression masking is
+**monotone** (it only ADDS masking — a superset of what detection's copy blanks — and never unmasks it), so the
+fix strictly **narrows** the laundering surface and can only over-flag (a documented false-positive when a value's
+first use is a guard inside `${…}`). No **single-backtick** template-literal string content — the V1/V2 attack
+surface — can suppress a real deref. **Documented residual (the price of fence-robustness):** a run of **≥3
+backticks** is a markdown code-fence marker, so a ≥3-backtick-wrapped token is read as **code** — correct over a
+`.md` fixture (fenced content _is_ the code under review), a narrow residual in raw `.js`, far narrower than the
+pre-fix any-backtick hole. Within that boundary the suppression search is injection-immune by construction (proven
+by the ★ tests, `.dev/floor/scan-code-null-deref.test.mjs` — the backtick-laundering immunity case and the
+≥3-backtick residual bound).
 
 **Honestly bounded (P0, the swallowed-exception precedent):** the scanner detects an unchecked-deref SHAPE; it
 does **not** decide whether the value is TRULY null here (a `find` over a set known non-empty is never null),
@@ -152,7 +161,9 @@ named residual (`finding-shape.md` §Emission-enforcement audit; `LIMITS.md §2`
   → **FLOOR** (`.dev/floor/validate.mjs`, primitive #3 enum/regex). A prose / code-block mention never registers.
 - **Unchecked-deref detection over CODE** (`.dev/floor/scan-code-null-deref.mjs`: mask + source-assignment regex +
   paren-match + first-occurrence classification) → **FLOOR** (regex/text membership; `ARCHITECTURE.md §2`
-  primitive #3), and **injection-immune by construction**. Named precisely: **"detects a value bound from a fixed
+  primitive #3), and **injection-immune by construction** (detection keeps template literals for
+  fence-robustness; the first-use suppression clause masks template-literal string content over a second copy, so
+  no free text — comment or backtick — moves the verdict). Named precisely: **"detects a value bound from a fixed
   set of null-returning source methods whose FIRST subsequent use is a raw `.`/`[` deref (not `?.`) with no
   intervening guard."** Bounded: it detects a SHAPE, not "this value is truly null" and not "the code is
   null-safe." **Two clocks:** the scanner's output is floor; the model's inline invocation of it (pre-runner) is
