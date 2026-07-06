@@ -60,12 +60,20 @@ using` RAII binding). It reduces to `ARCHITECTURE.md §2` primitive #3. **For ea
 finding** (below), taking `file`'s line **from the scanner's `line`** (the binding/acquisition line, deterministic,
 not your judgment).
 
-**Injection-immune by construction (P2):** the scanner masks comments/strings before analysis, and the cleanup test
-matches the **specific bound NAME** (`NAME.close(`), not a bare word (`close`) that prose or a comment could
-supply. So its verdict is membership over the code text ONLY. A comment that CLAIMS "closed elsewhere / do not
-flag" cannot manufacture a `NAME.close(` and cannot suppress a real unclosed binding; a comment that CLAIMS a leak
-over a binding that IS closed cannot manufacture one. This is the **strongest** form of the trust-fence discipline —
-no free text can move the detection (proven by the ★ tests, `.dev/floor/scan-code-resource-leak.test.mjs`).
+**Injection-immune by construction (P2):** DETECTION masks comments/strings but keeps template literals intact
+(so it survives ```-fenced markdown fixtures), and the cleanup test matches the **specific bound NAME**
+(`NAME.close(`), not a bare word (`close`); the SUPPRESSION clause (the cleanup test) runs over a second copy in
+which template-literal string content is ALSO masked. So no free text — a comment, a single/double-quoted string,
+OR a template literal's text — can manufacture a `NAME.close(` and suppress a real unclosed binding, and a comment
+that CLAIMS a leak over a binding that IS closed cannot manufacture one. The suppression masking is **monotone**
+(it only ADDS masking — a superset of what detection's copy blanks — and never unmasks it), so the fix strictly
+**narrows** the laundering surface and can only over-flag. No **single-backtick** template-literal string content
+— the V1/V2 attack surface — can manufacture a `NAME.close(`. **Documented residual (the price of
+fence-robustness):** a run of **≥3 backticks** is a markdown code-fence marker, so a ≥3-backtick-wrapped token is
+read as **code** — correct over a `.md` fixture (fenced content _is_ the code under review), a narrow residual in
+raw `.js`, far narrower than the pre-fix any-backtick hole. Within that boundary the suppression search is
+injection-immune by construction (proven by the ★ tests, `.dev/floor/scan-code-resource-leak.test.mjs` — the
+backtick-laundering immunity case and the ≥3-backtick residual bound).
 
 **Honestly bounded (P0, the null-deref precedent):** the scanner detects an unclosed-binding SHAPE; it does **not**
 decide whether the resource actually LEAKS here, does **not** know whether a caller/framework disposes it elsewhere,
@@ -155,7 +163,9 @@ named residual (`finding-shape.md` §Emission-enforcement audit; `LIMITS.md §2`
   → **FLOOR** (`.dev/floor/validate.mjs`, primitive #3 enum/regex). A prose / code-block mention never registers.
 - **Unclosed-resource detection over CODE** (`.dev/floor/scan-code-resource-leak.mjs`: mask + binding regex +
   paren-match + fixed cleanup-set membership on the bound NAME) → **FLOOR** (regex/text membership;
-  `ARCHITECTURE.md §2` primitive #3), and **injection-immune by construction**. Named precisely: **"detects a
+  `ARCHITECTURE.md §2` primitive #3), and **injection-immune by construction** (detection keeps template literals
+  for fence-robustness; the cleanup suppression clause masks template-literal string content over a second copy,
+  so no free text — comment or backtick — moves the verdict). Named precisely: **"detects a
   resource bound from a fixed open/connect/stream API set with no cleanup call on that binding, no `using`, in this
   file, after the binding."** Bounded: it detects a SHAPE, not "this leaks" and not "leak-free." **Two clocks:** the
   scanner's output is floor; the model's inline invocation of it (pre-runner) is advisory orchestration, backstopped

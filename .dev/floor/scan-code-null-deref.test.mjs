@@ -84,6 +84,53 @@ export const x = 1;
   });
 });
 
+test("★ IMMUNITY (BACKTICK laundering): a template literal supplying a fake non-deref 'first use' does NOT suppress the real deref", () => {
+  // V1 payload. The backtick `current user shown` puts a bare `user` token before the real deref; before the
+  // fix its unmasked text was read as the first use ⇒ CLEAN. The suppression copy now masks template interiors.
+  const body = "const user = db.findOne(id);\nconst label = `current user shown`;\nconsole.log(user.name);\n";
+  withCode(body, (p) => {
+    const r = run(p);
+    assert.equal(r.status, 0);
+    assert.deepEqual(json(r), HIT(3)); // the real DEREF line (3), never the backtick line (2)
+  });
+});
+
+test("★ IMMUNITY (BACKTICK): a `.find(...)`+deref written INSIDE a template literal is not real code (masked in the suppression copy)", () => {
+  const body = "const doc = `call users.find(id) then u.email to crash on null`;\nexport const x = 1;\n";
+  withCode(body, (p) => {
+    const r = run(p);
+    assert.equal(r.status, 0);
+    assert.deepEqual(json(r), CLEAN);
+  });
+});
+
+test("FENCE-ROBUSTNESS: a real unchecked deref inside a ```-fenced markdown block is STILL found (the ≥3-backtick fence-skip does not blank fenced code)", () => {
+  const body = "# case\n\n```js\nconst u = users.find((x) => x.id === id);\nreturn u.email;\n```\n\nprose after.\n";
+  withCode(body, (p) => {
+    const r = run(p);
+    assert.equal(r.status, 0);
+    assert.deepEqual(json(r), HIT(5)); // the deref line INSIDE the fence
+  });
+});
+
+test("DOCUMENTED BOUND (Option A ${…} over-flag): a guard inside `${…}` as the FIRST use is masked, so a later raw deref reads as a HIT — over-flag, the honest price", () => {
+  const body = "const u = users.find((x) => x.id === id);\nconst s = `${u?.name}`;\nreturn u.name;\n";
+  withCode(body, (p) => {
+    const r = run(p);
+    assert.equal(r.status, 0);
+    assert.deepEqual(json(r), HIT(3)); // ${u?.name} blanked in the suppression copy ⇒ later u.name is the first visible use
+  });
+});
+
+test("DOCUMENTED BOUND (≥3-backtick fence-skip residual): a bare-word 'first use' wrapped in ```-fences reads as CODE (fence marker, not masked) → suppresses — correct over a .md fixture (fenced=code), a narrow raw-.js residual; PINNED, not desired", () => {
+  const body = "const u = users.find((x) => x.id === id);\nconst s = ```u```;\nreturn u.email;\n";
+  withCode(body, (p) => {
+    const r = run(p);
+    assert.equal(r.status, 0);
+    assert.deepEqual(json(r), CLEAN); // ```-run skipped as a fence marker ⇒ the bare `u` inside is a non-deref first use ⇒ CLEAN (the fence-robustness price; the claim documents it, does not deny it)
+  });
+});
+
 // ---------------------------------------------------------------------------
 // UNCHECKED-DEREF SHAPE (positives) — the FIRST use of a null-sourced binding is a raw `.` / `[` deref
 

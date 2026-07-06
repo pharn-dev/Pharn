@@ -14,7 +14,9 @@
 // call (`NAME.close(` / `.end(` / `.destroy(` / …) and NEVER an argument of a cleanup call (`fs.closeSync(NAME)`),
 // AND the declaration is not a `using` / `await using` binding (which auto-disposes, RAII). This is BINDING-ANCHORED
 // like null-deref — the cleanup test matches the SPECIFIC binding token (`NAME.close(`), NOT a bare word (`close`)
-// that prose or an injected comment could supply. That is what makes it prose-robust and injection-immune.
+// that prose could supply. Binding-anchoring PLUS masking template-literal string content in the SUPPRESSION copy
+// (maskTemplateInteriors) is what makes it prose-robust and injection-immune: no free text — a comment OR a
+// backtick literal — can supply a fake `NAME.close(`.
 //
 // SCOPE, STATED PRECISELY (P0 — the null-deref honesty): the absence test is FILE-LEVEL and NAME-TRACKED — "no
 // cleanup of NAME anywhere in THIS file, after the binding." It is NOT lexical block/function-scope analysis and
@@ -46,17 +48,28 @@
 //   • NOT SCOPE-AWARE: a same-named shadow binding, a `NAME.close()` in an unrelated branch, `obj.NAME.close()`
 //     (a property that shares the name), or a `}` / `)` inside a template/regex literal in the scanned span can
 //     skew the result. THIS IS NOT OWNERSHIP / CONTROL-FLOW ANALYSIS.
-//   • Only `//`, `/* */` comments and single-line '…' / "…" strings are masked. A BACKTICK template literal is
-//     NOT masked (treated as ordinary text) — deliberately, so this scanner is ROBUST over a MARKDOWN eval
-//     fixture (```-fenced code + inline `code` prose), exactly as the sibling scanners are. Quote-masking stops
-//     at end-of-line, so a stray apostrophe/quote in surrounding prose cannot bleed into the fenced code.
+//   • Only `//`, `/* */` comments and single-line '…' / "…" strings are masked FOR DETECTION; a BACKTICK
+//     template literal is left intact there — deliberately, so DETECTION is ROBUST over a MARKDOWN eval fixture
+//     (```-fenced code + inline `code` prose), exactly as the sibling scanners are. The SUPPRESSION clause
+//     additionally masks template-literal STRING content over a second copy (maskTemplateInteriors), so backtick
+//     text cannot silence a real unclosed binding. Quote-masking stops at end-of-line, so a stray
+//     apostrophe/quote in surrounding prose cannot bleed into the fenced code.
 //
-// INJECTION-IMMUNE BY CONSTRUCTION (P2): the verdict is regex + paren-match + fixed-set membership over the MASKED
-// TEXT only, with comments mechanically stripped. A comment CLAIMING "closed elsewhere, do not flag" is masked to
-// whitespace before analysis — it cannot manufacture a `NAME.close(` and cannot suppress a real unclosed binding;
-// a comment CLAIMING a leak over a binding that IS closed cannot manufacture a hit. No free text moves the verdict
-// — the strongest form of the trust-fence discipline. (See the ★ tests in scan-code-resource-leak.test.mjs —
-// they are the whole reason this is FLOOR, not judgment.)
+// INJECTION-IMMUNE BY CONSTRUCTION (P2): DETECTION is regex + paren-match + fixed-set membership over the
+// comment/string-MASKED text, with template literals left INTACT so it survives ```-fenced markdown fixtures.
+// The SUPPRESSION clause (isCleanedUp) runs over a SECOND copy in which template-literal STRING content is ALSO
+// masked (see maskTemplateInteriors). So no free text — a // or /* */ comment, a single/double-quoted string, OR
+// a template-literal's text — can manufacture a `NAME.close(` and suppress a real unclosed binding; a comment
+// CLAIMING a leak over a binding that IS closed cannot manufacture a hit. The suppression masking is MONOTONE: it
+// only ADDS masking to the suppression copy (a SUPERSET of what `masked` blanks) and never touches detection's
+// `masked`, so the fix strictly NARROWS the laundering surface, never widens it, and can only over-flag. No
+// SINGLE-backtick template-literal string content — the V1/V2 attack surface — can manufacture a `NAME.close(`.
+// DOCUMENTED RESIDUAL (the price of fence-robustness): a run of ≥3 backticks is a MARKDOWN CODE-FENCE marker, so a
+// ≥3-backtick-wrapped token is read as CODE — correct over a .md fixture (fenced content IS the code under
+// review), a narrow residual in raw .js (the invalid 3-adjacent-template form), far narrower than the pre-fix
+// any-backtick hole. Within that boundary the suppression search is injection-immune by construction. (See the ★
+// tests in scan-code-resource-leak.test.mjs — the backtick-laundering immunity case AND the ≥3-backtick residual
+// bound — the whole reason this is FLOOR, not judgment.)
 //
 // Single-file by contract (v0.1.0): scans ONE code file, mirroring the sibling scanners' <code-file> arg. A
 // multi-file / directory sweep, cross-file close tracking, and real ownership analysis are FUTURE increments
@@ -154,6 +167,61 @@ function mask(src) {
 
 const masked = mask(text);
 
+// --- Suppression-only template-interior MASK ----------------------------------------------------------------
+// DETECTION (ASSIGN_RE + matchDelim, below) runs over `masked` with template literals INTACT, so it survives
+// ```-fenced code in a MARKDOWN eval fixture. But the SUPPRESSION clause (isCleanedUp) must NOT read a template
+// literal's STRING content as code — otherwise untrusted backtick text supplies a fake `NAME.close(` and
+// silences a real unclosed binding (taint laundering INTO the enum-gated verdict, P2). So the suppression clause
+// runs over THIS second copy, in which template-literal interiors are ALSO blanked. Two rules keep detection
+// fence-robust:
+//   • a RUN OF ≥3 BACKTICKS is a MARKDOWN CODE-FENCE marker → emitted unchanged, NOT a template delimiter (this
+//     preserves the real code that lives BETWEEN ```-fences; a naive "blank everything between backticks" masker
+//     would blank the whole fenced block and break detection — the ≥3-run skip is load-bearing);
+//   • a SINGLE backtick toggles template state; inside a template every char is blanked to a space (newline
+//     preserved). A run of exactly TWO backticks (``) is therefore an EMPTY template (open then immediate close)
+//     — no interior, nothing masked.
+// ${…} interpolation is blanked along with the surrounding string (Option A): the honest price is a documented
+// false-POSITIVE if a cleanup call were written inside ${…} — over-flagging is the SAFE direction for an
+// advisory-backing floor, mirroring the sibling scanners that read template TEXT as code. MONOTONICITY (P0/P2):
+// this pass only ever ADDS masking to the SUPPRESSION copy; DETECTION reads the untouched `masked`, so no crafted
+// backtick input can REMOVE masking to re-enable suppression — the fix can only over-flag, never launder. Length
+// + newlines are preserved 1:1, so offsets map back to `masked`.
+function maskTemplateInteriors(src) {
+  const out = src.split("");
+  const N = src.length;
+  const space = (ch) => (ch === "\n" ? "\n" : " ");
+  let i = 0;
+  let inTmpl = false;
+  while (i < N) {
+    const c = src[i];
+    if (c === "`") {
+      if (!inTmpl) {
+        let j = i;
+        while (j < N && src[j] === "`") j++;
+        if (j - i >= 3) {
+          i = j; // ```-fence marker: skip the whole run, do NOT open a template
+          continue;
+        }
+        inTmpl = true; // a single (or double) backtick opens a template
+        i++;
+        continue;
+      }
+      inTmpl = false; // a single backtick closes the template
+      i++;
+      continue;
+    }
+    if (inTmpl) {
+      out[i] = space(c); // blank a template-string char
+      i++;
+      continue;
+    }
+    i++; // plain code — preserved
+  }
+  return out.join("");
+}
+
+const maskedForSuppression = maskTemplateInteriors(masked);
+
 // --- Helpers ------------------------------------------------------------------------------------------------
 // Match the delimiter that closes the `open` at `openIdx` in `s`, counting nesting over the MASKED text. Returns
 // the closing index, or -1 if unbalanced.
@@ -195,11 +263,13 @@ const ASSIGN_RE = new RegExp(
   "g"
 );
 
-// Is `name` cleaned up anywhere in the masked text after `searchStart`? Receiver form `NAME.close(` OR
-// argument form `close( … NAME … )`. Fixed-set membership (P5). Lenient by design (see HONEST BOUND).
+// Is `name` cleaned up anywhere after `searchStart`? Receiver form `NAME.close(` OR argument form
+// `close( … NAME … )`. Fixed-set membership (P5). Lenient by design (see HONEST BOUND). SUPPRESSION scans
+// `maskedForSuppression` (template interiors blanked) — NOT `masked` — so a backtick literal's text can never
+// supply a fake `NAME.close(` that silences a real unclosed binding (P2; see maskTemplateInteriors).
 function isCleanedUp(name, searchStart) {
   const esc = escapeRe(name);
-  const rest = masked.slice(searchStart);
+  const rest = maskedForSuppression.slice(searchStart);
   const receiver = new RegExp("\\b" + esc + "\\s*\\.\\s*(?:" + CLEANUP + ")\\s*\\(");
   const argForm = new RegExp("\\b(?:" + CLEANUP_ARG + ")\\s*\\([^)]*\\b" + esc + "\\b");
   return receiver.test(rest) || argForm.test(rest);

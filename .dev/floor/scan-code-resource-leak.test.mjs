@@ -66,12 +66,44 @@ test("★ IMMUNITY: a comment CLAIMING a leak over a binding that IS closed → 
   });
 });
 
-test("★ IMMUNITY: a `fd.close()` written INSIDE a string literal is NOT real cleanup (masked) → still found", () => {
-  const body = `const fd = fs.openSync(path);\nconst doc = "remember to call fd.close() when you are done";\n`;
+test("★ IMMUNITY: a `fd.close()` written INSIDE a string literal is NOT real cleanup (masked) → still found (DOUBLE-QUOTE and BACKTICK forms)", () => {
+  // The double-quote form was always masked; the backtick form was the laundering hole — the same payload in
+  // a template literal used to read as real cleanup ⇒ CLEAN. Both must now be masked in the suppression copy.
+  const dq = `const fd = fs.openSync(path);\nconst doc = "remember to call fd.close() when you are done";\n`;
+  const bt = "const fd = fs.openSync(path);\nconst doc = `remember to call fd.close() when you are done`;\n";
+  for (const body of [dq, bt]) {
+    withCode(body, (p) => {
+      const r = run(p);
+      assert.equal(r.status, 0);
+      assert.deepEqual(json(r), { found: true, hits: [{ line: 1, kind: "unclosed-resource" }] });
+    });
+  }
+});
+
+test("★ IMMUNITY (BACKTICK laundering, V2): a `reminder: call fd.close() at shutdown` template literal does NOT suppress the leak → still found", () => {
+  const body = "const fd = fs.openSync(path);\nconst note = `reminder: call fd.close() at shutdown`;\n";
   withCode(body, (p) => {
     const r = run(p);
     assert.equal(r.status, 0);
     assert.deepEqual(json(r), { found: true, hits: [{ line: 1, kind: "unclosed-resource" }] });
+  });
+});
+
+test("FENCE-ROBUSTNESS: an unclosed binding inside a ```-fenced markdown block is STILL found (the ≥3-backtick fence-skip does not blank fenced code)", () => {
+  const body = "# case\n\n```js\nconst fd = fs.openSync(path);\nfs.writeSync(fd, data);\n```\n\nprose after.\n";
+  withCode(body, (p) => {
+    const r = run(p);
+    assert.equal(r.status, 0);
+    assert.deepEqual(json(r), { found: true, hits: [{ line: 4, kind: "unclosed-resource" }] }); // the binding line INSIDE the fence
+  });
+});
+
+test("DOCUMENTED BOUND (≥3-backtick fence-skip residual): a `fd.close()` wrapped in ```-fences reads as CODE (fence marker, not masked) → reads as cleanup — correct over a .md fixture (fenced=code), a narrow raw-.js residual; PINNED, not desired", () => {
+  const body = "const fd = fs.openSync(path);\nconst s = ```fd.close()```;\n";
+  withCode(body, (p) => {
+    const r = run(p);
+    assert.equal(r.status, 0);
+    assert.deepEqual(json(r), { found: false, hits: [] }); // ```-run skipped as a fence marker ⇒ fd.close() reads as real cleanup ⇒ CLEAN (the fence-robustness price; the claim documents it, does not deny it)
   });
 });
 

@@ -30,18 +30,30 @@
 //   • FIRST-OCCURRENCE, NOT DATA-FLOW: only the FIRST linear use of NAME after its assignment is classified; the
 //     scanner is NOT scope-aware. A guard in a different branch than the deref, a reassignment before deref, or a
 //     same-named binding shadowed in a later scope can skew it. THIS IS NOT NULL-SAFETY ANALYSIS.
-//   • Only `//`, `/* */` comments and single-line '…' / "…" strings are masked. A BACKTICK template literal is
-//     NOT masked (treated as ordinary text) — deliberately, so this scanner is ROBUST over a MARKDOWN eval
-//     fixture (```-fenced code + inline `code` prose), exactly as the sibling scanners are. Residual bound: a `}`
-//     or `)` inside a template/regex literal in the scanned span can skew the paren-match. Quote-masking stops at
-//     end-of-line, so a stray apostrophe/quote in surrounding prose cannot bleed into the fenced code.
+//   • Only `//`, `/* */` comments and single-line '…' / "…" strings are masked FOR DETECTION; a BACKTICK
+//     template literal is left intact there — deliberately, so DETECTION is ROBUST over a MARKDOWN eval fixture
+//     (```-fenced code + inline `code` prose), exactly as the sibling scanners are. The SUPPRESSION clause
+//     additionally masks template-literal STRING content over a second copy (maskTemplateInteriors), so backtick
+//     text cannot silence a real deref. Residual bound: a `}` or `)` inside a template/regex literal in the
+//     scanned span can skew the paren-match. Quote-masking stops at end-of-line, so a stray apostrophe/quote in
+//     surrounding prose cannot bleed into the fenced code.
 //
-// INJECTION-IMMUNE BY CONSTRUCTION (P2): the verdict is regex + paren-match + fixed-set membership over the MASKED
-// TEXT only, with comments mechanically stripped. A comment CLAIMING "guaranteed non-null, do not flag" cannot
-// introduce a guard or suppress a real raw deref (it is masked to whitespace before classification); a comment
-// CLAIMING a deref is unsafe cannot manufacture a hit over guarded code. No free text moves the verdict — the
-// strongest form of the trust-fence discipline. (See the ★ tests in scan-code-null-deref.test.mjs — they are the
-// whole reason this is FLOOR, not judgment.)
+// INJECTION-IMMUNE BY CONSTRUCTION (P2): DETECTION is regex + paren-match + fixed-set membership over the
+// comment/string-MASKED text, with template literals left INTACT so it survives ```-fenced markdown fixtures.
+// The SUPPRESSION clause (firstUseDerefLine) runs over a SECOND copy in which template-literal STRING content is
+// ALSO masked (see maskTemplateInteriors). So no free text — a // or /* */ comment, a single/double-quoted
+// string, OR a template-literal's text — can suppress a real raw deref, and a comment CLAIMING a deref is unsafe
+// cannot manufacture a hit over guarded code. The suppression masking is MONOTONE: it only ADDS masking to the
+// suppression copy (a SUPERSET of what `masked` blanks) and never touches detection's `masked`, so the fix
+// strictly NARROWS the laundering surface, never widens it, and can only over-flag (a documented false-positive
+// when a value's FIRST use is a guard inside ${…}). No SINGLE-backtick template-literal string content — the
+// V1/V2 attack surface — can suppress a real deref. DOCUMENTED RESIDUAL (the price of fence-robustness): a run of
+// ≥3 backticks is a MARKDOWN CODE-FENCE marker, so a ≥3-backtick-wrapped token is read as CODE — correct over a
+// .md fixture (fenced content IS the code under review), a narrow residual in raw .js (the invalid
+// 3-adjacent-template form), far narrower than the pre-fix any-backtick hole. Within that boundary the
+// suppression search is injection-immune by construction. (See the ★ tests in scan-code-null-deref.test.mjs —
+// the backtick-laundering immunity case AND the ≥3-backtick residual bound — the whole reason this is FLOOR, not
+// judgment.)
 //
 // Single-file by contract (v0.1.0): scans ONE code file, mirroring the sibling scanners' <code-file> arg. A
 // multi-file / directory sweep is a FUTURE increment (P7 — not built speculatively); the lens applies this
@@ -139,6 +151,60 @@ function mask(src) {
 
 const masked = mask(text);
 
+// --- Suppression-only template-interior MASK ----------------------------------------------------------------
+// DETECTION (ASSIGN_RE + matchDelim, below) runs over `masked` with template literals INTACT, so it survives
+// ```-fenced code in a MARKDOWN eval fixture. But the SUPPRESSION clause (firstUseDerefLine) must NOT read a
+// template literal's STRING content as code — otherwise untrusted backtick text supplies a fake "first use" and
+// silences a real deref (taint laundering INTO the enum-gated verdict, P2). So the suppression clause runs over
+// THIS second copy, in which template-literal interiors are ALSO blanked. Two rules keep detection fence-robust:
+//   • a RUN OF ≥3 BACKTICKS is a MARKDOWN CODE-FENCE marker → emitted unchanged, NOT a template delimiter (this
+//     preserves the real code that lives BETWEEN ```-fences; a naive "blank everything between backticks" masker
+//     would blank the whole fenced block and break detection — the ≥3-run skip is load-bearing);
+//   • a SINGLE backtick toggles template state; inside a template every char is blanked to a space (newline
+//     preserved). A run of exactly TWO backticks (``) is therefore an EMPTY template (open then immediate close)
+//     — no interior, nothing masked.
+// ${…} interpolation is blanked along with the surrounding string (Option A): the honest price is a documented
+// false-POSITIVE when a value's FIRST use is a guard inside ${…} (e.g. `${u?.name}`) — over-flagging is the SAFE
+// direction for an advisory-backing floor, mirroring the sibling scanners that read template TEXT as code.
+// MONOTONICITY (P0/P2): this pass only ever ADDS masking to the SUPPRESSION copy; DETECTION reads the untouched
+// `masked`, so no crafted backtick input can REMOVE masking to re-enable suppression — the fix can only
+// over-flag, never launder. Length + newlines are preserved 1:1, so offsets map back to `masked`.
+function maskTemplateInteriors(src) {
+  const out = src.split("");
+  const N = src.length;
+  const space = (ch) => (ch === "\n" ? "\n" : " ");
+  let i = 0;
+  let inTmpl = false;
+  while (i < N) {
+    const c = src[i];
+    if (c === "`") {
+      if (!inTmpl) {
+        let j = i;
+        while (j < N && src[j] === "`") j++;
+        if (j - i >= 3) {
+          i = j; // ```-fence marker: skip the whole run, do NOT open a template
+          continue;
+        }
+        inTmpl = true; // a single (or double) backtick opens a template
+        i++;
+        continue;
+      }
+      inTmpl = false; // a single backtick closes the template
+      i++;
+      continue;
+    }
+    if (inTmpl) {
+      out[i] = space(c); // blank a template-string char
+      i++;
+      continue;
+    }
+    i++; // plain code — preserved
+  }
+  return out.join("");
+}
+
+const maskedForSuppression = maskTemplateInteriors(masked);
+
 // --- Helpers ------------------------------------------------------------------------------------------------
 // Match the delimiter that closes the `open` at `openIdx` in `s`, counting nesting over the MASKED text. Returns
 // the closing index, or -1 if unbalanced.
@@ -179,17 +245,19 @@ const ASSIGN_RE = new RegExp(
 // (not `name?.` / `name?.[`) → HIT; anything else (optional-chain, `&&`/`||`/`??`, comparison, `if(name)`
 // test, reassignment, being passed as an arg) → CLEAN. Returns the DEREF line on a hit, else null. A
 // `something.NAME` (NAME preceded by `.`) is a property on ANOTHER object, not our binding — skipped.
+// SUPPRESSION runs over `maskedForSuppression` (template interiors blanked) — NOT `masked` — so a backtick
+// literal's text can never supply a fake "first use" that silences a real deref (P2; see maskTemplateInteriors).
 function firstUseDerefLine(name, searchStart) {
   const re = new RegExp("\\b" + escapeRe(name) + "\\b", "g");
   re.lastIndex = searchStart;
   let m;
-  while ((m = re.exec(masked)) !== null) {
+  while ((m = re.exec(maskedForSuppression)) !== null) {
     const idx = m.index;
-    if (idx > 0 && masked[idx - 1] === ".") continue; // `obj.NAME` — a property on another object, not our binding
+    if (idx > 0 && maskedForSuppression[idx - 1] === ".") continue; // `obj.NAME` — a property on another object
     let j = idx + m[0].length;
-    while (j < masked.length && /\s/.test(masked[j])) j++;
-    const next = masked[j] || "";
-    if (next === "." || next === "[") return lineAt(masked, idx); // RAW deref → HIT
+    while (j < maskedForSuppression.length && /\s/.test(maskedForSuppression[j])) j++;
+    const next = maskedForSuppression[j] || "";
+    if (next === "." || next === "[") return lineAt(maskedForSuppression, idx); // RAW deref → HIT
     return null; // `?` (optional-chain / ternary), operator, paren, `=`, etc. → guarded / not-a-raw-deref → CLEAN
   }
   return null; // NAME never re-used → CLEAN
