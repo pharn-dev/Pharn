@@ -84,9 +84,9 @@ echo '{"tool_name":"Write","tool_input":{"file_path":"pharn-core/rules/x.md"}}' 
   (`format:check` + `lint` + `lint:md` + `test`) is the aggregate gate, and `npm test` runs
   `node --test` over the hook and floor suites (`.claude/hooks/*.test.cjs` + `.dev/floor/*.test.mjs`) —
   **green** at this writing; read the count live (`npm test`), never assert it from this doc (P6).
-- `node .dev/floor/validate.mjs .` currently reports `GREEN — 35 capabilities checked` — the product
-  surface spans **22 `pharn-review/*` code-review lenses** and **13 `pharn-pipeline/grillers/*`
-  grillers**, over the `pharn-contracts/{finding-shape,eval-format,seam-config}` contracts.
+- `node .dev/floor/validate.mjs .` reports `GREEN` over the product surface — the `pharn-review/*`
+  code-review lenses and the `pharn-pipeline/grillers/*` grillers, over the
+  `pharn-contracts/{finding-shape,eval-format,seam-config}` contracts.
   `pharn-review/trust-fence/` (attempt 0) remains the injection-residual probe, its dogfood
   `/pharn-dev-review` recorded in `.dev/features/trust-fence/REVIEW.md`. Read this count live;
   never assert repo state from memory (P6). The floor still deliberately ignores this repo's own

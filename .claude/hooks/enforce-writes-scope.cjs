@@ -7,6 +7,12 @@
 // FAIL-CLOSED: if that file is absent/invalid, only a default-safe-set is writable; everything else
 // is denied. This makes ARCHITECTURE §3.1/§7's "`writes:` ENFORCED by the pre-write hook" TRUE.
 //
+// Symlink-safe: the target is canonicalized with fs.realpathSync BEFORE the scope test, so a write
+// through a committed symlink is judged by its REAL target — a symlink onto a trusted doc or out of
+// scope is denied, not laundered by an innocent-looking name. Residual: this resolves EXISTING symlink
+// targets; a broken symlink (target absent) falls back to the lexical path — a narrow
+// scope-escape-to-create, outside the reported committed-symlink vector and no worse than prior behavior.
+//
 // ADDITIVE to fix #2 (protect-trusted-paths.cjs): both hooks run on every write; a deny from EITHER
 // blocks. fix #7 is scope-only and does NOT re-implement the trusted-doc denylist — fix #2 remains the
 // hard backstop for CONSTITUTION/ARCHITECTURE/THREAT-MODEL/LIMITS + CODEOWNERS, regardless of scope.
@@ -16,6 +22,38 @@
 
 const fs = require("fs");
 const path = require("path");
+
+// Repo root with symlinks resolved, so a canonicalized target shares a common prefix with it (else a
+// symlinked temp/CI dir — e.g. macOS /var -> /private/var — would make every write look like it
+// escapes the root).
+const ROOT = (() => {
+  try {
+    return fs.realpathSync(process.cwd());
+  } catch {
+    return process.cwd();
+  }
+})();
+
+// Canonicalize a (possibly not-yet-existent) write target through symlinks: realpath the nearest
+// existing ancestor — which resolves any committed symlink at any depth — then re-append the missing
+// tail. Deterministic; no LLM. A new file whose ancestors contain no symlink resolves to its lexical
+// path, so ordinary in-scope writes are unaffected.
+function resolveWriteTarget(p) {
+  const abs = path.resolve(ROOT, String(p));
+  const missing = [];
+  let cur = abs;
+  for (;;) {
+    try {
+      const real = fs.realpathSync(cur);
+      return missing.length ? path.join(real, ...missing) : real;
+    } catch {
+      const parent = path.dirname(cur);
+      if (parent === cur) return abs; // reached filesystem root; nothing existed -> lexical fallback
+      missing.unshift(path.basename(cur));
+      cur = parent;
+    }
+  }
+}
 
 // Always writable (bootstrap): other `.pharn/**` runtime files. Scope state (writes-scope.json) is
 // excluded — set-writes-scope.cjs writes it via Bash/fs (not PreToolUse), so Step 0 still works while
@@ -73,9 +111,11 @@ function globToRegExp(glob) {
   return new RegExp("^" + re + "$");
 }
 
-// Repo-root-relative, forward-slash path. Returns null if the path escapes the repo root.
+// Repo-root-relative, forward-slash path with symlinks resolved — so a write through a committed
+// symlink is judged by its REAL target, not its innocent-looking name. Returns null if the resolved
+// path escapes the repo root.
 function toRel(p) {
-  const rel = path.relative(process.cwd(), path.resolve(process.cwd(), String(p))).replace(/\\/g, "/");
+  const rel = path.relative(ROOT, resolveWriteTarget(p)).replace(/\\/g, "/");
   if (rel === "" || rel === ".." || rel.startsWith("../")) return null;
   return rel;
 }

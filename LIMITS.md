@@ -12,7 +12,7 @@ purpose: "What PHARN does NOT guarantee. Labels the irreducible limits, the resi
 
 ---
 
-## 1. The three irreducible limits
+## 1. The four irreducible limits
 
 These cannot be reduced to the floor. They are **not bugs to fix** — they are truths to **stop
 overselling**. Each has a floor backstop that bounds its blast radius; none has a fix that makes it
@@ -52,6 +52,32 @@ frontmatter cannot express).
   **measured runtime cost** (the system already observes it). `/pharn-estimate` reports a range,
   not a promise. The 2.0 cost-per-feature metric is built on _measured_ cost, not the declared
   field.
+
+### 1d. "Approved" is forgeable at the write surface
+
+`state: Approved` and its `spec_content_hash` pin are ordinary frontmatter fields, written by the same
+agent that authors the SPEC body — and `check-spec.mjs --hash` hands that agent the exact value to pin.
+So `check-spec.mjs` returns GREEN for _any_ body the writer chose to stamp "Approved," and the whole
+downstream chain (`check-spec-approved.mjs`, `check-plan-spec-agree.mjs`) reduces to the same
+`state`-enum + hash-equality — all of it satisfiable by a non-compliant or prompt-injected agent that
+never asked a human. The content-hash proves the body did not drift _after_ the pin; it never proves a
+_person_ set the pin. This is the one place enum-gating (§2 primitive #3 — the very backstop §1b leans
+on) does not help: enum-gating stops a guaranteed decision from resting on a _tainted free-text_ field,
+but the gate's integrity here rests on _who may write the enum field_, and in pure markdown the agent may.
+
+- **Struck claim:** "`state: Approved` is a floor-checked enum, therefore a human approved the intent."
+- **True statement:** the floor guarantees the approved body is un-drifted, not that a human approved it.
+  "Human-approved intent flows downstream" is a **discipline** assumption, not a floor guarantee — in
+  pure PHARN-OSS, `Approved` is forgeable by whatever holds the Write tool. The same holds for GATE 2
+  (the post-verify decision) and every between-stage proceed: _invoking and obeying_ the checker is
+  advisory orchestration, not a floor primitive (the "two clocks," stated in the checkers themselves).
+- **Backstop (floor):** a forged approval moves only the advisory _intent-approval_ signal; it unlocks
+  no floor-gated capability — the pre-write / writes-scope and pre-egress hooks re-gate every downstream
+  write and network call regardless of `state`, and the human GATE-2 decision still stands between a
+  built increment and merge. Closing the gate itself needs an out-of-band approval signal the Write tool
+  cannot forge (e.g. a `PreToolUse` hook admitting the Draft→Approved transition only against a
+  human-supplied signed marker) — that is **harness-layer**, environment-dependent, not expressible in
+  markdown methodology. Until an environment supplies it, this stays a named limit, not a guarantee.
 
 ---
 
@@ -105,7 +131,7 @@ prevents. The honest standard:
 
 - Every _guarantee_ reduces to the floor (`ARCHITECTURE.md §2`) **or** is labeled `advisory`.
 - The _known_ holes from red-team are closed or labeled (`THREAT-MODEL.md §4`).
-- The three irreducible limits (§1) are named, not hidden, and backstopped.
+- The four irreducible limits (§1) are named, not hidden, and backstopped.
 - The one residual (§2) is named and is the first thing the experiment tests.
 
 "Good" = known holes closed or labeled, and limits honest. **Not** "no holes." The unknowns are

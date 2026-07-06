@@ -67,10 +67,10 @@ never evaluates a `judge` string (no LLM).
 
 ## Wire the write-guard hook
 
-Merge `../.claude/hooks/settings.snippet.json` into your `.claude/settings.json`. It registers a
-`PreToolUse` hook on `Write|Edit|MultiEdit` that blocks any write to a trusted file
-(`CONSTITUTION.md`, `ARCHITECTURE.md`, `THREAT-MODEL.md`, `LIMITS.md`). Extend the protected set
-with the `PHARN_PROTECTED` env var (comma-separated). Confirm it works:
+The write-guard is wired in `.claude/settings.json` (committed): a `PreToolUse` hook on
+`Write|Edit|MultiEdit` that blocks any write to a trusted file (`CONSTITUTION.md`, `ARCHITECTURE.md`,
+`THREAT-MODEL.md`, `LIMITS.md`). Extend the protected set with the `PHARN_PROTECTED` env var
+(comma-separated). Confirm it works:
 
 ```bash
 echo '{"tool_name":"Edit","tool_input":{"file_path":"CONSTITUTION.md"}}' | node .claude/hooks/protect-trusted-paths.cjs   # → exit 2, denied
