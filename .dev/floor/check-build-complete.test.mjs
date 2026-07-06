@@ -135,6 +135,21 @@ test("inconclusive: a missing PLAN file → exit 2", () => {
   assert.equal(json(r).verdict, "inconclusive");
 });
 
+test("inconclusive: an UNREADABLE PLAN (a directory) → exit 2, the read-error catch (fail-closed)", () => {
+  const root = mkdtempSync(join(tmpdir(), "pharn-complete-"));
+  try {
+    const dirAsPlan = join(root, "PLAN.md");
+    mkdirSync(dirAsPlan); // existsSync() is true, but readFileSync throws EISDIR → the `cannot read` catch
+    const r = run([dirAsPlan, root]);
+    assert.equal(r.status, 2);
+    const o = json(r);
+    assert.equal(o.verdict, "inconclusive");
+    assert.match(o.reason, /cannot read/); // exercises the try/catch branch, not the missing-file branch
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
 test("inconclusive: no PLAN path at all → exit 2", () => {
   const r = run([]);
   assert.equal(r.status, 2);

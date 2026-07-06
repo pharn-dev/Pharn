@@ -407,12 +407,13 @@ cite, don't restate), with **no new contract file** and **no authored verifier**
   `ARCHITECTURE.md §2` primitive #3). The verdict rests entirely on the helper comparing integers (`every
 gate === 0`), never on model judgment. This is what "verified" means — full stop. A **real guarantee**,
   **bounded by exactly what those gates check**.
-- **"The build is COMPLETE — every plan-declared `## Files` path exists"** → **FLOOR** (path-set membership
-  \+ `existsSync`, `check-build-complete.mjs`, `ARCHITECTURE.md §2` primitive #3). Fed to the verdict as
-  `--complete`; a real gate failure **beats** it (precedence in `check-verify.mjs`), so an `INCOMPLETE`
-  verdict means exactly "gates green but a declared path is absent" — the **retryable** signal, never a
-  substitute for a real failure. **Bounded (P7):** "complete" = declared paths EXIST, a deterministic proxy
-  for "the build finished," NOT a semantic claim the code is right (that stays advisory/verifier + human).
+- **"The build is COMPLETE — every CONCRETE plan-declared `## Files` path exists"** → **FLOOR** (path-set
+  membership \+ `existsSync`, `check-build-complete.mjs`, `ARCHITECTURE.md §2` primitive #3). Fed to the
+  verdict as `--complete`; a real gate failure **beats** it (precedence in `check-verify.mjs`), so an
+  `INCOMPLETE` verdict means exactly "gates green but a declared path is absent" — the **retryable** signal,
+  never a substitute for a real failure. **Bounded (P7):** "complete" = every **concrete** declared path
+  EXISTS (placeholder/glob `## Files` entries are skipped, not checked) — a deterministic proxy for "the
+  build finished," NOT a semantic claim the code is right (that stays advisory/verifier + human).
 - **"It verifies against a current Approved, un-drifted plan"** → **FLOOR** (content-hash equality +
   `state == Approved` enum, `check-plan-spec-agree.mjs`, primitives #2 + #3) — the **FOURTH** enforcement
   of `/pharn-spec`'s pin (grill 1st, build 2nd, regress 3rd, verify 4th).
