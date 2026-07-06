@@ -23,7 +23,7 @@ present, `enforces: [P2]` eval-bound — fix #6).
 > this increment's own new files were not prettier/markdownlint-clean (the build's `validate`-only gate
 > does not cover repo style — the exact hole L9 says verify closes). Fixes applied **within the
 > feature's own files**: `npx prettier --write` (quote-style + the REGRESSION table, MD060) and one prose
-> reword in `missing-timeout.md` (a line that began with `+ `, misread as a list — MD004/MD032). The
+> reword in `missing-timeout.md` (a line that began with `+` followed by a space, misread as a list — MD004/MD032). The
 > scanner was **re-run over all six fixtures after formatting** — counts and lines are unchanged
 > (`fetch`@14, `db.query`@12, four clean), because the scanner masks both quote styles. The exit codes
 > above are the post-fix state; `check-verify.mjs` read this map.
