@@ -1,0 +1,11 @@
+{
+  "skill_kind": "llm",
+  "assertions": {
+    "structural": [{ "kind": "finding_count", "op": "==", "value": 0 }],
+    "semantic": [
+      {
+        "judge": "the single `db.findMany(...)` runs AFTER the loop (the loop only collects ids via `ids.push`), so .dev/floor/scan-code-n-plus-one.mjs reports found:false; the lens emits NO finding and does not manufacture one. A clean scan is not proof the code has no N+1 (Layer-1 bound), only that no query-in-loop shape was detected."
+      }
+    ]
+  }
+}
