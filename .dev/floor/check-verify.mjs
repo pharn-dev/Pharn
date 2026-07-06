@@ -22,11 +22,27 @@
 // exclusion — a separate axis of change, hence a separate file (P3).
 //
 // VERDICT (ARCHITECTURE §2 primitive #3 — an exit-code / enum threshold):
-//   PASS          iff EVERY gate exit code === 0.
-//   FAIL          iff ANY gate exit code !== 0 (the offenders are named in failing_gates[]).
-//   INCONCLUSIVE  iff the results map is missing / empty / not a { "<gate-id>": <int> } object —
-//                 FAIL-CLOSED (P5), never a silent pass; it distinguishes "a gate FAILED" (exit 1) from
-//                 "a gate did not run / malformed input" (exit 2), which a bare shell `&&` chain cannot.
+//   FAIL          iff ANY gate exit code !== 0 (the offenders are named in failing_gates[]). A real gate
+//                 failure ALWAYS wins over incompleteness (precedence below), so /ship never blindly
+//                 rebuilds over a genuine bug.
+//   INCOMPLETE    iff all gates green AND the OPTIONAL build-completeness input says the build is
+//                 incomplete (`--complete 1`) — exit 3, a DISTINCT non-terminal signal (like check-ship's
+//                 exit-3 CONTINUE; 0/1/2 keep their PASS/FAIL/INCONCLUSIVE meaning). This is the
+//                 retryable-by-/ship verdict, kept apart from FAIL.
+//   PASS          iff EVERY gate exit code === 0 AND completeness is complete-or-not-supplied.
+//   INCONCLUSIVE  iff the results map is missing / empty / not a { "<gate-id>": <int> } object, OR the
+//                 completeness input is inconclusive / malformed (`--complete 2` or a non-recognized
+//                 value) — FAIL-CLOSED (P5), never a silent pass.
+//
+// THE OPTIONAL `--complete <int>` INPUT (ship-completion-retry increment):
+//   /verify runs floor/check-build-complete.mjs over the PLAN's `## Files` and passes ITS exit code here
+//   (0 complete · 1 incomplete · 2 inconclusive). This helper reads ONLY that integer — never the
+//   missing-path list (the command merges that into the report's `.completeness` block). `--complete`
+//   is OPTIONAL: ABSENT ⇒ the legacy 3-valued behavior byte-for-byte ({feature, gates, verdict,
+//   failing_gates}, verdict ∈ {PASS, FAIL, INCONCLUSIVE}), so dev /pharn-dev-verify (which passes no
+//   --complete) and check-ship.mjs are PROVABLY unaffected — an INCOMPLETE verdict cannot arise without
+//   the flag, and check-ship never receives the flag. (If an INCOMPLETE report ever reached check-ship,
+//   its VERIFY_VERDICTS set would treat it as unknown → INCONCLUSIVE, fail-closed — bounded, not silent.)
 //
 // HONEST SCOPE (P0/P7): the verdict is a deterministic function of the gate exit codes the command
 // captures. "verified" therefore means EXACTLY "the named gates passed" — NOT "the feature is correct."
@@ -42,11 +58,14 @@
 // decision rests on a tainted field.
 //
 // Usage:
-//   node floor/check-verify.mjs <results.json> [--feature <name>]
+//   node floor/check-verify.mjs <results.json> [--feature <name>] [--complete <int>]
 //     results.json : a flat { "<gate-id>": <exit-code int>, ... } map written by the command, one entry
 //                    per FLOOR gate it ran (e.g. "test", "validate", "lint", "structural:<expected>").
+//     --complete   : OPTIONAL — the exit code of floor/check-build-complete.mjs (0/1/2). Omit for the
+//                    legacy 3-valued behavior.
 //
-// Exit: 0 PASS · 1 FAIL (>=1 gate non-zero) · 2 INCONCLUSIVE / bad input — FAIL-CLOSED (P5).
+// Exit: 0 PASS · 1 FAIL (>=1 gate non-zero) · 2 INCONCLUSIVE / bad input — FAIL-CLOSED (P5) ·
+//       3 INCOMPLETE (gates green but the build is incomplete; only reachable WITH `--complete 1`).
 
 import { readFileSync, existsSync } from "node:fs";
 
@@ -98,6 +117,16 @@ function main() {
   const resultsPath = positional[0];
   const feature = flag(argv, "--feature") ?? null;
 
+  // OPTIONAL build-completeness input (ship-completion-retry): `--complete <int>` = check-build-complete's
+  // exit (0 complete · 1 incomplete · 2/other inconclusive). ABSENT ⇒ "n/a" ⇒ legacy 3-valued behavior. A
+  // "2" or a malformed value both mean "cannot assert completeness" → INCONCLUSIVE (fail-closed, P5) —
+  // NEVER silently treated as complete.
+  const completeRaw = flag(argv, "--complete");
+  let completeStatus = "n/a";
+  if (completeRaw !== undefined) {
+    completeStatus = completeRaw === "0" ? "complete" : completeRaw === "1" ? "incomplete" : "inconclusive";
+  }
+
   const res = readResultsMap(resultsPath, "results.json");
   if (!res.ok) {
     // Fail-closed shape: same four-key spine + a diagnostic `reason` (the helper's OWN deterministic
@@ -114,8 +143,33 @@ function main() {
     if (code !== 0) failing.push(id);
   }
 
-  const verdict = failing.length ? "FAIL" : "PASS";
-  emit({ feature, gates, verdict, failing_gates: failing }, failing.length ? 1 : 0);
+  // Verdict precedence (P0/P5) — each emit() exits, so these read as guarded branches:
+  //   1. ANY gate red → FAIL (a real failure ALWAYS beats incompleteness — an INCOMPLETE, retryable
+  //      verdict is never emitted while a real gate is red, so /ship never rebuilds over a real bug).
+  //   2. else completeness "incomplete" → INCOMPLETE (exit 3, distinct so /ship can retry ONLY this).
+  //   3. else completeness "inconclusive" → INCONCLUSIVE (fail-closed; cannot assert completeness).
+  //   4. else → PASS (gates green ∧ completeness complete-or-n/a).
+  // When --complete is ABSENT (completeStatus "n/a"), branches 2–3 are dead ⇒ the emitted object AND exit
+  // are byte-identical to the legacy {PASS, FAIL} behavior (regression-guarded by the test suite).
+  if (failing.length) {
+    emit({ feature, gates, verdict: "FAIL", failing_gates: failing }, 1);
+  }
+  if (completeStatus === "incomplete") {
+    emit({ feature, gates, verdict: "INCOMPLETE", failing_gates: [] }, 3);
+  }
+  if (completeStatus === "inconclusive") {
+    emit(
+      {
+        feature,
+        gates,
+        verdict: "INCONCLUSIVE",
+        failing_gates: [],
+        reason: `build-completeness inconclusive (--complete ${JSON.stringify(completeRaw)})`,
+      },
+      2
+    );
+  }
+  emit({ feature, gates, verdict: "PASS", failing_gates: [] }, 0);
 }
 
 main();
