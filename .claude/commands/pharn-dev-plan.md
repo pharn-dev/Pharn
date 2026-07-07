@@ -4,6 +4,8 @@ role: skill
 kind: pharn-owned
 trust: trusted
 model_tier: sonnet
+model: opus
+effort: high
 reads: ["CONSTITUTION.md", "ARCHITECTURE.md", "THREAT-MODEL.md", "LIMITS.md", "<target repo>"]
 writes: [".dev/features/<name>/PLAN.md"]
 constitution_refs: ["P0", "P1", "P3", "P5", "P6", "P7"]

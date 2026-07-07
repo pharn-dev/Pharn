@@ -4,6 +4,8 @@ role: skill
 kind: pharn-owned
 trust: trusted
 model_tier: sonnet
+model: sonnet
+effort: high
 reads: ["CONSTITUTION.md", "ARCHITECTURE.md", ".dev/features/<name>/PLAN.md", "<target repo>"]
 writes: ["<files named in PLAN.md only>"]
 constitution_refs: ["P0", "P1", "P2", "P3", "P4", "P5", "P6"]

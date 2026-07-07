@@ -1,0 +1,10 @@
+{
+  "models": {
+    "stages": {
+      "default": { "model": "sonnet", "effort": "high" },
+      "plan": { "model": "opus", "effort": "high" },
+      "build": { "model": "sonnet", "effort": "high" },
+      "review": { "model": "opus", "effort": "high" }
+    }
+  }
+}
