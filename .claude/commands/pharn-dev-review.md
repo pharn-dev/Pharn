@@ -4,6 +4,8 @@ role: lens
 kind: pharn-owned
 trust: trusted
 model_tier: sonnet
+model: opus
+effort: high
 reads: ["CONSTITUTION.md", "ARCHITECTURE.md", "THREAT-MODEL.md", "LIMITS.md", "<built increment>"]
 writes: [".dev/features/<name>/REVIEW.md"]
 constitution_refs: ["P0", "P1", "P2", "P3", "P4"]
