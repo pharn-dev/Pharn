@@ -360,3 +360,29 @@ evidence L5's input-capture boundary recurs and its fix holds. Complements L9 (d
 - source: `.dev/features/product-loop/REVIEW.md` (proposed lesson candidate) +
   `.dev/features/build-format-step/PLAN.md`
 - promoted: 2026-07-06 via gated `/pharn-dev-memory-promote` (human-approved).
+
+## L13 — Extend the Step-2b format discipline (L12) to every artifact-writing stage, not just `/pharn-dev-build`
+
+**Lesson.** L12 added format-at-BUILD (Step 2b: `/pharn-dev-build` formats its just-written files before its
+floor), but Step 2b covers ONLY `/pharn-dev-build`'s outputs. The later artifact-writing stages —
+`/pharn-dev-regress` (`REGRESSION.md`), `/pharn-dev-verify` (`VERIFY.md`), `/pharn-dev-review` (`REVIEW.md`),
+`/pharn-dev-ship` (`SHIP.md`) — write their OWN markdown AFTER build and have NO equivalent format step, so
+those artifacts land unformatted and are first caught by `/pharn-dev-verify`'s whole-repo `format:check`
+(L9's gate), forcing a manual `prettier --write` mid-pipeline. Remedy: extend the Step-2b discipline so each
+artifact-writing stage runs `prettier --write` over its own artifact before halting — advisory orchestration
+exactly like L12's Step 2b; it REDUCES the recurring mid-pipeline red but NEVER replaces verify's
+deterministic style gate (L9), which stays the real check.
+
+**Why it matters.** Concretely this run (`applies-scope`): `REGRESSION.md` written by `/pharn-dev-regress`
+landed unformatted → `/pharn-dev-verify` `format:check`=1 on the first gate pass → fixed by hand with
+`prettier --write`, then all six gates green. This is a NARROW extension of L12 (build-only prevention),
+naming a distinct remedy target — the post-build stages' own artifacts. Complements L9 (detection at verify),
+L11 (whole-repo scope), and L12 (prevention at build).
+
+**Provenance.**
+
+- feature: `applies-scope`
+- commit: `e69ad89cd30b25e0241525e03f00430272349e1b`
+- source: `.dev/features/applies-scope/REVIEW.md` (proposed lesson candidate) +
+  `.dev/features/applies-scope/VERIFY.md` (L9 build-hygiene note)
+- promoted: 2026-07-07 via gated `/pharn-dev-memory-promote` (human-approved).
