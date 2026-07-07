@@ -4,6 +4,7 @@ role: griller
 kind: pharn-owned
 trust: trusted
 coupling: agnostic
+applies: ["backend", "ssr"]
 model_tier: sonnet
 reads: ["pharn-contracts/finding-shape.md", "<the PLAN.md under interrogation>"]
 writes: ["features/<name>/findings.json"]

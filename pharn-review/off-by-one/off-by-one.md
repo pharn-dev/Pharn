@@ -4,6 +4,7 @@ role: lens
 kind: pharn-owned
 trust: trusted
 coupling: agnostic
+applies: ["universal"]
 model_tier: sonnet
 reads: ["pharn-contracts/finding-shape.md", "<artifact-under-review>"]
 writes: ["features/off-by-one/REVIEW.md", "features/off-by-one/findings.json"]

@@ -4,6 +4,7 @@ role: lens
 kind: pharn-owned
 trust: trusted
 coupling: agnostic
+applies: ["backend", "ssr"]
 model_tier: sonnet
 reads: ["pharn-contracts/finding-shape.md", "<artifact-under-review>"]
 writes: ["features/path-traversal/REVIEW.md", "features/path-traversal/findings.json"]
