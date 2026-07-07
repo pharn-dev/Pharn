@@ -1,0 +1,28 @@
+{
+  "base": "HEAD",
+  "inside": [
+    "pharn.config.json",
+    ".dev/floor/check-config.mjs",
+    ".dev/floor/check-config.test.mjs",
+    ".claude/commands/pharn-dev-plan.md",
+    ".claude/commands/pharn-dev-build.md",
+    ".claude/commands/pharn-dev-review.md"
+  ],
+  "outside_gates": {
+    "structural:trust-fence": {
+      "base": 0,
+      "head": 0
+    },
+    "tests": {
+      "base": 0,
+      "head": 0
+    },
+    "validate": {
+      "base": 0,
+      "head": 0
+    }
+  },
+  "regressions": [],
+  "pre_existing": [],
+  "verdict": "no-regressions"
+}
