@@ -4,6 +4,7 @@ role: lens
 kind: pharn-owned
 trust: trusted
 coupling: agnostic
+applies: ["universal"]
 model_tier: sonnet
 reads: ["pharn-contracts/finding-shape.md", "<artifact-under-review>"]
 writes: ["features/insecure-crypto/REVIEW.md", "features/insecure-crypto/findings.json"]

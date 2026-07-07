@@ -76,3 +76,43 @@ test("★ .dev/ excluded WHOLESALE: role-bearing files under .dev/ are NOT count
     }
   );
 });
+
+// CHECK 4b — `applies` archetype scoping (ARCH §5 enum {ssr,backend,spa,lib} + `universal` wildcard).
+// Optional field, enum-checked only when present (mirrors CHECK 4 coupling).
+
+// A capability that carries `applies:` — valid where its members are archetype-enum values (+ evals).
+const APPLIES_CAP = (value) => `---
+name: sample-lens
+role: lens
+kind: pharn-owned
+coupling: agnostic
+applies: ${value}
+version: 0.1.0
+---
+
+# a sample capability declaring an archetype scope
+`;
+const APPLIES_EVALS = {
+  "pharn-review/sample/evals/cases/case-1.md": "# a case\n",
+  "pharn-review/sample/evals/expected/expected-1.md": "# expected\n",
+};
+
+test("applies enum: valid archetype members (`universal` wildcard + §5 archetypes) exit 0 (GREEN)", () => {
+  withRepo({ "pharn-review/sample/sample.md": APPLIES_CAP(`["ssr", "spa"]`), ...APPLIES_EVALS }, (root) => {
+    const r = run(root);
+    assert.equal(r.status, 0);
+    assert.match(r.stdout, /FLOOR: GREEN/);
+  });
+});
+
+// RED is ATTRIBUTABLE to CHECK 4b: the fixture is otherwise fully valid (required fields + valid coupling
+// + non-empty evals), and we assert the applies-SPECIFIC signal — so the test cannot green on an unrelated
+// failure. `frontend` is deliberately the rejected CLI value: it is NOT a member of the §5 archetype enum.
+test("applies enum: a non-enum `applies` value exits 1 (RED) with the applies-specific finding", () => {
+  withRepo({ "pharn-review/sample/sample.md": APPLIES_CAP(`["frontend"]`), ...APPLIES_EVALS }, (root) => {
+    const r = run(root);
+    assert.equal(r.status, 1);
+    assert.match(r.stdout, /FLOOR: RED/);
+    assert.match(r.stdout, /applies value not in enum: frontend/);
+  });
+});
