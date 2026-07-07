@@ -9,7 +9,7 @@
 //   2. every capability has non-empty evals/cases + evals/expected (P1)
 //   3. every `enforces` rule_id is produced by >=1 eval case        (P1, fix #6)
 //   4. `coupling` is a valid enum value where present               (enum check, §3.2)
-//   4b. `applies` values are archetype-enum members where present   (enum check, §5)
+//   4b. `applies` is present AND every value is an archetype-enum member  (required + enum, §5)
 //   5. finding templates separate enum-gated from free-text fields  (fix #1, best-effort)
 //   6. no forbidden sibling reference                               (P3, best-effort)
 //   7. archetype maps agree, if an archetype-maps manifest exists   (fix #5, conditional)
@@ -30,7 +30,8 @@ const ROLE_ENUM = ["skill", "lens", "validator", "verifier", "griller", "auditor
 const KIND_ENUM = ["pharn-owned", "vendor-official", "community"];
 // `applies` = which archetypes a capability is scoped to. Reuses ARCHITECTURE §5's archetype enum
 // {ssr, backend, spa, lib} verbatim + a `universal` wildcard meaning "all archetypes" (does NOT
-// redefine the archetype enum). Optional field: enum-checked only when present (like COUPLING_ENUM).
+// redefine the archetype enum). REQUIRED field: every capability must declare a valid `applies`
+// (absent or empty → RED); each declared value must be an enum member.
 const APPLIES_ENUM = ["universal", "ssr", "backend", "spa", "lib"];
 const EXCLUDE_SEGMENTS = [`${sep}.claude${sep}commands${sep}`, `${sep}.dev${sep}`, `${sep}node_modules${sep}`, `${sep}.git${sep}`];
 
@@ -149,8 +150,11 @@ for (const cap of capabilities) {
     finding("blocking", "ARCH§3.2", rel, `coupling not in enum: ${fm.coupling}`);
   }
 
-  // CHECK 4b: applies enum (only when present) — archetype scoping (ARCH §5 enum + `universal` wildcard)
+  // CHECK 4b: applies REQUIRED + enum — archetype scoping (ARCH §5 enum + `universal` wildcard)
   const applies = Array.isArray(fm.applies) ? fm.applies : fm.applies ? [fm.applies] : [];
+  if (applies.length === 0) {
+    finding("blocking", "ARCH§5/applies", rel, "missing required frontmatter field: applies");
+  }
   for (const a of applies) {
     if (!APPLIES_ENUM.includes(a)) {
       finding("blocking", "ARCH§5/applies", rel, `applies value not in enum: ${a}`);

@@ -1,6 +1,7 @@
 {
   "base": "f245e9d",
   "inside": [
+    ".dev/floor/test-fixtures/green/skill.md",
     ".dev/floor/validate.mjs",
     ".dev/floor/validate.test.mjs",
     "pharn-pipeline/grillers/a11y/a11y.md",

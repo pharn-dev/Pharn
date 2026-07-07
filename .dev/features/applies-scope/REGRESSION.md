@@ -43,3 +43,10 @@ produced a false regression (1 → 1, no flip). It was corrected by piping the f
 (reliable arg-splitting), yielding the real result above: `tests` = 0 at both base and head, consistent
 with `npm run check`'s 663/663 pass. The recorded `base-results.json` / `head-results.json` are the
 corrected captures.
+
+## GATE-2 re-run
+
+After the GATE-2 adjustments (DB + server-only lenses → `["backend","ssr"]`; `applies:` made required;
+`## Files` expanded by the green fixture), `/pharn-dev-regress` was re-run against the true feature base
+`f245e9d` with `inside` = **38** files. Outside gates unchanged (all `0 → 0`); **verdict:
+`no-regressions`**, exit 0. `regression-report.json` reflects this final state.

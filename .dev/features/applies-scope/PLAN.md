@@ -17,8 +17,11 @@ db, ...}` set was **rejected** because it contradicts §5 and points at an out-o
   as one of the four archetype-driven maps, and `validate.mjs` CHECK 7 already anticipates an
   archetype-keyed `grillers` map. `applies:` is the per-capability realization of that
   **existing-but-unbuilt** concept — an internal, non-speculative driver. Not built for the (absent) CLI.
-- **Floor strictness = optional; enum-checked only when present** — mirrors the existing `coupling`
-  check (`validate.mjs` CHECK 4). A bad `applies:` value → RED; a missing `applies:` → allowed.
+- **Floor strictness = REQUIRED (GATE-2 change).** Originally planned optional (enum-checked when
+  present, mirroring `coupling` CHECK 4); at GATE-2 the human elected to make `applies:` **required** —
+  every capability must declare a valid `applies:` or the floor is RED (absent/empty → RED; each value ∈
+  enum). This reverses the GATE-1 optional decision and also subsumes the empty-`[]` boundary. It
+  requires adding `applies:` to the `test-fixtures/green` fixture (scope expanded above).
 
 ## Files
 
@@ -31,7 +34,7 @@ db, ...}` set was **rejected** because it contradicts §5 and points at an out-o
 - `pharn-pipeline/grillers/documentation/documentation.md` — add `applies: ["universal"]` — layer pharn-pipeline
 - `pharn-pipeline/grillers/error-handling/error-handling.md` — add `applies: ["universal"]` — layer pharn-pipeline
 - `pharn-pipeline/grillers/i18n/i18n.md` — add `applies: ["ssr", "spa"]` (UI-bearing archetypes) — layer pharn-pipeline
-- `pharn-pipeline/grillers/migrations/migrations.md` — add `applies: ["backend"]` (DB concern; see note) — layer pharn-pipeline
+- `pharn-pipeline/grillers/migrations/migrations.md` — add `applies: ["backend", "ssr"]` (DB concern; GATE-2) — layer pharn-pipeline
 - `pharn-pipeline/grillers/observability/observability.md` — add `applies: ["universal"]` — layer pharn-pipeline
 - `pharn-pipeline/grillers/performance/performance.md` — add `applies: ["universal"]` — layer pharn-pipeline
 - `pharn-pipeline/grillers/privacy/privacy.md` — add `applies: ["universal"]` — layer pharn-pipeline
@@ -50,34 +53,36 @@ db, ...}` set was **rejected** because it contradicts §5 and points at an out-o
 - `pharn-review/missing-await/missing-await.md` — add `applies: ["universal"]` — layer pharn-review
 - `pharn-review/missing-error-handling/missing-error-handling.md` — add `applies: ["universal"]` — layer pharn-review
 - `pharn-review/missing-timeout/missing-timeout.md` — add `applies: ["universal"]` — layer pharn-review
-- `pharn-review/n-plus-one/n-plus-one.md` — add `applies: ["backend"]` (DB concern; see note) — layer pharn-review
+- `pharn-review/n-plus-one/n-plus-one.md` — add `applies: ["backend", "ssr"]` (DB concern; GATE-2) — layer pharn-review
 - `pharn-review/null-deref/null-deref.md` — add `applies: ["universal"]` — layer pharn-review
 - `pharn-review/off-by-one/off-by-one.md` — add `applies: ["universal"]` — layer pharn-review
-- `pharn-review/path-traversal/path-traversal.md` — add `applies: ["universal"]` — layer pharn-review
+- `pharn-review/path-traversal/path-traversal.md` — add `applies: ["backend", "ssr"]` (server-only; GATE-2) — layer pharn-review
 - `pharn-review/placeholder-as-done/placeholder-as-done.md` — add `applies: ["universal"]` — layer pharn-review
 - `pharn-review/race-condition/race-condition.md` — add `applies: ["universal"]` — layer pharn-review
 - `pharn-review/resource-leak/resource-leak.md` — add `applies: ["universal"]` — layer pharn-review
 - `pharn-review/secrets-in-code/secrets-in-code.md` — add `applies: ["universal"]` — layer pharn-review
-- `pharn-review/ssrf/ssrf.md` — add `applies: ["universal"]` — layer pharn-review
+- `pharn-review/ssrf/ssrf.md` — add `applies: ["backend", "ssr"]` (server-only; GATE-2) — layer pharn-review
 - `pharn-review/swallowed-exception/swallowed-exception.md` — add `applies: ["universal"]` — layer pharn-review
 - `pharn-review/trust-fence/trust-fence.md` — add `applies: ["universal"]` — layer pharn-review
-- `pharn-review/unsafe-deserialization/unsafe-deserialization.md` — add `applies: ["universal"]` — layer pharn-review
+- `pharn-review/unsafe-deserialization/unsafe-deserialization.md` — add `applies: ["backend", "ssr"]` (server-only; GATE-2) — layer pharn-review
 
-<!-- the floor: the enum check + its test (the only new guarantee) -->
+<!-- the floor: the required-enum check + its tests + the green fixture (GATE-2: now REQUIRED) -->
 
-- `.dev/floor/validate.mjs` — add `APPLIES_ENUM = ["universal","ssr","backend","spa","lib"]` const + a per-capability "applies enum when present" check (parallel to CHECK 4 coupling); update the header checklist comment — layer .dev/floor
-- `.dev/floor/validate.test.mjs` — add two hermetic `withRepo` tests: capability with a non-enum `applies:` value → RED (exit 1); capability with valid `applies:` → GREEN (exit 0) — layer .dev/floor
+- `.dev/floor/validate.mjs` — add `APPLIES_ENUM = ["universal","ssr","backend","spa","lib"]` const + a per-capability **REQUIRED** `applies` check (absent/empty → RED; each value ∈ enum); update the header checklist comment — layer .dev/floor
+- `.dev/floor/validate.test.mjs` — add `withRepo` tests: valid `applies` → GREEN; non-enum value → RED (attributable); MISSING `applies` → RED (required); and add `applies` to `VALID_CAP` — layer .dev/floor
+- `.dev/floor/test-fixtures/green/skill.md` — add `applies: ["universal"]` so the GREEN-fixture test stays green under the required check (GATE-2 scope expansion) — layer .dev/floor
 
 **Placement note (build detail):** insert the `applies:` line immediately after each capability's
 `coupling:` line (all 35 capabilities carry `coupling:`; fall back to after `model_tier:` if any does
 not). Use the quoted inline-array style (`applies: ["universal"]`) to match existing `reads:` /
 `constitution_refs:` frontmatter and stay Prettier-clean.
 
-**Classification note (advisory, see Guarantee audit):** the archetype-specific carve-outs are
-`a11y`/`i18n` → `["ssr","spa"]` (only UI-bearing archetypes) and the DB concerns `migrations` /
-`n-plus-one` → `["backend"]`. Everything else is `["universal"]`. Per the approved preview these use
-`["backend"]`; a human may prefer `["backend","ssr"]` if SSR apps that own a DB should also match — see
-Open questions.
+**Classification note (advisory; GATE-2 final taxonomy):** carve-outs off `["universal"]` are —
+UI-bearing: `a11y`/`i18n` → `["ssr","spa"]`; DB concerns: `migrations`/`n-plus-one` → `["backend","ssr"]`
+(GATE-2, so SSR apps that own a DB also match); server-only security lenses: `ssrf`/`path-traversal`/
+`unsafe-deserialization` → `["backend","ssr"]` (GATE-2 — need a server; a pure SPA/lib cannot exhibit
+them). Everything else — cross-cutting security (`injection` [XSS+SQLi span FE+BE], `input-validation`,
+`insecure-crypto`, `secrets-in-code`, `trust-fence`) and all correctness lenses — stays `["universal"]`.
 
 ## Contracts satisfied
 

@@ -2,6 +2,7 @@
 name: example
 role: skill
 kind: pharn-owned
+applies: ["universal"]
 version: 1.0.0
 ---
 

@@ -89,3 +89,18 @@ eval binding is owed, one axis per file, no sibling references. Four **advisory*
 documenting the field), two `minor` (a positive P2 confirmation; the classification-precision-vs-
 simplicity tradeoff) — plus one proposed lesson candidate. None blocks. The merge / fix / abandon
 decision is the human's (GATE 2).
+
+## GATE-2 addendum (post-review adjustments)
+
+The human directed three adjustments at GATE 2, re-run through regress + verify (both verdicts
+unchanged). Two of the four advisory findings above are now **resolved**:
+
+- **[minor, P0] classification precision** — `ssrf` (+ `path-traversal`, `unsafe-deserialization`) moved
+  `["universal"] → ["backend","ssr"]`; DB concerns `migrations` / `n-plus-one` → `["backend","ssr"]`. The
+  precision-vs-simplicity tension is now decided toward precision for the server-only set.
+- **[minor, P0] empty-`applies:` boundary** — subsumed: `applies:` is now **required** (absent/empty →
+  RED), so the empty-list gap no longer exists.
+
+The two `important` findings **still stand** (both human-accepted, neither agent-fixable): no in-repo
+consumer of `applies:` yet (P7); ARCHITECTURE §3.1 still does not list the field (P4). **Verdict
+unchanged: GREEN, 0 floor-gate findings.**

@@ -50,6 +50,7 @@ const VALID_CAP = `---
 name: sample-lens
 role: lens
 kind: pharn-owned
+applies: ["universal"]
 version: 0.1.0
 ---
 
@@ -114,5 +115,26 @@ test("applies enum: a non-enum `applies` value exits 1 (RED) with the applies-sp
     assert.equal(r.status, 1);
     assert.match(r.stdout, /FLOOR: RED/);
     assert.match(r.stdout, /applies value not in enum: frontend/);
+  });
+});
+
+// `applies` is REQUIRED (GATE-2): a capability that omits it is RED. The fixture is otherwise fully
+// valid (required fields + valid coupling + evals), so the RED is attributable to the missing `applies`.
+test("applies required: a capability MISSING `applies` exits 1 (RED) with the missing-required finding", () => {
+  const cap = `---
+name: sample-lens
+role: lens
+kind: pharn-owned
+coupling: agnostic
+version: 0.1.0
+---
+
+# a capability that declares no archetype scope
+`;
+  withRepo({ "pharn-review/sample/sample.md": cap, ...APPLIES_EVALS }, (root) => {
+    const r = run(root);
+    assert.equal(r.status, 1);
+    assert.match(r.stdout, /FLOOR: RED/);
+    assert.match(r.stdout, /missing required frontmatter field: applies/);
   });
 });

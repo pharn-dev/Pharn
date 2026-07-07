@@ -39,3 +39,10 @@ whole-repo `format:check` caught it — exactly the L9 surprise). It was fixed w
 (cosmetic table alignment, content unchanged) and all six gates then passed. Candidate lesson: the
 regress/verify stages could format their own pipeline artifacts before halting, as `/pharn-dev-build` Step 2b
 does for build outputs.
+
+## GATE-2 re-run
+
+After the GATE-2 adjustments, all six FLOOR gates were re-run on the final state — every gate **0**;
+**verdict `PASS`** (`check-verify.mjs`, exit 0). `verify-report.json` reflects this. The required-`applies:`
+change added a "missing applies → RED" test plus `applies:` on the green fixture + `VALID_CAP`; the full
+`npm test` suite passes with the new case included.
