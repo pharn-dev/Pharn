@@ -124,6 +124,12 @@ git worktree remove --force "$TMP"
   style-skip rule) and apply it to both.
 - **The core gates are stdlib-only** (`node --test`, `validate`, `check-structural`) — they run in the
   baseline worktree **without `npm ci`**.
+- **Expand the `tests` list SAFELY (L5).** Feed `node --test` its `<outside_tests...>` through `xargs` (or a
+  shell array / zsh `${=LIST}`) — **never** `node --test $LIST` with an unquoted variable: under **zsh** (the
+  macOS default shell) an unquoted `$LIST` is NOT word-split, so the whole list is passed as one bogus
+  argument → `Could not find …` → exit 1 at **both** base and head; being equal on both sides it fabricates a
+  false `pre-existing` red and **masks** a real tests-gate regression (`.dev/memory-bank/lessons-learned.md`
+  L5 — cite, don't restate, P4).
 - **Style-gate skip (deterministic optimization, P5/P7).** Run `lint` / `format:check` / `lint:md`
   **only if** `inside` touches a shared style config (`eslint.config.mjs`, `.prettierrc.json`,
   `.prettierignore`, `.markdownlint-cli2.jsonc`). Rationale: over the **outside** files (byte-identical
