@@ -109,6 +109,63 @@ const res = await fetch(url);
 });
 
 // ---------------------------------------------------------------------------
+// ★ BACKTICK-SUPPRESSION IMMUNITY — a template literal's TEXT cannot SUPPRESS a real hit (maskedForSuppression).
+// These went RED before the maskTemplateInteriors port (BOTH suppression reads then ran over `masked`, backticks
+// intact) and are GREEN after. This scanner has TWO suppression reads, so both vectors are pinned. The whole reason
+// the bug shipped green was that NO fixture asserted backtick-SUPPRESS (only backtick-MANUFACTURE was covered above).
+
+test("★ BACKTICK-SUPPRESS (.catch vector): a backtick `.catch(` on the same line as a real unguarded await does NOT suppress it", () => {
+  const body = "const y = await risky(x); const s = `.catch(h)`;\n";
+  withCode(body, (p) => {
+    const r = run(p);
+    assert.equal(r.status, 0);
+    // The backtick `.catch(` is blanked in the suppression copy ⇒ the same-line handled-exclusion no longer fires.
+    assert.deepEqual(json(r), { found: true, hits: [{ line: 1, kind: "unguarded-await" }] });
+  });
+});
+
+test("★ BACKTICK-SUPPRESS (try-range vector): a backtick `try {`…`}` span around a real await does NOT manufacture a guard", () => {
+  const body = "const a = `try {`;\nconst res = await fetch(url);\nconst b = `}`;\n";
+  withCode(body, (p) => {
+    const r = run(p);
+    assert.equal(r.status, 0);
+    // Both backtick template interiors are blanked in the suppression copy ⇒ no fake `try {…}` guard range spans the await.
+    assert.deepEqual(json(r), { found: true, hits: [{ line: 2, kind: "unguarded-await" }] });
+  });
+});
+
+test("FENCE-ROBUSTNESS: a real try-GUARDED await inside a ```-fenced markdown block is STILL clean (the ≥3-backtick fence-skip preserves the real `try`)", () => {
+  const body = "# case\n\n```js\ntry {\n  const res = await fetch(url);\n} catch (e) { handle(e); }\n```\n";
+  withCode(body, (p) => {
+    const r = run(p);
+    assert.equal(r.status, 0);
+    // Moving the try-range computation to maskedForSuppression must NOT blank a real `try` inside a ```-fence.
+    assert.deepEqual(json(r), { found: false, hits: [] });
+  });
+});
+
+test("FENCE-ROBUSTNESS: a real UNGUARDED await inside a ```-fenced block is STILL found", () => {
+  const body = "# case\n\n```js\nconst res = await fetch(url);\n```\n";
+  withCode(body, (p) => {
+    const r = run(p);
+    assert.equal(r.status, 0);
+    assert.deepEqual(json(r), { found: true, hits: [{ line: 4, kind: "unguarded-await" }] });
+  });
+});
+
+test("DOCUMENTED BOUND (≥3-backtick residual): a fake `try {`…`}` wrapped in ```-runs is read as CODE (fence marker, not masked) → suppresses — the fence-robustness price; PINNED, not desired", () => {
+  const body = "const a = ```try {```;\nawait fetch(url);\nconst b = ```}```;\n";
+  withCode(body, (p) => {
+    const r = run(p);
+    assert.equal(r.status, 0);
+    // A ≥3-backtick run is a markdown fence marker (skipped, not a template delimiter) ⇒ the `try {`/`}` between the
+    // runs is read as CODE ⇒ a guard range spans the await ⇒ CLEAN. Correct over a .md fixture (fenced=code); a narrow
+    // raw-.js residual, far narrower than the pre-fix any-backtick hole. The claim DOCUMENTS this, does not deny it.
+    assert.deepEqual(json(r), { found: false, hits: [] });
+  });
+});
+
+// ---------------------------------------------------------------------------
 // POSITIVES — the two roster kinds
 
 test("an unguarded awaited call → unguarded-await at its line", () => {

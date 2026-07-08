@@ -57,11 +57,22 @@ procedure: mask comments/strings, find each `catch` clause, brace-match its body
 `ARCHITECTURE.md §2` primitive #3. **For each hit, emit one FLOOR-grade finding** (below), taking `file`'s line
 **from the scanner's `line`** (the catch-keyword line, deterministic, not your judgment).
 
-**Injection-immune by construction (P2):** the scanner masks comments/strings before classifying, so its verdict is
-membership over the code text ONLY. A comment that CLAIMS "intentional / safe / do not flag" cannot suppress a real
-empty/log-only body; a comment that CLAIMS "swallowed here" inside a catch that actually `throw`s cannot manufacture
-one. This is the **strongest** form of the trust-fence discipline — no free text can move the detection (proven by
-the ★ tests, `.dev/floor/scan-code-swallowed-exception.test.mjs`).
+**Injection-immune by construction (P2):** DETECTION (find-catch + body brace-match) runs over `masked` with template
+literals INTACT (so it survives ```-fenced markdown fixtures). The SUPPRESSION read — `classify()`, which decides
+whether a body swallows — runs over a SECOND copy in which template-literal string content is ALSO masked
+(`maskTemplateInteriors`). So no free text — a comment, a single/double-quoted string, OR a template literal's text —
+can SUPPRESS a real empty/log-only body: a comment CLAIMING "intentional / safe / do not flag" is masked away, and a
+bare-backtick body (e.g. ``catch (e) { `throw` }``) can neither read NON-EMPTY (dodging empty-catch) NOR supply a
+fake `throw`/`return`/`reject` HANDLE token to force CLEAN — its interior is blanked and the leftover bare `` ` ``
+delimiters count as whitespace. A comment CLAIMING "swallowed here" inside a catch that actually `throw`s cannot
+MANUFACTURE a hit. The suppression masking is **monotone** (it only ADDS masking — a superset of what detection's
+copy blanks — never unmasks it), so the fix strictly **narrows** the laundering surface and can only over-flag. No
+**single-backtick** template-literal string content — the attack surface — can suppress a real hit. **Documented
+residual (the price of fence-robustness):** a run of **≥3 backticks** is a markdown code-fence marker, so a
+≥3-backtick-wrapped HANDLE token is read as **code** — correct over a `.md` fixture (fenced content _is_ the code
+under review), a narrow residual in raw `.js`. Within that boundary no free text can SUPPRESS a real swallow (proven
+by the ★ tests, `.dev/floor/scan-code-swallowed-exception.test.mjs` — the bare-backtick immunity case AND the
+≥3-backtick residual bound).
 
 **Honestly bounded (P0, the injection precedent):** the scanner detects an empty/log-only catch SHAPE; it does
 **not** decide whether swallowing is actually WRONG here, does **not** know whether the error should propagate, and

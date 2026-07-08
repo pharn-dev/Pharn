@@ -90,6 +90,52 @@ export const x = 1;
 });
 
 // ---------------------------------------------------------------------------
+// ★ BACKTICK-SUPPRESSION IMMUNITY — a template literal's TEXT cannot SUPPRESS a real swallow (maskedForSuppression).
+// This went RED before the maskTemplateInteriors port (classify then read the body from `masked`, backticks intact,
+// so a bare-backtick body read NON-EMPTY — dodging empty-catch — AND its text supplied a fake `throw` HANDLE token
+// forcing CLEAN) and is GREEN after. Two laundering effects in one payload, both closed.
+
+test("★ BACKTICK-SUPPRESS: a bare-backtick catch body does NOT suppress — neither reads non-empty NOR supplies a fake `throw` HANDLE token", () => {
+  const body = "try { a(); } catch(e){ `throw` }\n";
+  withCode(body, (p) => {
+    const r = run(p);
+    assert.equal(r.status, 0);
+    // The template interior (incl. the word `throw`) is blanked, and classify treats the leftover bare ` ` delimiters
+    // as whitespace ⇒ the body reads EMPTY ⇒ empty-catch. The catch keyword is on line 1.
+    assert.deepEqual(json(r), { found: true, hits: [{ line: 1, kind: "empty-catch" }] });
+  });
+});
+
+test("FENCE-ROBUSTNESS: a real rethrowing catch inside a ```-fenced markdown block is STILL clean (the ≥3-backtick fence-skip preserves the real `throw`)", () => {
+  const body = "# case\n\n```js\ntry { a(); } catch (e) { throw e; }\n```\n";
+  withCode(body, (p) => {
+    const r = run(p);
+    assert.equal(r.status, 0);
+    assert.deepEqual(json(r), { found: false, hits: [] });
+  });
+});
+
+test("FENCE-ROBUSTNESS: a real empty catch inside a ```-fenced block is STILL found", () => {
+  const body = "# case\n\n```js\ntry { a(); } catch (e) {}\n```\n";
+  withCode(body, (p) => {
+    const r = run(p);
+    assert.equal(r.status, 0);
+    assert.deepEqual(json(r), { found: true, hits: [{ line: 4, kind: "empty-catch" }] });
+  });
+});
+
+test("DOCUMENTED BOUND (≥3-backtick residual): a ```-wrapped `throw` is read as CODE (fence marker, not masked) → supplies a HANDLE token → CLEAN — the fence-robustness price; PINNED, not desired", () => {
+  const body = "try{a();}catch(e){ ```throw``` }\n";
+  withCode(body, (p) => {
+    const r = run(p);
+    assert.equal(r.status, 0);
+    // A ≥3-backtick run is a markdown fence marker (skipped, not a template delimiter) ⇒ the `throw` between the runs is
+    // read as CODE ⇒ HANDLE token present ⇒ CLEAN. Correct over a .md fixture (fenced=code); a narrow raw-.js residual.
+    assert.deepEqual(json(r), { found: false, hits: [] });
+  });
+});
+
+// ---------------------------------------------------------------------------
 // EMPTY-catch SHAPE
 
 test("an empty catch `catch (e) {}` is detected, with its 1-based catch-keyword line", () => {
@@ -131,7 +177,7 @@ test("a catch whose body is only logger.warn(...) → log-only-catch", () => {
   });
 });
 
-test("a catch whose body logs with a (balanced) template literal → still log-only-catch (templates are not masked, but the common case classifies)", () => {
+test("a catch whose body logs with a (balanced) template literal → still log-only-catch (the template INTERIOR is blanked in the suppression copy, but the `console.error(` head + parens survive → classified log-only)", () => {
   const body = "try {\n  f();\n} catch (e) {\n  console.error(`request failed: ${e.message}`);\n}\n";
   withCode(body, (p) => {
     const r = run(p);

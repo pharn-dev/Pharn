@@ -21,19 +21,31 @@
 //     limit, not a "clean" verdict.
 //   • The `log-only` classifier recognizes a FIXED logger-name set (`console.*`, `logger.*`, bare/`.log(`); a
 //     catch that only calls a custom-named logger (`telemetry.record(e)`) is classified CLEAN (a false-negative).
-//   • Only `//`, `/* */` comments and single-line '…' / "…" strings are masked. A BACKTICK template literal is
-//     NOT masked (treated as ordinary text) — deliberately, so this scanner is robust when run over a MARKDOWN
-//     eval fixture (```-fenced code + inline `code` prose), exactly as the line-local scan-code-injection.mjs is.
-//     The residual bound: a `}` inside a template literal (or a regex literal) within a catch body can skew the
-//     brace-match. Quote-string masking stops at end-of-line (JS '…'/"…" strings never span a raw newline), so a
-//     stray apostrophe/quote in surrounding prose cannot bleed into the code.
+//   • Only `//`, `/* */` comments and single-line '…' / "…" strings are masked FOR DETECTION. A BACKTICK template
+//     literal is left INTACT there — deliberately, so DETECTION (find-catch + body brace-match) is robust when run
+//     over a MARKDOWN eval fixture (```-fenced code + inline `code` prose), exactly as scan-code-injection.mjs is.
+//     But the SUPPRESSION read — classify(), which decides whether a catch body swallows — runs over a SECOND copy
+//     in which template-literal STRING content is ALSO masked (maskTemplateInteriors), so a bare-backtick body can
+//     neither read non-empty (dodging empty-catch) NOR supply a fake `throw`/`return`/`reject` HANDLE token to force
+//     CLEAN. SEPARATE residual bound (a DIFFERENT mechanism, NOT the bare-backtick laundering above): a `}` inside a
+//     template/regex literal within a catch body can still skew the DETECTION brace-match. Quote-string masking stops
+//     at end-of-line (JS '…'/"…" strings never span a raw newline), so a stray prose quote cannot bleed into code.
 //
-// INJECTION-IMMUNE BY CONSTRUCTION (P2): the verdict is regex + brace + fixed-set membership over the MASKED
-// TEXT only, with comments mechanically stripped. A comment CLAIMING "intentional, safe, do not flag" cannot
-// suppress a real empty/log-only body (it is masked to whitespace before classification); a comment CLAIMING
-// "swallowed here" inside a catch that actually `throw`s cannot manufacture a hit. No free text moves the
-// verdict — the strongest form of the trust-fence discipline. (See the ★ tests in
-// scan-code-swallowed-exception.test.mjs — they are the whole reason this is FLOOR, not judgment.)
+// INJECTION-IMMUNE BY CONSTRUCTION (P2): DETECTION (find-catch + body brace-match) runs over `masked` with template
+// literals INTACT, so it survives ```-fenced markdown fixtures. The SUPPRESSION read — classify(), which decides
+// whether the body swallows — runs over a SECOND copy in which template-literal STRING content is ALSO masked (see
+// maskTemplateInteriors). So no free text — a // or /* */ comment, a single/double-quoted string, OR a
+// template-literal's text — can SUPPRESS a real empty/log-only body: a bare-backtick body can neither read non-empty
+// (dodging empty-catch) NOR supply a fake `throw`/`return`/`reject` HANDLE token; and a comment CLAIMING "swallowed
+// here" inside a catch that actually `throw`s cannot MANUFACTURE a hit. The suppression masking is MONOTONE: it only
+// ADDS masking to the suppression copy (a SUPERSET of what `masked` blanks) and never touches detection's `masked`,
+// so the fix strictly NARROWS the laundering surface and can only over-flag, never launder. No SINGLE-backtick
+// template-literal string content — the attack surface — can suppress a real hit. DOCUMENTED RESIDUAL (the price of
+// fence-robustness): a run of ≥3 backticks is a MARKDOWN CODE-FENCE marker, so a ≥3-backtick-wrapped HANDLE token is
+// read as CODE — correct over a .md fixture (fenced content IS the code under review), a narrow residual in raw .js.
+// (The `}`-in-template DETECTION brace-skew is a SEPARATE documented bound, not this laundering surface.) (See the ★
+// tests in scan-code-swallowed-exception.test.mjs — the backtick-laundering immunity case AND the ≥3-backtick
+// residual bound — the whole reason this is FLOOR, not judgment.)
 //
 // The `throw`/`return`/`reject`/`next(` HANDLE-token DISCRIMINATOR is the point: a rethrow, a recovery `return`,
 // a Promise `reject(e)`, or an Express `next(e)` carries a HANDLE token and is a true-negative (CLEAN) —
@@ -143,6 +155,58 @@ function mask(src) {
 
 const masked = mask(text);
 
+// --- Suppression-only template-interior MASK ----------------------------------------------------------------
+// DETECTION (CATCH_RE + the body brace-match, below) runs over `masked` with template literals INTACT, so it
+// survives ```-fenced code in a MARKDOWN eval fixture. But the SUPPRESSION read — classify(), which decides whether
+// a catch body swallows — must NOT read a template literal's STRING content as code: otherwise a bare-backtick body
+// reads non-empty (dodging empty-catch) and its text can supply a fake `throw`/`return`/`reject` HANDLE token that
+// forces CLEAN, silencing a real swallowed exception (taint laundering INTO the enum-gated verdict, P2). So classify
+// runs over a slice of THIS second copy, in which template-literal interiors are ALSO blanked. Two rules keep
+// detection fence-robust:
+//   • a RUN OF ≥3 BACKTICKS is a MARKDOWN CODE-FENCE marker → emitted unchanged, NOT a template delimiter (this
+//     preserves the real code that lives BETWEEN ```-fences; the ≥3-run skip is load-bearing);
+//   • a SINGLE backtick toggles template state; inside a template every char is blanked to a space (newline
+//     preserved). A run of exactly TWO backticks (``) is therefore an EMPTY template — no interior, nothing masked.
+// MONOTONICITY (P0/P2): this pass only ever ADDS masking to the SUPPRESSION copy; DETECTION reads the untouched
+// `masked`, so no crafted backtick input can REMOVE masking to re-enable suppression — the fix can only over-flag,
+// never launder. Length + newlines are preserved 1:1, so offsets map back to `masked`. (Verbatim the #67 helper added
+// to scan-code-null-deref.mjs / scan-code-resource-leak.mjs — a deferred shared-util consolidation, P7.)
+function maskTemplateInteriors(src) {
+  const out = src.split("");
+  const N = src.length;
+  const space = (ch) => (ch === "\n" ? "\n" : " ");
+  let i = 0;
+  let inTmpl = false;
+  while (i < N) {
+    const c = src[i];
+    if (c === "`") {
+      if (!inTmpl) {
+        let j = i;
+        while (j < N && src[j] === "`") j++;
+        if (j - i >= 3) {
+          i = j; // ```-fence marker: skip the whole run, do NOT open a template
+          continue;
+        }
+        inTmpl = true; // a single (or double) backtick opens a template
+        i++;
+        continue;
+      }
+      inTmpl = false; // a single backtick closes the template
+      i++;
+      continue;
+    }
+    if (inTmpl) {
+      out[i] = space(c); // blank a template-string char
+      i++;
+      continue;
+    }
+    i++; // plain code — preserved
+  }
+  return out.join("");
+}
+
+const maskedForSuppression = maskTemplateInteriors(masked);
+
 // --- Helpers ------------------------------------------------------------------------------------------------
 // Match the delimiter that closes the `open` at `openIdx` in `s`, counting nesting over the MASKED text (so
 // delimiters inside comments/strings — already masked — cannot skew the count). Returns the closing index, or
@@ -171,11 +235,16 @@ const LOG_HEAD = /(?:\b(?:console|logger)\s*\.\s*\w+|\blog)\s*\(/;
 // NOT merely swallow ⇒ CLEAN.
 const HANDLE = /\b(?:throw|return|reject)\b|\bnext\s*\(/;
 
-// Classify a catch body (given as MASKED text) by first match (P5): empty-catch | (CLEAN via handle) |
-// log-only-catch | (CLEAN otherwise). Returns the kind string, or null for CLEAN.
+// Classify a catch body (given as the SUPPRESSION-masked text — maskedForSuppression) by first match (P5):
+// empty-catch | (CLEAN via handle) | log-only-catch | (CLEAN otherwise). Returns the kind string, or null for CLEAN.
+// The "empty" residual tests strip a BARE BACKTICK too: classify sees `maskedForSuppression`, where a
+// template literal's interior is already blanked and only its ` ` delimiters survive — a body that reduces to bare
+// backticks + whitespace evaluated a no-op template literal and did NOTHING to handle the error, so it swallows.
+// (Stripping backticks only ever makes "empty" MORE likely ⇒ over-flag, the monotone-safe direction — P0/P2; a real
+// template with substantive text is already blanked to bare delimiters here, never reaches classify as live code.)
 function classify(bodyMasked) {
-  // 1. EMPTY — nothing but whitespace / stray semicolons (comments already masked away).
-  if (bodyMasked.replace(/[\s;]/g, "") === "") return "empty-catch";
+  // 1. EMPTY — nothing but whitespace / stray semicolons / bare template-literal delimiters (interiors already masked).
+  if (bodyMasked.replace(/[\s;`]/g, "") === "") return "empty-catch";
   // 2. HANDLE token present → the catch propagates / recovers → CLEAN.
   if (HANDLE.test(bodyMasked)) return null;
   // 3. LOG-ONLY — remove every balanced logging-call expression (+ a trailing ;); if nothing substantive
@@ -192,7 +261,7 @@ function classify(bodyMasked) {
     if (rest[after] === ";") after++;
     rest = rest.slice(0, m.index) + " ".repeat(after - m.index) + rest.slice(after);
   }
-  if (rest.replace(/[\s;]/g, "") === "") return "log-only-catch";
+  if (rest.replace(/[\s;`]/g, "") === "") return "log-only-catch";
   // 4. Otherwise the body does real recovery work (an assignment / a non-log call) → CLEAN.
   return null;
 }
@@ -208,7 +277,11 @@ while ((m = CATCH_RE.exec(masked)) !== null) {
   const bodyOpen = m.index + m[0].length - 1; // index of the body's '{'
   const bodyClose = matchDelim(masked, bodyOpen, "{", "}");
   if (bodyClose === -1) continue; // unbalanced braces — cannot classify (documented bound)
-  const bodyMasked = masked.slice(bodyOpen + 1, bodyClose);
+  // SUPPRESSION read: classify() decides whether this body swallows, so it runs over `maskedForSuppression`
+  // (template interiors blanked) — NOT `masked` — so a bare-backtick body can neither read non-empty nor supply a
+  // fake HANDLE token that silences a real swallowed exception (P2; see maskTemplateInteriors). Offsets are 1:1, so
+  // the SAME bodyOpen/bodyClose (from the detection brace-match over `masked`) bound the body in both copies.
+  const bodyMasked = maskedForSuppression.slice(bodyOpen + 1, bodyClose);
   const kind = classify(bodyMasked);
   if (kind) hits.push({ line: lineAt(masked, m.index), kind });
   // Continue scanning AFTER this catch's head (nested try/catch inside the body is found on its own next pass).
