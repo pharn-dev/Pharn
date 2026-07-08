@@ -202,8 +202,15 @@ Then **end your turn** at the human gate. `/pharn-loop` does not merge, push, or
 - **"The loop retries ONLY the retryable `INCOMPLETE` state and stops immediately on any terminal red"** →
   **FLOOR** (`check-loop.mjs`: `CONTINUE` iff `verify.verdict == INCOMPLETE ∧ regress no-regressions ∧
 iter < cap`; `STOP_TERMINAL` on any real red) — enum membership, `ARCHITECTURE.md §2` primitive #3, tested.
-- **"`/pharn-loop` performs AT MOST N floor-gated retries; no infinite loop"** → **FLOOR** (`check-loop.mjs`:
-  `iter >= cap` → `STOP_CAP`; `CONTINUE` only `iter < cap`) — integer threshold, tested.
+- **"`/pharn-loop` performs AT MOST N floor-gated retries; no infinite loop"** → **FLOOR compare,
+  ADVISORY bound (§1d).** The `iter >= cap → STOP_CAP` / `CONTINUE`-only-`iter < cap` **decision** is
+  **FLOOR** (`check-loop.mjs`, integer threshold, tested — `ARCHITECTURE.md §2` primitive #3). But it
+  bounds only a **truthful, agent-supplied `--iter`**: `check-loop.mjs` reads `iter` from argv and keeps
+  **no** floor-side counter and **no** persistence, so **the cap bounds the decision, not the agent** —
+  an agent that resets `--iter 1` each call is a **`LIMITS.md §1d` discipline gap** (invoking and obeying
+  the checker is advisory orchestration), **not** a floor the checker can enforce. "No infinite loop" is
+  therefore **conditional/advisory** — framed exactly as `pharn-ship.md`'s ≤1 bound is
+  ("structural/advisory").
 - **"A rebuild can never escape the approved plan's `## Files`"** → **FLOOR: hook (fix #7)** — owned by
   **`/pharn-build`'s** own Step-0 `set-writes-scope.cjs --from-plan`, re-enforced every iteration;
   `/pharn-loop` relies on it, does not re-implement it.

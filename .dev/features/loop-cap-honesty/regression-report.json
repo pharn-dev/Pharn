@@ -1,0 +1,21 @@
+{
+  "base": "da3b2fd39ddc8779e2ee14f936a4dcab60ab356c",
+  "inside": [".claude/commands/pharn-loop.md"],
+  "outside_gates": {
+    "structural:trust-fence": {
+      "base": 0,
+      "head": 0
+    },
+    "tests": {
+      "base": 0,
+      "head": 0
+    },
+    "validate": {
+      "base": 0,
+      "head": 0
+    }
+  },
+  "regressions": [],
+  "pre_existing": [],
+  "verdict": "no-regressions"
+}
