@@ -41,6 +41,17 @@ axis, prose only.
   written) memory-bank lesson candidate for a separate human-gated `/pharn-dev-memory-promote`.
 - `.dev/features/loop-cap-honesty/{PLAN,REGRESSION,VERIFY}.md` + `{regression,verify}-report.json`.
 
+## GATE-2 fix applied (post-review, human-directed)
+
+At GATE 2 the human chose "Fix minor first." The REVIEW minor advisory (the sibling bullet `202-204`
+labeled its `iter < cap`-containing predicate flatly FLOOR without a §1d cross-reference) was addressed:
+a one-clause note added to `pharn-loop.md:205-206` — _"This `FLOOR` is the decision given the inputs; the
+`iter < cap` term reads the same agent-supplied `--iter` whose bound-on-the-agent is §1d-advisory — see
+the next bullet."_ Re-gated deterministically: `validate.mjs .` exit **0** (GREEN) and the full
+`npm run check` aggregate **GREEN**. This is a prose addition to the same floor-ignored file / same §1d
+axis; the standing `no-regressions` / `PASS` verdicts are unchanged (no outside file touched, gates
+recomputed green).
+
 ## Honest closing (P0)
 
 Chain ran; the named floor verdicts are as shown, and the human approved the intent at the plan gate —

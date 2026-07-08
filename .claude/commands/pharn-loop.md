@@ -202,6 +202,8 @@ Then **end your turn** at the human gate. `/pharn-loop` does not merge, push, or
 - **"The loop retries ONLY the retryable `INCOMPLETE` state and stops immediately on any terminal red"** →
   **FLOOR** (`check-loop.mjs`: `CONTINUE` iff `verify.verdict == INCOMPLETE ∧ regress no-regressions ∧
 iter < cap`; `STOP_TERMINAL` on any real red) — enum membership, `ARCHITECTURE.md §2` primitive #3, tested.
+  (This `FLOOR` is the decision **given** the inputs; the `iter < cap` term reads the same agent-supplied
+  `--iter` whose bound-on-the-agent is §1d-advisory — see the next bullet.)
 - **"`/pharn-loop` performs AT MOST N floor-gated retries; no infinite loop"** → **FLOOR compare,
   ADVISORY bound (§1d).** The `iter >= cap → STOP_CAP` / `CONTINUE`-only-`iter < cap` **decision** is
   **FLOOR** (`check-loop.mjs`, integer threshold, tested — `ARCHITECTURE.md §2` primitive #3). But it
