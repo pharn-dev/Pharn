@@ -1,0 +1,33 @@
+{
+  "base": "HEAD",
+  "inside": [
+    ".dev/features/seam-resolver/GRILL.md",
+    ".dev/features/seam-resolver/PLAN.md",
+    "pharn-core/seam-resolver/evals/cases/config-without-ask-is-refused.md",
+    "pharn-core/seam-resolver/evals/cases/model-not-confident.md",
+    "pharn-core/seam-resolver/evals/cases/resolve-early-hit.md",
+    "pharn-core/seam-resolver/evals/cases/unknown-terminates-at-ask.md",
+    "pharn-core/seam-resolver/evals/expected/config-without-ask-is-refused.md",
+    "pharn-core/seam-resolver/evals/expected/model-not-confident.md",
+    "pharn-core/seam-resolver/evals/expected/resolve-early-hit.md",
+    "pharn-core/seam-resolver/evals/expected/unknown-terminates-at-ask.md",
+    "pharn-core/seam-resolver/seam-resolver.md"
+  ],
+  "outside_gates": {
+    "structural:trust-fence": {
+      "base": 0,
+      "head": 0
+    },
+    "tests": {
+      "base": 0,
+      "head": 0
+    },
+    "validate": {
+      "base": 0,
+      "head": 0
+    }
+  },
+  "regressions": [],
+  "pre_existing": [],
+  "verdict": "no-regressions"
+}
