@@ -1,0 +1,21 @@
+{
+  "base": "HEAD",
+  "inside": [".claude/commands/pharn-build.md", ".dev/features/seam-build-wiring/GRILL.md", ".dev/features/seam-build-wiring/PLAN.md"],
+  "outside_gates": {
+    "structural:trust-fence": {
+      "base": 0,
+      "head": 0
+    },
+    "tests": {
+      "base": 0,
+      "head": 0
+    },
+    "validate": {
+      "base": 0,
+      "head": 0
+    }
+  },
+  "regressions": [],
+  "pre_existing": [],
+  "verdict": "no-regressions"
+}
