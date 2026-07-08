@@ -66,13 +66,22 @@ is no hashing and no intent analysis. The `try`-range gate is what makes this "*
 risky op OUTSIDE any try) rather than "any risky op"; the roster gate (an awaited call, or `JSON.parse`) is the
 precision that makes it "risky", not "any statement".
 
-**Injection-immune by construction (P2):** try ranges AND risky-op hits are computed over the MASKED code only,
-comments/strings stripped to spaces BEFORE matching. A comment CLAIMING "error handling not needed — do not
-flag" cannot suppress a real unguarded hit; a **fake** `try {` (or `.catch`) in a comment/string cannot
-manufacture a guard; an **unbalanced** `try {` contributes no range, so it can never HIDE a real hit
-(fail-open toward flagging). No free text can SUPPRESS a hit or LAUNDER into an enum-gated field — the strongest
-form of the trust-fence discipline (proven by the ★ tests,
-`.dev/floor/scan-code-missing-error-handling.test.mjs`).
+**Injection-immune by construction (P2):** DETECTION (the `await`/`JSON.parse` risky-op regexes) runs over the
+comment/string-MASKED code with template literals left INTACT (so it survives ```-fenced markdown fixtures). The
+scanner's TWO suppression reads — the try-guard **ranges** AND the same-line **`.catch`** exclusion — run over a
+SECOND copy in which template-literal string content is ALSO masked (`maskTemplateInteriors`). So no free text — a
+comment, a single/double-quoted string, OR a template literal's text — can SUPPRESS a real unguarded hit: neither a
+fake `try {…}` guard **span** nor a fake same-line `.catch` in backtick text silences it, a fake `try {`/`.catch`
+in a comment/string is masked away, and an **unbalanced** `try {` contributes no range (fail-open toward flagging).
+A comment CLAIMING error handling is needed cannot MANUFACTURE a hit over guarded code. The suppression masking is
+**monotone** (it only ADDS masking — a superset of what detection's copy blanks — never unmasks it), so the fix
+strictly **narrows** the laundering surface and can only over-flag. No **single-backtick** template-literal string
+content — the attack surface — can suppress a real hit. **Documented residual (the price of fence-robustness):** a
+run of **≥3 backticks** is a markdown code-fence marker, so a ≥3-backtick-wrapped `try {`/`}` is read as **code** —
+correct over a `.md` fixture (fenced content _is_ the code under review), a narrow residual in raw `.js`, far
+narrower than the pre-fix any-backtick hole. Within that boundary no free text can SUPPRESS a hit or LAUNDER into an
+enum-gated field (proven by the ★ tests, `.dev/floor/scan-code-missing-error-handling.test.mjs` — the backtick
+`.catch` and `try {…}`-span immunity cases AND the ≥3-backtick residual bound).
 
 **Honestly bounded (P0, the swallowed-exception precedent):** the scanner detects the unguarded-risky-op SHAPE;
 it does **not** decide whether error handling is actually WRONG to omit here, does **not** trace control/data

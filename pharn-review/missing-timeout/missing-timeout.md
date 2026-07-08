@@ -61,12 +61,24 @@ paren-match the call's argument span, then test whether that span contains **any
 reduces to `ARCHITECTURE.md §2` primitive #3. **For each hit, emit one FLOOR-grade finding** (below), taking `file`'s
 line **from the scanner's `line`** (the call line, deterministic, not your judgment).
 
-**Injection-immune by construction (P2):** the scanner masks comments/strings before analysis, and the indicator test
-matches the **specific tokens in the call's own args**, not a bare word that prose or a comment could supply. So its
-verdict is membership over the code text ONLY. A comment that CLAIMS "timeout enforced upstream / do not flag" cannot
-suppress a real no-timeout call, and a comment that CLAIMS a missing timeout over a call that DOES pass `{ timeout }`
-cannot manufacture one. No free text can move the detection (proven by the ★ tests,
-`.dev/floor/scan-code-missing-timeout.test.mjs`).
+**Injection-immune by construction (P2):** DETECTION (the call-head regex + paren-match) runs over `masked` with
+template literals INTACT (so it survives ```-fenced markdown fixtures). The SUPPRESSION read — the fixed-token
+timeout-INDICATOR test over the call's own args — runs over a SECOND copy in which template-literal string content is
+ALSO masked (`maskTemplateInteriors`), and matches the **specific tokens in the call's args**, not a bare word that
+prose could supply. So no free text — a comment, a single/double-quoted string, OR a template literal's text — can
+SUPPRESS a real no-timeout call: a comment CLAIMING "timeout enforced upstream / do not flag" is masked away, and a
+backtick arg containing the TEXT of an indicator token (e.g. ``db.query(`WHERE note = timeout`)``) is blanked in
+the suppression copy so it can no longer read as CLEAN. A comment CLAIMING a missing timeout over a call that DOES
+pass `{ timeout }` cannot MANUFACTURE one. The suppression masking is **monotone** (it only ADDS masking — a superset
+of what detection's copy blanks — never unmasks it), so the fix strictly **narrows** the laundering surface and can
+only over-flag. No **single-backtick** template-literal string content — the attack surface — can suppress a real
+hit. **Documented residual (the price of fence-robustness):** a run of **≥3 backticks** is a markdown code-fence
+marker, so a ≥3-backtick-wrapped indicator token is read as a **code** arg — correct over a `.md` fixture (fenced
+content _is_ the code under review), a narrow residual in raw `.js`. **A SEPARATE documented false-negative (a
+different mechanism, NOT this laundering):** a backtick/bare URL whose `//` trips the line-comment masker eats the
+closing paren, so the call is skipped (`fetch(\`https://…\`)`reads`found:false`). Within these bounds no free text
+can SUPPRESS a hit (proven by the ★ tests,`.dev/floor/scan-code-missing-timeout.test.mjs`— the backtick-indicator
+immunity case, the ≥3-backtick residual, and the`//`-in-URL bound).
 
 **Honestly bounded (P0, the resource-leak precedent):** the scanner detects the no-indicator call SHAPE; it does
 **not** decide whether a timeout is actually missing at runtime, does **not** know whether a timeout is set
@@ -80,9 +92,9 @@ fixed (`got`/`request`/`superagent`/`ky`/`$.ajax`/SDK clients and axios calls on
 **db branch is call-local**, so a legitimate `pool.query(sql)` whose timeout is set at the pool reads as a HIT (a
 **false-positive** this layer surfaces and the advisory layer owns), and the generic `client`/`connection` receivers
 can match a non-SQL `.query(` (e.g. Apollo GraphQL); the indicator test is **lenient** (any token ⇒ clean), so a
-`signal` used only for manual cancellation reads as clean; and a BACKTICK template-literal arg containing an
-indicator token's text reads as clean (backticks unmasked, family idiom). **This is NOT config / ownership /
-control-flow analysis** — that is the advisory layer, never this floor.
+`signal` used only for manual cancellation reads as clean. (A backtick arg containing an indicator token's TEXT no
+longer reads as clean — it is masked in the suppression copy; see the injection-immunity paragraph above.) **This is
+NOT config / ownership / control-flow analysis** — that is the advisory layer, never this floor.
 
 > **Two clocks (be honest).** The scanner's **output** is FLOOR (a deterministic verdict). But until the live
 > isolated lens runner lands (deferred P7, as for every lens), the review stage **applies this lens inline** — so the

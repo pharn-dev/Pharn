@@ -1,0 +1,31 @@
+{
+  "base": "45a8609eb325cf8eaa8c3f5b243a73267f25d077",
+  "inside": [
+    ".dev/floor/scan-code-missing-error-handling.mjs",
+    ".dev/floor/scan-code-missing-error-handling.test.mjs",
+    ".dev/floor/scan-code-missing-timeout.mjs",
+    ".dev/floor/scan-code-missing-timeout.test.mjs",
+    ".dev/floor/scan-code-swallowed-exception.mjs",
+    ".dev/floor/scan-code-swallowed-exception.test.mjs",
+    "pharn-review/missing-error-handling/missing-error-handling.md",
+    "pharn-review/missing-timeout/missing-timeout.md",
+    "pharn-review/swallowed-exception/swallowed-exception.md"
+  ],
+  "outside_gates": {
+    "structural:trust-fence": {
+      "base": 0,
+      "head": 0
+    },
+    "tests": {
+      "base": 0,
+      "head": 0
+    },
+    "validate": {
+      "base": 0,
+      "head": 0
+    }
+  },
+  "regressions": [],
+  "pre_existing": [],
+  "verdict": "no-regressions"
+}

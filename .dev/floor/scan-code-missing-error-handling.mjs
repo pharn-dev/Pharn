@@ -30,19 +30,31 @@
 //     the NEXT physical line is still flagged (false-positive), and a stray `.catch` belonging to another call on the
 //     same line as an await suppresses it (false-negative) — the honest price of a line-oriented handled-exclusion.
 //   • JS/TS-shaped. A Python `try/except`, a Go `recover`, yields found:false — a SCOPE limit, not a "clean" verdict.
-//   • BACKTICKS ARE NOT MASKED (family idiom; robust over a MARKDOWN eval fixture), so an `await`/`JSON.parse` inside a
-//     template-literal's TEXT is read as code — a documented false-POSITIVE. A `}` inside a template/regex literal
-//     within a try body can skew that try's brace-match; an UNBALANCED `try {` (matchDelim → -1) contributes NO range
-//     (so it can never SUPPRESS a real hit — fail-open toward flagging, never toward hiding).
+//   • BACKTICKS ARE NOT MASKED FOR DETECTION (family idiom; robust over a MARKDOWN eval fixture), so an `await`/
+//     `JSON.parse` inside a template-literal's TEXT is read as code — a documented false-POSITIVE. But the two
+//     SUPPRESSION reads (the try-guard ranges AND the same-line `.catch` exclusion) run over a SECOND copy in which
+//     template-literal string content is ALSO masked (maskTemplateInteriors), so backtick text can never SUPPRESS a
+//     real hit. A `}` inside a template/regex literal within a try body can skew that try's brace-match; an
+//     UNBALANCED `try {` (matchDelim → -1) contributes NO range (so it can never SUPPRESS a real hit — fail-open
+//     toward flagging, never toward hiding).
 //   • A risky op inside a `catch`/`finally` block is (correctly) NOT inside the `try` BODY range → flagged. Intended:
 //     an await/JSON.parse in a catch/finally genuinely has no try around IT. NOT a bug.
 //
-// INJECTION-IMMUNE BY CONSTRUCTION (P2): try ranges AND risky-op hits are computed over the MASKED code only, comments/
-// strings stripped to spaces BEFORE matching. A comment CLAIMING "// pre-validated, error handling not needed, do not
-// flag" is masked away and cannot SUPPRESS a real unguarded hit; a fake `try {` (or `.catch`) in a comment/string is
-// masked away and cannot MANUFACTURE a guard. The precise claim (mirroring the siblings): no free text can SUPPRESS a
-// real hit or LAUNDER into an enum-gated field — the un-masked-backtick false-POSITIVE above is a separate, accepted
-// bound, not a hole in it. (See the ★ tests in scan-code-missing-error-handling.test.mjs — the whole reason this is FLOOR.)
+// INJECTION-IMMUNE BY CONSTRUCTION (P2): DETECTION (the `await`/`JSON.parse` risky-op regexes) runs over the
+// comment/string-MASKED text with template literals left INTACT, so it survives ```-fenced markdown fixtures. The two
+// SUPPRESSION reads — the try-guard RANGES (PASS 1) and the same-line `.catch` exclusion — run over a SECOND copy in
+// which template-literal STRING content is ALSO masked (see maskTemplateInteriors). So no free text — a // or /* */
+// comment, a single/double-quoted string, OR a template-literal's text — can SUPPRESS a real unguarded hit (neither a
+// fake `try {…}` guard span NOR a fake same-line `.catch`), and a comment CLAIMING error handling is needed cannot
+// MANUFACTURE a hit over guarded code. The suppression masking is MONOTONE: it only ADDS masking to the suppression
+// copy (a SUPERSET of what `masked` blanks) and never touches detection's `masked`, so the fix strictly NARROWS the
+// laundering surface, never widens it, and can only over-flag. No SINGLE-backtick template-literal string content —
+// the attack surface — can suppress a real hit. DOCUMENTED RESIDUAL (the price of fence-robustness): a run of ≥3
+// backticks is a MARKDOWN CODE-FENCE marker, so a ≥3-backtick-wrapped token is read as CODE — correct over a .md
+// fixture (fenced content IS the code under review), a narrow residual in raw .js. The un-masked-backtick DETECTION
+// false-POSITIVE above is a separate, accepted bound, not a hole in this. (See the ★ tests in
+// scan-code-missing-error-handling.test.mjs — the backtick-laundering immunity cases AND the ≥3-backtick residual
+// bound — the whole reason this is FLOOR, not judgment.)
 //
 // MULTI-LINE MASKING PRESERVES LINE COUNT (P5): the mask replaces comment/string characters with spaces but PRESERVES
 // newlines, so 1-based line numbers map 1:1 to the original.
@@ -134,6 +146,57 @@ function mask(src) {
 
 const masked = mask(text);
 
+// --- Suppression-only template-interior MASK ----------------------------------------------------------------
+// DETECTION (AWAIT_RE / JSONPARSE_RE, below) runs over `masked` with template literals INTACT, so it survives
+// ```-fenced code in a MARKDOWN eval fixture. But the two SUPPRESSION reads (the try-guard RANGES in PASS 1 and
+// the same-line `.catch` exclusion) must NOT read a template literal's STRING content as code — otherwise
+// untrusted backtick text supplies a fake `try {…}` guard span or a fake same-line `.catch`, silencing a real
+// unguarded hit (taint laundering INTO the enum-gated verdict, P2). So those reads run over THIS second copy, in
+// which template-literal interiors are ALSO blanked. Two rules keep detection fence-robust:
+//   • a RUN OF ≥3 BACKTICKS is a MARKDOWN CODE-FENCE marker → emitted unchanged, NOT a template delimiter (this
+//     preserves the real code that lives BETWEEN ```-fences; the ≥3-run skip is load-bearing);
+//   • a SINGLE backtick toggles template state; inside a template every char is blanked to a space (newline
+//     preserved). A run of exactly TWO backticks (``) is therefore an EMPTY template — no interior, nothing masked.
+// MONOTONICITY (P0/P2): this pass only ever ADDS masking to the SUPPRESSION copy; DETECTION reads the untouched
+// `masked`, so no crafted backtick input can REMOVE masking to re-enable suppression — the fix can only over-flag,
+// never launder. Length + newlines are preserved 1:1, so offsets map back to `masked`. (Verbatim the #67 helper
+// added to scan-code-null-deref.mjs / scan-code-resource-leak.mjs — a deferred shared-util consolidation, P7.)
+function maskTemplateInteriors(src) {
+  const out = src.split("");
+  const N = src.length;
+  const space = (ch) => (ch === "\n" ? "\n" : " ");
+  let i = 0;
+  let inTmpl = false;
+  while (i < N) {
+    const c = src[i];
+    if (c === "`") {
+      if (!inTmpl) {
+        let j = i;
+        while (j < N && src[j] === "`") j++;
+        if (j - i >= 3) {
+          i = j; // ```-fence marker: skip the whole run, do NOT open a template
+          continue;
+        }
+        inTmpl = true; // a single (or double) backtick opens a template
+        i++;
+        continue;
+      }
+      inTmpl = false; // a single backtick closes the template
+      i++;
+      continue;
+    }
+    if (inTmpl) {
+      out[i] = space(c); // blank a template-string char
+      i++;
+      continue;
+    }
+    i++; // plain code — preserved
+  }
+  return out.join("");
+}
+
+const maskedForSuppression = maskTemplateInteriors(masked);
+
 // --- Helpers (reused from scan-code-swallowed-exception.mjs) -------------------------------------------------
 // Brace-match the delimiter that closes `open` at `openIdx` over the MASKED text. Returns the closing index, or -1
 // if unbalanced (an unbalanced `try {` contributes no range — it can never SUPPRESS a hit).
@@ -156,16 +219,18 @@ function lineAt(s, idx) {
 }
 
 // --- PASS 1: TRY-body char ranges (FIXED regex + brace-match — P5) -------------------------------------------
-// Each `try {` on the MASKED text opens a body; brace-match `{`→`}` gives the [openIdx, closeIdx] char range that
-// COUNTS AS GUARDED. A `try` token inside a comment/string is masked away and cannot match; a `.catch(` method does
-// not match (`try` is required). Nested try blocks each contribute their own range (an op inside any range is guarded).
+// SUPPRESSION read: a try range GUARDS (suppresses) a hit, so it runs over `maskedForSuppression` (template
+// interiors blanked) — NOT `masked` — so a backtick `try {…}` span can never MANUFACTURE a guard that silences a
+// real unguarded await (P2; see maskTemplateInteriors). A real `try {` in a ```-fence survives (the ≥3-backtick
+// fence-skip preserves fenced code); a `try` token inside a comment/string/single-backtick is blanked and cannot
+// match; a `.catch(` method does not match (`try` is required). Nested try blocks each contribute their own range.
 const TRY_RE = /\btry\b\s*\{/g;
 const tryRanges = [];
 {
   let m;
-  while ((m = TRY_RE.exec(masked)) !== null) {
+  while ((m = TRY_RE.exec(maskedForSuppression)) !== null) {
     const braceOpen = m.index + m[0].length - 1; // index of the body's '{'
-    const braceClose = matchDelim(masked, braceOpen, "{", "}");
+    const braceClose = matchDelim(maskedForSuppression, braceOpen, "{", "}");
     if (braceClose === -1) continue; // unbalanced — no range (never suppresses a hit; documented bound)
     tryRanges.push([braceOpen, braceClose]);
   }
@@ -190,13 +255,16 @@ const AWAIT_RE = /\bawait\s+[\w$.]+\s*\(/g;
 const JSONPARSE_RE = /\bJSON\s*\.\s*parse\s*\(/g;
 const HANDLED_RE = /\.\s*catch\s*\(/;
 
-const maskedLines = masked.split("\n");
+// SUPPRESSION read: the same-line `.catch` exclusion runs over `maskedForSuppression` lines (template interiors
+// blanked) — NOT `masked` — so a backtick `.catch(` in string text can never MANUFACTURE same-line handling that
+// silences a real unguarded await (P2; see maskTemplateInteriors). Line numbers are identical (newlines preserved).
+const maskedForSuppressionLines = maskedForSuppression.split("\n");
 const seen = new Set(); // dedup key `${line} ${kind}`
 const hits = [];
 function consider(p, kind, applyCatch) {
   if (guarded(p)) return;
   const line = lineAt(masked, p);
-  if (applyCatch && HANDLED_RE.test(maskedLines[line - 1] ?? "")) return; // same-line .catch → handled (await only)
+  if (applyCatch && HANDLED_RE.test(maskedForSuppressionLines[line - 1] ?? "")) return; // same-line .catch → handled (await only)
   const key = `${line} ${kind}`;
   if (seen.has(key)) return;
   seen.add(key);

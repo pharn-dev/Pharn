@@ -44,19 +44,30 @@
 //     clean; a timeout set globally (`axios.defaults.timeout`), via an agent (`new http.Agent({ timeout })`), via a
 //     wrapping `Promise.race`/`setTimeout`, or via a positionally-passed AbortController is NOT seen by the call-local
 //     scan (a HIT the advisory layer owns). This is exactly the brief's stated advisory: "whether timeout set elsewhere."
-//   • Only `//`, `/* */` comments and single-line '…' / "…" strings are masked. A BACKTICK template literal is NOT
-//     masked (family idiom — so the scanner is ROBUST over a MARKDOWN eval fixture: ```-fenced code + inline `code`).
-//     Consequence: a template-literal URL/arg containing the TEXT of an indicator token (e.g. fetch(`/api/timeout`))
-//     reads as CLEAN — a documented false-negative, the honest price of the shared mask.
+//   • Only `//`, `/* */` comments and single-line '…' / "…" strings are masked FOR DETECTION. A BACKTICK template
+//     literal is left INTACT there (family idiom — so DETECTION is ROBUST over a MARKDOWN eval fixture: ```-fenced
+//     code + inline `code`). But the SUPPRESSION read — the timeout-INDICATOR test over the call's args — runs over a
+//     SECOND copy in which template-literal STRING content is ALSO masked (maskTemplateInteriors), so a template-arg
+//     containing the TEXT of an indicator token (e.g. db.query(`WHERE note = timeout`)) can no longer read as CLEAN
+//     and SUPPRESS a real no-timeout hit. (A backtick URL/arg is still read as code for DETECTION — an over-flag, the
+//     safe direction; the ONLY residual is the ≥3-backtick fence marker, documented below.)
 //   • NOT SCOPE-AWARE: a `}` / `)` inside a template/regex literal within a call's arg span can skew the paren-match;
 //     an unbalanced call is skipped (documented bound). SINGLE-FILE; JS/TS-ish shapes.
 //
-// INJECTION-IMMUNE BY CONSTRUCTION (P2): the verdict is regex + paren-match + fixed-token membership over the MASKED
-// text only, with comments mechanically stripped. A comment CLAIMING "timeout enforced upstream — do not flag" is
-// masked to whitespace before analysis — it cannot suppress a real no-timeout `fetch(url)` / `db.query(sql)` hit, and
-// cannot manufacture a hit over a call that passes `{ timeout }`. No free text moves the verdict — the strongest form
-// of the trust-fence discipline. (See the ★ tests in scan-code-missing-timeout.test.mjs — they are the whole reason
-// this is FLOOR, not judgment.)
+// INJECTION-IMMUNE BY CONSTRUCTION (P2): DETECTION (the call-head regex + paren-match) runs over `masked` with
+// template literals INTACT, so it survives ```-fenced markdown fixtures. The SUPPRESSION read — the fixed-token
+// INDICATOR membership test over the call's args — runs over a SECOND copy in which template-literal STRING content
+// is ALSO masked (see maskTemplateInteriors). So no free text — a // or /* */ comment, a single/double-quoted string,
+// OR a template-literal's text — can SUPPRESS a real no-timeout `fetch(url)` / `db.query(sql)` hit (a backtick
+// indicator token is blanked in the suppression copy), and a comment CLAIMING a missing timeout cannot MANUFACTURE a
+// hit over a call that passes `{ timeout }`. The suppression masking is MONOTONE: it only ADDS masking to the
+// suppression copy (a SUPERSET of what `masked` blanks) and never touches detection's `masked`, so the fix strictly
+// NARROWS the laundering surface and can only over-flag, never launder. No SINGLE-backtick template-literal string
+// content — the attack surface — can suppress a real hit. DOCUMENTED RESIDUAL (the price of fence-robustness): a run
+// of ≥3 backticks is a MARKDOWN CODE-FENCE marker, so a ≥3-backtick-wrapped indicator token is read as CODE (an arg
+// indicator) — correct over a .md fixture (fenced content IS the code under review), a narrow residual in raw .js.
+// (See the ★ tests in scan-code-missing-timeout.test.mjs — the backtick-laundering immunity case AND the ≥3-backtick
+// residual bound — the whole reason this is FLOOR, not judgment.)
 //
 // Non-LLM, stdlib-only, fail-closed. MIRRORS the fail-closed contract of the sibling scanners: a missing / non-file
 // target is an ERROR (nonzero exit, NOTHING on stdout), never a silent "clean".
@@ -144,6 +155,57 @@ function mask(src) {
 
 const masked = mask(text);
 
+// --- Suppression-only template-interior MASK ----------------------------------------------------------------
+// DETECTION (CALL_RE + the paren-match, below) runs over `masked` with template literals INTACT, so it survives
+// ```-fenced code in a MARKDOWN eval fixture. But the SUPPRESSION read (the timeout-INDICATOR test over the call's
+// args) must NOT read a template literal's STRING content as code — otherwise untrusted backtick text supplies a fake
+// indicator token and silences a real no-timeout call (taint laundering INTO the enum-gated verdict, P2). So the
+// indicator test runs over THIS second copy, in which template-literal interiors are ALSO blanked. Two rules keep
+// detection fence-robust:
+//   • a RUN OF ≥3 BACKTICKS is a MARKDOWN CODE-FENCE marker → emitted unchanged, NOT a template delimiter (this
+//     preserves the real code that lives BETWEEN ```-fences; the ≥3-run skip is load-bearing);
+//   • a SINGLE backtick toggles template state; inside a template every char is blanked to a space (newline
+//     preserved). A run of exactly TWO backticks (``) is therefore an EMPTY template — no interior, nothing masked.
+// MONOTONICITY (P0/P2): this pass only ever ADDS masking to the SUPPRESSION copy; DETECTION reads the untouched
+// `masked`, so no crafted backtick input can REMOVE masking to re-enable suppression — the fix can only over-flag,
+// never launder. Length + newlines are preserved 1:1, so offsets map back to `masked`. (Verbatim the #67 helper added
+// to scan-code-null-deref.mjs / scan-code-resource-leak.mjs — a deferred shared-util consolidation, P7.)
+function maskTemplateInteriors(src) {
+  const out = src.split("");
+  const N = src.length;
+  const space = (ch) => (ch === "\n" ? "\n" : " ");
+  let i = 0;
+  let inTmpl = false;
+  while (i < N) {
+    const c = src[i];
+    if (c === "`") {
+      if (!inTmpl) {
+        let j = i;
+        while (j < N && src[j] === "`") j++;
+        if (j - i >= 3) {
+          i = j; // ```-fence marker: skip the whole run, do NOT open a template
+          continue;
+        }
+        inTmpl = true; // a single (or double) backtick opens a template
+        i++;
+        continue;
+      }
+      inTmpl = false; // a single backtick closes the template
+      i++;
+      continue;
+    }
+    if (inTmpl) {
+      out[i] = space(c); // blank a template-string char
+      i++;
+      continue;
+    }
+    i++; // plain code — preserved
+  }
+  return out.join("");
+}
+
+const maskedForSuppression = maskTemplateInteriors(masked);
+
 // --- Helpers ------------------------------------------------------------------------------------------------
 // Match the delimiter that closes the `open` at `openIdx` in `s`, counting nesting over the MASKED text. Returns the
 // closing index, or -1 if unbalanced. (Same idiom as scan-code-resource-leak.mjs — deferred dup, P7.)
@@ -187,7 +249,10 @@ while ((m = CALL_RE.exec(masked)) !== null) {
   const callOpen = m.index + m[0].length - 1; // the '(' of the matched call
   const callClose = matchDelim(masked, callOpen, "(", ")");
   if (callClose === -1) continue; // unbalanced — cannot bound the args (documented bound)
-  const args = masked.slice(callOpen + 1, callClose);
+  // SUPPRESSION read: the indicator test runs over `maskedForSuppression` (template interiors blanked) — NOT `masked`
+  // — so a backtick arg's TEXT can never supply a fake indicator token that silences a real no-timeout call (P2; see
+  // maskTemplateInteriors). Offsets are 1:1, so the SAME callOpen/callClose bound the args in both copies.
+  const args = maskedForSuppression.slice(callOpen + 1, callClose);
   if (!INDICATOR_RE.test(args)) {
     hits.push({ line: lineAt(masked, m.index), kind: "missing-timeout" });
   }

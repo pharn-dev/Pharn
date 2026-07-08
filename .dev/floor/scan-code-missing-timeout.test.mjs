@@ -90,6 +90,63 @@ test("★ IMMUNITY (manufacture via string): a `fetch(x)` inside a string litera
 });
 
 // ---------------------------------------------------------------------------
+// ★ BACKTICK-SUPPRESSION IMMUNITY — a template literal's TEXT cannot SUPPRESS a real hit (maskedForSuppression).
+// This went RED before the maskTemplateInteriors port (the indicator test then read args from `masked`, backticks
+// intact, so a backtick indicator TOKEN read as a real arg and silenced the hit) and is GREEN after.
+
+test("★ BACKTICK-SUPPRESS: a backtick arg containing the TEXT of an indicator token does NOT suppress a real no-timeout call", () => {
+  const body = "db.query(`WHERE note = timeout`);\n";
+  withCode(body, (p) => {
+    const r = run(p);
+    assert.equal(r.status, 0);
+    // The backtick interior (incl. the word `timeout`) is blanked in the suppression copy ⇒ the indicator test sees no token.
+    assert.deepEqual(json(r), { found: true, hits: [{ line: 1, kind: "missing-timeout" }] });
+  });
+});
+
+test("FENCE-ROBUSTNESS: a real no-timeout call inside a ```-fenced markdown block is STILL found", () => {
+  const body = "# case\n\n```js\ndb.query(sql);\n```\n";
+  withCode(body, (p) => {
+    const r = run(p);
+    assert.equal(r.status, 0);
+    assert.deepEqual(json(r), { found: true, hits: [{ line: 4, kind: "missing-timeout" }] });
+  });
+});
+
+test("FENCE-ROBUSTNESS: a real { timeout } indicator in a ```-fenced call is STILL recognized → CLEAN (the ≥3-backtick fence-skip preserves the real arg)", () => {
+  const body = "# case\n\n```js\ndb.query(sql, { timeout: 5000 });\n```\n";
+  withCode(body, (p) => {
+    const r = run(p);
+    assert.equal(r.status, 0);
+    // Moving the indicator test to maskedForSuppression must NOT blank a real `timeout` arg inside a ```-fence.
+    assert.deepEqual(json(r), { found: false, hits: [] });
+  });
+});
+
+test("DOCUMENTED BOUND (≥3-backtick residual): a ```-wrapped indicator token is read as CODE (fence marker, not masked) → suppresses — the fence-robustness price; PINNED, not desired", () => {
+  const body = "db.query(x, ```timeout```);\n";
+  withCode(body, (p) => {
+    const r = run(p);
+    assert.equal(r.status, 0);
+    // A ≥3-backtick run is a markdown fence marker (skipped, not a template delimiter) ⇒ the token between the runs is
+    // read as a CODE arg ⇒ indicator present ⇒ CLEAN. Correct over a .md fixture (fenced=code); a narrow raw-.js residual.
+    assert.deepEqual(json(r), { found: false, hits: [] });
+  });
+});
+
+test("DOCUMENTED BOUND (fetch + `//` in URL): a backtick/bare URL whose `//` trips the line-comment masker eats the closing paren → the call is skipped → found:false (a SEPARATE mechanism from maskTemplateInteriors — NOT fixed here, pinned)", () => {
+  const body = "fetch(`https://api.example.com/users`);\n";
+  withCode(body, (p) => {
+    const r = run(p);
+    assert.equal(r.status, 0);
+    // The `//` in `https://` opens a line comment in mask() (backtick is not a string delimiter there), masking the rest
+    // of the line incl. the closing `)` ⇒ matchDelim → -1 ⇒ the call contributes nothing. Unrelated to the backtick
+    // SUPPRESSION fix (maskedForSuppression derives from an already-comment-masked copy). Locked so a future change is caught.
+    assert.deepEqual(json(r), { found: false, hits: [] });
+  });
+});
+
+// ---------------------------------------------------------------------------
 // DETECTION — the canonical no-timeout call shapes (HTTP + db)
 
 test("detects a bare `fetch(url)` (no options) → found at the fetch line", () => {
