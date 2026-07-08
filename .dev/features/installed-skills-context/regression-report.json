@@ -1,0 +1,25 @@
+{
+  "base": "HEAD",
+  "inside": [
+    ".claude/commands/pharn-build.md",
+    ".claude/commands/pharn-grill.md",
+    ".claude/commands/pharn-review.md",
+    ".dev/features/installed-skills-context/PLAN.md",
+    ".dev/features/installed-skills-context/GRILL.md",
+    ".dev/floor/scan-installed-skills.mjs",
+    ".dev/floor/scan-installed-skills.test.mjs"
+  ],
+  "outside_gates": {
+    "tests": {
+      "base": 0,
+      "head": 0
+    },
+    "validate": {
+      "base": 0,
+      "head": 0
+    }
+  },
+  "regressions": [],
+  "pre_existing": [],
+  "verdict": "no-regressions"
+}
