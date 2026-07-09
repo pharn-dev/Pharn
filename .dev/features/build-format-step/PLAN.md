@@ -1,5 +1,10 @@
 # PLAN — build-format-step (format written files at build, not verify)
 
+> **STATUS: DONE / SUPERSEDED (2026-07-09).** This increment already landed — the advisory **Step 2b**
+> it specifies is live in `.claude/commands/pharn-dev-build.md` (introduced by commit `2e6a30c`, #66).
+> This feature dir was never taken through its own build loop, so only this `PLAN.md` remains; it is
+> retained as history (L9 provenance in `.dev/memory-bank/lessons-learned.md` cites it). No build pending.
+
 - spec_content_hash: 11cd9ad5983188623fe0931d13588c16435a5565888344e20669748947d1d969 # fix #4 — sha256(ARCHITECTURE.md)
 - increment: Add an **advisory** build-completion **format step** to `/pharn-dev-build` so the files it writes are made style-conformant (project formatter + markdown fixer) **before** its Step-3 floor — so `format:check` / `lint:md` misses stop surfacing downstream at `/pharn-dev-verify` (the L9 pattern that bit the `product-loop` increment this run).
 - layer(s): pharn-pipeline (a dev command; file at `.claude/commands/`, floor-ignored) # ARCHITECTURE.md §6
