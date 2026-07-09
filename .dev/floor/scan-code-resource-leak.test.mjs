@@ -107,6 +107,28 @@ test("DOCUMENTED BOUND (≥3-backtick fence-skip residual): a `fd.close()` wrapp
   });
 });
 
+// ★ NESTED-TEMPLATE IMMUNITY — the depth-aware masker (stack, not a boolean) blanks a template STRING interior at
+// ANY nesting depth. The old `inTmpl` boolean flipped closed on the inner backtick and exposed a fake `fd.close()`
+// cleanup token (found:false); these pin found:true, and the interpolation-code companion pins the readable SIDE.
+
+test("★ IMMUNITY (NESTED-TEMPLATE laundering): `${`fd.close()`}` — the inner template string is masked ⇒ no fake cleanup token ⇒ the unclosed fd is STILL found (the masked SIDE of the hinge)", () => {
+  const body = "const fd = fs.openSync(path);\nconst s = `${`fd.close()`}`;\n";
+  withCode(body, (p) => {
+    const r = run(p);
+    assert.equal(r.status, 0);
+    assert.deepEqual(json(r), { found: true, hits: [{ line: 1, kind: "unclosed-resource" }] }); // inner `fd.close()` masked ⇒ leak still found at the binding line
+  });
+});
+
+test("DESIGN B (interpolation code readable): `${fd.close()}` is a REAL close call in interpolation CODE (readable) ⇒ the fd IS closed ⇒ CLEAN (the readable SIDE of the hinge — one backtick apart from the masked case)", () => {
+  const body = "const fd = fs.openSync(path);\nconst s = `${fd.close()}`;\n";
+  withCode(body, (p) => {
+    const r = run(p);
+    assert.equal(r.status, 0);
+    assert.deepEqual(json(r), { found: false, hits: [] }); // fd.close() is interpolation CODE ⇒ real cleanup ⇒ CLEAN
+  });
+});
+
 // ---------------------------------------------------------------------------
 // UNCLOSED-RESOURCE SHAPE — HITs
 

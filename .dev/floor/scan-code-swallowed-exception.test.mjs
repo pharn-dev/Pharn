@@ -135,6 +135,30 @@ test("DOCUMENTED BOUND (≥3-backtick residual): a ```-wrapped `throw` is read a
   });
 });
 
+// ★ NESTED-TEMPLATE IMMUNITY — the depth-aware masker blanks a template STRING interior at ANY nesting depth. The
+// old `inTmpl` boolean flipped closed on the inner backtick and exposed a fake `throw` HANDLE token (found:false).
+// The masker blanks the inner `throw`; classify() also strips the surviving `${}` interpolation delimiters (bare
+// delimiters did nothing to handle the error — the same monotone-safe over-flag as stripping `` ` ``), so the body
+// reads EMPTY ⇒ found:true. Both effects (fake handle + dodging empty-catch) are closed at any depth.
+
+test("★ IMMUNITY (NESTED-TEMPLATE laundering): a bare nested-template `${`throw e`}` catch body — the inner `throw e` is masked and the `${}` delimiters strip to empty ⇒ empty-catch, NOT laundered CLEAN", () => {
+  const body = "try { risky(); } catch (e) { `${`throw e`}`; }\n";
+  withCode(body, (p) => {
+    const r = run(p);
+    assert.equal(r.status, 0);
+    assert.deepEqual(json(r), { found: true, hits: [{ line: 1, kind: "empty-catch" }] });
+  });
+});
+
+test("★ IMMUNITY (DEEP NESTING, depth 2): `${`${`throw`}`}` — masked at ANY depth ⇒ still empty-catch", () => {
+  const body = "try { a(); } catch (e) { `${`${`throw`}`}`; }\n";
+  withCode(body, (p) => {
+    const r = run(p);
+    assert.equal(r.status, 0);
+    assert.deepEqual(json(r), { found: true, hits: [{ line: 1, kind: "empty-catch" }] });
+  });
+});
+
 // ---------------------------------------------------------------------------
 // EMPTY-catch SHAPE
 

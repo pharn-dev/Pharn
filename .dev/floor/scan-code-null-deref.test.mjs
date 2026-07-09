@@ -113,12 +113,34 @@ test("FENCE-ROBUSTNESS: a real unchecked deref inside a ```-fenced markdown bloc
   });
 });
 
-test("DOCUMENTED BOUND (Option A ${…} over-flag): a guard inside `${…}` as the FIRST use is masked, so a later raw deref reads as a HIT — over-flag, the honest price", () => {
+test("DESIGN B (interpolation code readable): a guard inside `${…}` is real CODE — NOT masked — so it reads as the first use and the later raw deref is CLEAN (the Option-A `${…}` over-flag is GONE, a precision gain; the readable-interpolation SIDE of the nested-template hinge)", () => {
   const body = "const u = users.find((x) => x.id === id);\nconst s = `${u?.name}`;\nreturn u.name;\n";
   withCode(body, (p) => {
     const r = run(p);
     assert.equal(r.status, 0);
-    assert.deepEqual(json(r), HIT(3)); // ${u?.name} blanked in the suppression copy ⇒ later u.name is the first visible use
+    assert.deepEqual(json(r), CLEAN); // ${u?.name} is interpolation CODE (readable) ⇒ the u?.name optional-chain guard is the first visible use ⇒ CLEAN
+  });
+});
+
+// ★ NESTED-TEMPLATE IMMUNITY — the depth-aware masker (stack, not a boolean) blanks a template STRING interior at
+// ANY nesting depth, so a nested template can no longer expose its interior as a fake first use. The old `inTmpl`
+// boolean flipped closed on the inner backtick and re-laundered the suppressor (found:false); these pin found:true.
+
+test("★ IMMUNITY (NESTED-TEMPLATE laundering, depth 1): `${`user`}` — the inner template string is masked, NOT exposed as a fake first use ⇒ the real deref is STILL found (the masked SIDE of the hinge)", () => {
+  const body = "const user = db.findOne(id);\nconst label = `${`user`}`;\nconsole.log(user.name);\n";
+  withCode(body, (p) => {
+    const r = run(p);
+    assert.equal(r.status, 0);
+    assert.deepEqual(json(r), HIT(3)); // inner `user` masked ⇒ no fake first-use ⇒ the real deref (line 3), never the backtick line (2)
+  });
+});
+
+test("★ IMMUNITY (DEEP NESTING, depth 2): `${`${`user`}`}` — the string interior is masked at ANY depth (the claim is 'any nesting depth', not just one level) ⇒ STILL found", () => {
+  const body = "const user = db.findOne(id);\nconst label = `${`${`user`}`}`;\nconsole.log(user.name);\n";
+  withCode(body, (p) => {
+    const r = run(p);
+    assert.equal(r.status, 0);
+    assert.deepEqual(json(r), HIT(3));
   });
 });
 

@@ -134,6 +134,28 @@ test("DOCUMENTED BOUND (≥3-backtick residual): a ```-wrapped indicator token i
   });
 });
 
+// ★ NESTED-TEMPLATE IMMUNITY — the depth-aware masker (stack, not a boolean) blanks a template STRING interior at
+// ANY nesting depth. The old `inTmpl` boolean flipped closed on the inner backtick and exposed a fake `timeout`
+// indicator token inside the call args (found:false); these pin found:true + the readable interpolation companion.
+
+test("★ IMMUNITY (NESTED-TEMPLATE laundering): a nested `${`timeout`}` in the call args — the inner template string is masked ⇒ no fake indicator token ⇒ the no-timeout call is STILL found (the masked SIDE of the hinge)", () => {
+  const body = "const r = await fetch(url, { h: `${`timeout`}` });\n";
+  withCode(body, (p) => {
+    const r = run(p);
+    assert.equal(r.status, 0);
+    assert.deepEqual(json(r), { found: true, hits: [{ line: 1, kind: "missing-timeout" }] }); // inner `timeout` masked ⇒ no in-args indicator ⇒ hit
+  });
+});
+
+test("DESIGN B (interpolation code readable): `${timeout}` is a REAL variable in interpolation CODE (readable) ⇒ reads as an in-args indicator ⇒ CLEAN — identical to a bare `timeout` arg (the existing lenient-indicator bound), the readable SIDE of the hinge", () => {
+  const body = "const r = await fetch(url, { h: `${timeout}` });\n";
+  withCode(body, (p) => {
+    const r = run(p);
+    assert.equal(r.status, 0);
+    assert.deepEqual(json(r), { found: false, hits: [] }); // timeout is interpolation CODE ⇒ indicator present ⇒ CLEAN
+  });
+});
+
 test("DOCUMENTED BOUND (fetch + `//` in URL): a backtick/bare URL whose `//` trips the line-comment masker eats the closing paren → the call is skipped → found:false (a SEPARATE mechanism from maskTemplateInteriors — NOT fixed here, pinned)", () => {
   const body = "fetch(`https://api.example.com/users`);\n";
   withCode(body, (p) => {

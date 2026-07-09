@@ -165,6 +165,28 @@ test("DOCUMENTED BOUND (≥3-backtick residual): a fake `try {`…`}` wrapped in
   });
 });
 
+// ★ NESTED-TEMPLATE IMMUNITY — the depth-aware masker (stack, not a boolean) blanks a template STRING interior at
+// ANY nesting depth. The old `inTmpl` boolean flipped closed on the inner backtick and exposed a fake `try {`…`}`
+// guard span (found:false); these pin found:true — including the fail-open on an UNBALANCED nested template.
+
+test("★ IMMUNITY (NESTED-TEMPLATE laundering): a fake `try {`/`}` split across nested `${`…`}` templates — the inner strings are masked ⇒ no guard span ⇒ the unguarded await is STILL found", () => {
+  const body = "const s = `${`try {`}`;\nawait fetch(url);\nconst t = `${`}`}`;\n";
+  withCode(body, (p) => {
+    const r = run(p);
+    assert.equal(r.status, 0);
+    assert.deepEqual(json(r), { found: true, hits: [{ line: 2, kind: "unguarded-await" }] }); // `try {`/`}` masked ⇒ no fake guard ⇒ hit on the await line
+  });
+});
+
+test("FAIL-OPEN (unbalanced nested template): an UNTERMINATED `${`try {` before the await — imbalance masks MORE (the runaway template stays open) and NEVER laundres to found:false", () => {
+  const body = "const s = `${`try {`;\nawait fetch(url);\n";
+  withCode(body, (p) => {
+    const r = run(p);
+    assert.equal(r.status, 0);
+    assert.deepEqual(json(r), { found: true, hits: [{ line: 2, kind: "unguarded-await" }] }); // unbalanced ⇒ fail-open toward flagging, never toward hiding
+  });
+});
+
 // ---------------------------------------------------------------------------
 // POSITIVES — the two roster kinds
 
