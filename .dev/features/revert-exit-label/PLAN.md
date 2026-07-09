@@ -1,5 +1,10 @@
 # PLAN — revert-exit-label
 
+> **STATUS: DONE (2026-07-09).** The deletion this plan calls for — the throwaway `exit-label.mjs` probe
+> vehicle + its colocated test — has already happened; neither file exists in the repo (the only remaining
+> mention of `exit-label` is this plan itself). Paths below predate the `.dev/` boundary move. Retained as
+> history; no action pending.
+
 - spec_content_hash: 11cd9ad5983188623fe0931d13588c16435a5565888344e20669748947d1d969 # fix #4 (sha256 of ARCHITECTURE.md, read this run)
 - increment: Revert the spent pipeline-integration-probe vehicle — remove `floor/exit-label.mjs` + `floor/exit-label.test.mjs` — now that the probe is committed and the helper has zero importers (its own human-approved revert disposition, 2026-06-26).
 - layer(s): floor (deterministic tooling — `floor/`; not a pharn-\* layer, not a Capability)
