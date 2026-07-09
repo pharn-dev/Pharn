@@ -414,3 +414,32 @@ meant to keep closed. Complements the enum-gated/free-text trust split (fix #1) 
 - source: `.dev/features/harden-merge-keying/REVIEW.md` (proposed lesson candidate) +
   `.dev/features/harden-merge-keying/GRILL.md` (P2 finding)
 - promoted: 2026-07-09 via gated `/pharn-dev-memory-promote` (human-approved).
+
+## L15 — Index an arbitrary key with an own-property test, never `||`/`??` — inherited prototype members leak silently
+
+**Lesson.** In a determinism-owning floor tool, index a user-supplied or otherwise arbitrary key into a
+plain JS object with an OWN-property test (`Object.hasOwn(obj, key)`, a null-prototype map
+`Object.create(null)`, or a `Map`) — never `obj[key] || fallback` or `obj[key] ?? fallback`. A plain
+object inherits `Object.prototype`, so `obj['toString']` / `obj['constructor']` / `obj['__proto__']` /
+`obj['hasOwnProperty']` resolve to inherited members that are BOTH truthy AND non-nullish. So `||` and
+`??` alike skip the fallback and hand back the prototype member; a downstream `.model`/`.effort` read
+then yields `undefined`, which `JSON.stringify` drops — the tool prints `{}` at EXIT 0: a floor tool
+lying quietly, the exact P0 failure class this repo exists to kill. `Object.hasOwn` is the fix because it
+tests own-ness, not truthiness/nullishness; the terminal fallback stays the validated `default`, else a
+loud RED. Generalizes to EVERY deterministic keyed lookup on arbitrary input (stage names, rule ids,
+config keys, frontmatter keys).
+
+**Why it matters.** Concretely (`check-config-routing` / FIX 1): `resolveStage` used
+`stages[stage] || stages.default` (`.dev/floor/check-config.mjs:120` pre-fix), and
+`node .dev/floor/check-config.mjs resolve toString` printed `{}` at exit 0 — a Fable finding, reproduced
+live before the fix. The fix is `Object.hasOwn(stages, stage) ? stages[stage] : stages.default` (`:127`
+post-fix), witnessed by a regression test over `toString`/`constructor`/`__proto__`/`hasOwnProperty`/`valueOf`
+→ the `default` entry, never `{}`. Complements the enum-gated/free-text trust split (fix #1) and L14
+(compose guards, don't replace).
+
+**Provenance.**
+
+- feature: `check-config-routing`
+- commit: `fefae018ab7fea913e8a1553ab9a104622cd3bbc`
+- source: `.dev/features/check-config-routing/REVIEW.md` (proposed lesson candidate)
+- promoted: 2026-07-09 via gated `/pharn-dev-memory-promote` (human-approved).
