@@ -1,0 +1,30 @@
+{
+  "base": "HEAD",
+  "inside": [
+    "pharn-core/seam-resolver/seam-resolver.md",
+    "pharn-contracts/seam-config.md",
+    ".claude/commands/pharn-build.md",
+    "pharn-core/seam-resolver/evals/cases/fetch-thin-skips-to-ask.md",
+    "pharn-core/seam-resolver/evals/expected/fetch-thin-skips-to-ask.md",
+    "pharn-core/seam-resolver/evals/expected/model-not-confident.md",
+    "pharn-core/seam-resolver/evals/cases/injected-extra-field-ignored.md",
+    "pharn-core/seam-resolver/evals/expected/injected-extra-field-ignored.md"
+  ],
+  "outside_gates": {
+    "structural:trust-fence": {
+      "base": 0,
+      "head": 0
+    },
+    "tests": {
+      "base": 0,
+      "head": 0
+    },
+    "validate": {
+      "base": 0,
+      "head": 0
+    }
+  },
+  "regressions": [],
+  "pre_existing": [],
+  "verdict": "no-regressions"
+}

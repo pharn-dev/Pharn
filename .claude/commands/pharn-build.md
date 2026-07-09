@@ -180,9 +180,12 @@ is a **no-op** and the build proceeds identically (mirrors Step 2b's `count:0` p
    ever runs on an unvalidated config (even the safe default):
 
    ```bash
-   # Extract the `seam` block of pharn.config.json (if any) to gitignored scratch; else materialize the
-   # documented default order (which contains the terminal `ask`). Then validate.
-   node -e "const fs=require('fs');let c={};try{c=JSON.parse(fs.readFileSync('pharn.config.json','utf8'))}catch{};const seam=c.seam??{resolutionOrder:['official-skill','pinned-docs','model','fetch','ask']};fs.mkdirSync('.pharn',{recursive:true});fs.writeFileSync('.pharn/seam-config.json',JSON.stringify(seam,null,2))"
+   # Extract the `seam` block of pharn.config.json to gitignored scratch. Three-way, fail-closed (FIX 5):
+   #   (a) file ABSENT                → materialize the documented default order (contains terminal `ask`);
+   #   (b) present + valid + no seam  → `c.seam ?? default` (default substitution, file intact — today's case);
+   #   (c) present + MALFORMED JSON   → HALT (exit 1) — never silently swap the user's policy for the default.
+   # Then validate.
+   node -e "const fs=require('fs');const DEF={resolutionOrder:['official-skill','pinned-docs','model','fetch','ask']};let c={},raw;try{raw=fs.readFileSync('pharn.config.json','utf8')}catch(e){if(e.code!=='ENOENT'){console.error('HALT: pharn.config.json unreadable: '+e.message);process.exit(1)}}if(raw!==undefined){try{c=JSON.parse(raw)}catch(e){console.error('HALT: pharn.config.json is present but not valid JSON ('+e.message+') — refusing to substitute the permissive default for your seam policy; fix the file.');process.exit(1)}}const seam=c.seam??DEF;fs.mkdirSync('.pharn',{recursive:true});fs.writeFileSync('.pharn/seam-config.json',JSON.stringify(seam,null,2))"
    node .dev/floor/check-seam-config.mjs .pharn/seam-config.json   # FLOOR: exit 0 GREEN | non-zero RED
    ```
 
@@ -196,6 +199,14 @@ is a **no-op** and the build proceeds identically (mirrors Step 2b's `count:0` p
      that the **extracted file is valid**, never that the extraction faithfully reflects the project's
      intent. If a project needs floor-covered extraction, that is a **separate** increment (a tested
      helper), not this one (P7).
+   - **Malformed config → HALT, never a silent default-swap (fix #5, fail-closed).** The default order is
+     materialized **only when `pharn.config.json` is ABSENT**. A file that is **present but not valid
+     JSON** (a typo) → the extraction **HALTs (exit 1)**, the same posture as a RED verdict — it must
+     never silently substitute the permissive default for a user's restrictive policy (e.g. an
+     `["ask"]`-only config), which would then validate GREEN against a policy the user never chose. A
+     present, valid, seam-less file still takes `c.seam ?? default` (the file is intact; only the seam
+     block is absent). This is still ADVISORY, untested bash — the fail-closed behavior is a hardening of
+     the extraction, not a floor guarantee.
 
 2. **Follow the resolver's walk (ADVISORY).** With a GREEN config, follow
    `pharn-core/seam-resolver/seam-resolver.md` (cited, not restated — P4): walk `resolutionOrder` in

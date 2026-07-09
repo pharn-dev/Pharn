@@ -24,20 +24,24 @@ A seam-resolution config is a JSON object (the `seam` block of a project's confi
 ```yaml
 seam-config:
   resolutionOrder: ["official-skill", "pinned-docs", "model", "fetch", "ask"] # ordered walk; MUST contain "ask"
-  modelConfidenceThreshold: low | medium | high # OPTIONAL — the gate at the "model" step
-  haltOnUnknown: true | false # OPTIONAL — hard-stop on an unresolved seam
+  modelConfidenceThreshold: low | medium | high # OPTIONAL — the gate at model-judgment steps (model, fetch); absent ⇒ high
+  haltOnUnknown: true | false # OPTIONAL — hard-stop on an unresolved seam; absent ⇒ true
 ```
 
 - **`resolutionOrder`** — a non-empty, ordered array of **steps**. At runtime the resolver walks it,
   stops at the first step that resolves the seam, else falls through to the next — the terminal step
   being **ask** (halt and ask the human). The **order is user-configurable** (reorder / drop steps);
   the **walk itself** is fixed. See "Relationship to ARCHITECTURE §5".
-- **`modelConfidenceThreshold`** _(optional)_ — the confidence bar at the `model` step: if the model is
-  **not** confident to this threshold (e.g. the package version is newer than its training, or the API
-  is unknown), it **skips to the next step** rather than guessing. Absent ⇒ the runtime default applies.
-- **`haltOnUnknown`** _(optional)_ — `true` hard-stops on a seam that no step resolved. Absent ⇒ the
-  runtime default applies. (Belt-and-suspenders: with a terminal `ask` present, "unknown" already
-  stops at `ask`.)
+- **`modelConfidenceThreshold`** _(optional)_ — the confidence bar the resolved answer must clear at
+  **any model-judgment step** (`model` **and** `fetch`): if the model is **not** confident to this
+  threshold (e.g. the package version is newer than its training, the API is unknown, or the fetched
+  docs are thin / inconclusive), it **skips to the next step** rather than guessing. **Absent ⇒ `high`**
+  — the fail-safe default: the hardest bar to clear, so an unspecified config skips toward `ask`.
+- **`haltOnUnknown`** _(optional)_ — `true` hard-stops on a seam that no step resolved. **Absent ⇒
+  `true`** (the fail-safe default). **`false` relaxes only this redundant hard-stop; it NEVER removes
+  the terminal `ask`** — the walk still ends at `ask` when nothing resolves (the floor requires
+  `ask`'s presence), so `false` means "no extra hard-stop," never "proceed best-effort / guess."
+  (Belt-and-suspenders: with a terminal `ask` present, "unknown" already stops at `ask`.)
 
 ## The step enum
 
@@ -80,7 +84,11 @@ fresh docs over training); the floor preserves the terminal `ask` under any reor
 **user-configurable** order and adds two optional policy knobs (`modelConfidenceThreshold`,
 `haltOnUnknown`) that §5 does not name. The extension is **floor-safe**: configurability cannot weaken
 §5's terminal-`ask` invariant, because the floor validator rejects any order lacking `ask` — so the
-one thing §5 guarantees is guaranteed _harder_ under configuration, not softer. `ARCHITECTURE.md` is a
+one thing §5 guarantees is guaranteed _harder_ under configuration, not softer. Consistent with §5's
+framing of the **whole** chain as **confidence-gated**, `modelConfidenceThreshold` gates **both**
+model-judgment steps (`model` **and** `fetch`), not `model` alone — a refinement of _how_ the chain is
+gated that leaves the terminal-`ask` invariant untouched (an ungated `fetch` could otherwise resolve
+on thin docs and never reach `ask`). `ARCHITECTURE.md` is a
 human-only doc (write-protected, fix #2); this note is surfaced for a human to reconcile §5's wording
 if the configurable framing (or a fetch-before-model default) should become canonical. It is **not**
 agent-edited into §5.
