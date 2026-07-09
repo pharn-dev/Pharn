@@ -62,8 +62,10 @@
 // indicator token is blanked in the suppression copy), and a comment CLAIMING a missing timeout cannot MANUFACTURE a
 // hit over a call that passes `{ timeout }`. The suppression masking is MONOTONE: it only ADDS masking to the
 // suppression copy (a SUPERSET of what `masked` blanks) and never touches detection's `masked`, so the fix strictly
-// NARROWS the laundering surface and can only over-flag, never launder. No SINGLE-backtick template-literal string
-// content — the attack surface — can suppress a real hit. DOCUMENTED RESIDUAL (the price of fence-robustness): a run
+// NARROWS the laundering surface and can only over-flag, never launder. No template-literal STRING content at ANY
+// nesting depth — single OR nested `${…}`, the attack surface — can suppress a real hit (interpolation CODE stays
+// readable, so a real `${timeout}` variable reads as an indicator exactly as a bare `timeout` arg would). DOCUMENTED
+// RESIDUAL (the price of fence-robustness): a run
 // of ≥3 backticks is a MARKDOWN CODE-FENCE marker, so a ≥3-backtick-wrapped indicator token is read as CODE (an arg
 // indicator) — correct over a .md fixture (fenced content IS the code under review), a narrow residual in raw .js.
 // (See the ★ tests in scan-code-missing-timeout.test.mjs — the backtick-laundering immunity case AND the ≥3-backtick
@@ -164,8 +166,11 @@ const masked = mask(text);
 // detection fence-robust:
 //   • a RUN OF ≥3 BACKTICKS is a MARKDOWN CODE-FENCE marker → emitted unchanged, NOT a template delimiter (this
 //     preserves the real code that lives BETWEEN ```-fences; the ≥3-run skip is load-bearing);
-//   • a SINGLE backtick toggles template state; inside a template every char is blanked to a space (newline
-//     preserved). A run of exactly TWO backticks (``) is therefore an EMPTY template — no interior, nothing masked.
+//   • a SINGLE (or double) backtick opens a TEMPLATE STRING (mask mode); inside it every char is blanked to a space
+//     (newline preserved), and a backtick closes it (a run of exactly TWO backticks `` is an EMPTY template —
+//     nothing masked). A DEPTH-AWARE STACK (not a boolean toggle) tracks `${…}` interpolation: interpolation CODE is
+//     left READABLE, and a backtick inside it opens ANOTHER nested template (masked) — so a nested `${`timeout`}`
+//     masks its inner string at ANY depth (the old boolean mis-closed on that inner backtick and re-laundered it).
 // MONOTONICITY (P0/P2): this pass only ever ADDS masking to the SUPPRESSION copy; DETECTION reads the untouched
 // `masked`, so no crafted backtick input can REMOVE masking to re-enable suppression — the fix can only over-flag,
 // never launder. Length + newlines are preserved 1:1, so offsets map back to `masked`. (Verbatim the #67 helper added

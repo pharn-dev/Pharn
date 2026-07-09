@@ -9,19 +9,19 @@
 
 `maskTemplateInteriors` builds the SUPPRESSION copy (`maskedForSuppression`) each scanner reads to reject
 fake, backtick-supplied suppressors. It tracks template state as a **boolean** (`inTmpl`). Inside a
-`${…}` interpolation a backtick opens a **nested** template; the boolean flips *closed* on that inner
+`${…}` interpolation a backtick opens a **nested** template; the boolean flips _closed_ on that inner
 backtick and exposes the interpolation interior as readable code → a real hit is laundered to
 `found:false`. The five copies are **byte-identical** (md5 `b64c00f5…` across all five).
 
 Reproduced on all five scanners (base = real hit `found:true`, nested = laundered `found:false`):
 
-| scanner | nested-template launder fixture | base | nested |
-|---|---|---|---|
-| null-deref | `` const label = `${`user`}`; `` before `user.name` | true | **false** |
-| resource-leak | `` const s = `${`fd.close()`}`; `` after `fs.openSync` | true | **false** |
-| swallowed-exception | `` catch(e){ const s = `${`throw e`}`; } `` | true | **false** |
-| missing-error-handling | `` const s = `${`try {`}`; `` around an unguarded `await` | true | **false** |
-| missing-timeout | `` fetch(url,{h:`${`timeout`}`}) `` (fake in-args indicator) | true | **false** |
+| scanner                | nested-template launder fixture                            | base | nested    |
+| ---------------------- | ---------------------------------------------------------- | ---- | --------- |
+| null-deref             | ``const label = `${`user`}`;`` before `user.name`          | true | **false** |
+| resource-leak          | ``const s = `${`fd.close()`}`;`` after `fs.openSync`       | true | **false** |
+| swallowed-exception    | ``catch(e){ const s = `${`throw e`}`; }``                  | true | **false** |
+| missing-error-handling | ``const s = `${`try {`}`;`` around an unguarded `await`    | true | **false** |
+| missing-timeout        | ``fetch(url,{h:`${`timeout`}`})`` (fake in-args indicator) | true | **false** |
 
 `#78` (da3b2fd) ported the masker into the last three scanners and pinned **single-backtick** immunity,
 but added **no nested-template** fixture — that gap let the buggy masker pass. DETECTION reads the
@@ -52,7 +52,7 @@ This is the algorithm the increment brief specifies. It closes the launder (the 
 Design B **flips one pinned test + its documented bound**: `scan-code-null-deref.test.mjs:116`
 ("DOCUMENTED BOUND (Option A `${…}` over-flag)") asserts `` `${u?.name}` `` is blanked → later `u.name`
 reads as first use → **HIT(3)**. Under Design B `u?.name` is interpolation **code** (readable) → the
-guard is the first visible use → **CLEAN**. That is *more* precise (the over-flag disappears), but it
+guard is the first visible use → **CLEAN**. That is _more_ precise (the over-flag disappears), but it
 changes documented behavior, so it must be an explicit, human-approved test + doc rewrite, not a silent
 flip. No other test flips: the swallowed `` `${e.message}` `` test (`:180`) stays green (its
 `console.error(` head is outside the template).
@@ -65,7 +65,7 @@ every Option-A doc line, is the strictly-minimal one-axis bug fix — but contra
 "leave interpolation-code readable" and keeps the `${…}` over-flag. Parser complexity is ~equal (both
 must track `${…}`/nested backticks to find the real close); only the "what to blank" rule differs.
 
-**Monotonicity (P0/P2) holds under both:** `maskTemplateInteriors` only ever *adds* masking relative to
+**Monotonicity (P0/P2) holds under both:** `maskTemplateInteriors` only ever _adds_ masking relative to
 detection's `masked` (templates fully intact there), so the suppression copy stays a superset — the fix
 can only over-flag, never unmask to re-enable suppression.
 
@@ -98,11 +98,11 @@ shared `scan-code` util is a separate, already-deferred axis — out of scope he
 
 ## Evals to write (P1)
 
-- null-deref → `` const label = `${`user`}`; `` before `user.name` ⇒ was `false`, now HIT on the deref line
-- resource-leak → `` const s = `${`fd.close()`}`; `` after an unclosed `openSync` ⇒ now HIT (unclosed-resource)
-- missing-timeout → `` fetch(url,{h:`${`timeout`}`}) `` ⇒ now HIT (missing-timeout); base (real `{timeout}`) still CLEAN
-- swallowed-exception → `` catch(e){ const s = `${`throw e`}`; } `` (empty otherwise) ⇒ now HIT (empty/log-only)
-- missing-error-handling → `` const s = `${`try {`}`; `` around an unguarded `await` ⇒ now HIT (unguarded-await)
+- null-deref → ``const label = `${`user`}`;`` before `user.name` ⇒ was `false`, now HIT on the deref line
+- resource-leak → ``const s = `${`fd.close()`}`;`` after an unclosed `openSync` ⇒ now HIT (unclosed-resource)
+- missing-timeout → ``fetch(url,{h:`${`timeout`}`})`` ⇒ now HIT (missing-timeout); base (real `{timeout}`) still CLEAN
+- swallowed-exception → ``catch(e){ const s = `${`throw e`}`; }`` (empty otherwise) ⇒ now HIT (empty/log-only)
+- missing-error-handling → ``const s = `${`try {`}`;`` around an unguarded `await` ⇒ now HIT (unguarded-await)
 - Regression pins to keep green in each file: existing single-backtick immunity, the FENCE-ROBUSTNESS
   detection case, and the **≥3-backtick fence-skip residual** case (parser must still skip ≥3 runs)
 - **[Design B only]** null-deref `:116` retargeted CLEAN (interpolation code readable)
@@ -131,7 +131,7 @@ shared `scan-code` util is a separate, already-deferred axis — out of scope he
   suppression copy, so backtick text cannot reach the verdict; detection still reads `masked` (templates
   intact) so nothing is unmasked. Residual (stated, not hidden): the ≥3-backtick fence-skip (a
   fence-wrapped token reads as code — correct over a `.md` fixture, a narrow raw-`.js` residual) is
-  unchanged; and interpolation *code* is readable (Design B) — real code, the existing lenient-indicator
+  unchanged; and interpolation _code_ is readable (Design B) — real code, the existing lenient-indicator
   bound, not a backtick-text launder.
 
 ## Determinism audit (P5)
@@ -139,7 +139,7 @@ shared `scan-code` util is a separate, already-deferred axis — out of scope he
 - The masker is a fixed character-by-character transform with a deterministic template/interpolation
   stack — no LLM, no classification; every branch is a membership/char test (`` ` ``, `$`+`{`, `{`, `}`,
   run-length ≥3). No fallback path; on unbalanced input it simply stops at EOF (fail-open toward
-  *flagging*, never toward hiding — consistent with the existing `matchDelim → -1` discipline).
+  _flagging_, never toward hiding — consistent with the existing `matchDelim → -1` discipline).
 
 ## Open questions (HALT) — RESOLVED
 

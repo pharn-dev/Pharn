@@ -1,0 +1,37 @@
+{
+  "base": "0c40e64",
+  "inside": [
+    ".dev/floor/scan-code-missing-error-handling.mjs",
+    ".dev/floor/scan-code-missing-error-handling.test.mjs",
+    ".dev/floor/scan-code-missing-timeout.mjs",
+    ".dev/floor/scan-code-missing-timeout.test.mjs",
+    ".dev/floor/scan-code-null-deref.mjs",
+    ".dev/floor/scan-code-null-deref.test.mjs",
+    ".dev/floor/scan-code-resource-leak.mjs",
+    ".dev/floor/scan-code-resource-leak.test.mjs",
+    ".dev/floor/scan-code-swallowed-exception.mjs",
+    ".dev/floor/scan-code-swallowed-exception.test.mjs",
+    "pharn-review/missing-error-handling/missing-error-handling.md",
+    "pharn-review/missing-timeout/missing-timeout.md",
+    "pharn-review/null-deref/null-deref.md",
+    "pharn-review/resource-leak/resource-leak.md",
+    "pharn-review/swallowed-exception/swallowed-exception.md"
+  ],
+  "outside_gates": {
+    "structural:trust-fence": {
+      "base": 0,
+      "head": 0
+    },
+    "tests": {
+      "base": 0,
+      "head": 0
+    },
+    "validate": {
+      "base": 0,
+      "head": 0
+    }
+  },
+  "regressions": [],
+  "pre_existing": [],
+  "verdict": "no-regressions"
+}

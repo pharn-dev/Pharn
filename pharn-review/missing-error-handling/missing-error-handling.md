@@ -75,8 +75,10 @@ fake `try {…}` guard **span** nor a fake same-line `.catch` in backtick text s
 in a comment/string is masked away, and an **unbalanced** `try {` contributes no range (fail-open toward flagging).
 A comment CLAIMING error handling is needed cannot MANUFACTURE a hit over guarded code. The suppression masking is
 **monotone** (it only ADDS masking — a superset of what detection's copy blanks — never unmasks it), so the fix
-strictly **narrows** the laundering surface and can only over-flag. No **single-backtick** template-literal string
-content — the attack surface — can suppress a real hit. **Documented residual (the price of fence-robustness):** a
+strictly **narrows** the laundering surface and can only over-flag. No template-literal **string** content at **any
+nesting depth** — single **or** nested `${…}`, the attack surface — can suppress a real hit: neither a fake `try {…}`
+guard span nor a fake same-line `.catch` in a nested template silences a real unguarded await (interpolation **code**
+stays readable, but that is real code, not backtick text). **Documented residual (the price of fence-robustness):** a
 run of **≥3 backticks** is a markdown code-fence marker, so a ≥3-backtick-wrapped `try {`/`}` is read as **code** —
 correct over a `.md` fixture (fenced content _is_ the code under review), a narrow residual in raw `.js`, far
 narrower than the pre-fix any-backtick hole. Within that boundary no free text can SUPPRESS a hit or LAUNDER into an

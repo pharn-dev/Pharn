@@ -39,8 +39,10 @@
 // (dodging empty-catch) NOR supply a fake `throw`/`return`/`reject` HANDLE token; and a comment CLAIMING "swallowed
 // here" inside a catch that actually `throw`s cannot MANUFACTURE a hit. The suppression masking is MONOTONE: it only
 // ADDS masking to the suppression copy (a SUPERSET of what `masked` blanks) and never touches detection's `masked`,
-// so the fix strictly NARROWS the laundering surface and can only over-flag, never launder. No SINGLE-backtick
-// template-literal string content — the attack surface — can suppress a real hit. DOCUMENTED RESIDUAL (the price of
+// so the fix strictly NARROWS the laundering surface and can only over-flag, never launder. No template-literal
+// STRING content at ANY nesting depth — single OR nested `${…}`, the attack surface — can suppress a real hit (a
+// nested `${`throw`}` body has its inner token masked AND its bare `${}` delimiters stripped by classify(), so it
+// reads empty, never a fake HANDLE token nor a non-empty dodge). DOCUMENTED RESIDUAL (the price of
 // fence-robustness): a run of ≥3 backticks is a MARKDOWN CODE-FENCE marker, so a ≥3-backtick-wrapped HANDLE token is
 // read as CODE — correct over a .md fixture (fenced content IS the code under review), a narrow residual in raw .js.
 // (The `}`-in-template DETECTION brace-skew is a SEPARATE documented bound, not this laundering surface.) (See the ★
@@ -165,8 +167,12 @@ const masked = mask(text);
 // detection fence-robust:
 //   • a RUN OF ≥3 BACKTICKS is a MARKDOWN CODE-FENCE marker → emitted unchanged, NOT a template delimiter (this
 //     preserves the real code that lives BETWEEN ```-fences; the ≥3-run skip is load-bearing);
-//   • a SINGLE backtick toggles template state; inside a template every char is blanked to a space (newline
-//     preserved). A run of exactly TWO backticks (``) is therefore an EMPTY template — no interior, nothing masked.
+//   • a SINGLE (or double) backtick opens a TEMPLATE STRING (mask mode); inside it every char is blanked to a space
+//     (newline preserved), and a backtick closes it (a run of exactly TWO backticks `` is an EMPTY template —
+//     nothing masked). A DEPTH-AWARE STACK (not a boolean toggle) tracks `${…}` interpolation: interpolation CODE is
+//     left READABLE, and a backtick inside it opens ANOTHER nested template (masked) — so a nested `${`throw`}` masks
+//     its inner string at ANY depth (the old boolean mis-closed on that inner backtick and re-laundered it); the
+//     bare `${}` interpolation delimiters that survive are stripped by classify() as no-op, so the body reads empty.
 // MONOTONICITY (P0/P2): this pass only ever ADDS masking to the SUPPRESSION copy; DETECTION reads the untouched
 // `masked`, so no crafted backtick input can REMOVE masking to re-enable suppression — the fix can only over-flag,
 // never launder. Length + newlines are preserved 1:1, so offsets map back to `masked`. (Verbatim the #67 helper added
