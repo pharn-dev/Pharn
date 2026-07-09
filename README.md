@@ -154,10 +154,11 @@ What exists today (read the live count with `node .dev/floor/validate.mjs .`):
   `/pharn-build` → `/pharn-regress` → `/pharn-verify` → `/pharn-ship`, plus `/pharn-review` (parallel
   code-review lenses, deterministically merged) — and the `/pharn-dev-*` tooling PHARN builds itself
   with.
-- **35 built capabilities** — **22 code-review lenses** (`pharn-review/*`, e.g. `injection`,
-  `path-traversal`, `ssrf`, `null-deref`, `n-plus-one`) and **13 grillers**
-  (`pharn-pipeline/grillers/*`, e.g. `security`, `architecture`, `coupling`), each shipping evals —
-  over three contracts (`pharn-contracts/{finding-shape,eval-format,seam-config}`).
+- **36 built capabilities** — **22 code-review lenses** (`pharn-review/*`, e.g. `injection`,
+  `path-traversal`, `ssrf`, `null-deref`, `n-plus-one`), **13 grillers**
+  (`pharn-pipeline/grillers/*`, e.g. `security`, `architecture`, `coupling`), and the
+  **`seam-resolver` skill** (`pharn-core/`) — each shipping evals — over three contracts
+  (`pharn-contracts/{finding-shape,eval-format,seam-config}`).
   `pharn-review/trust-fence/` (attempt 0) is the injection-residual probe, recorded in
   [`.dev/features/trust-fence/REVIEW.md`](./.dev/features/trust-fence/REVIEW.md).
 

@@ -79,7 +79,7 @@ test("★ .dev/ excluded WHOLESALE: role-bearing files under .dev/ are NOT count
 });
 
 // CHECK 4b — `applies` archetype scoping (ARCH §5 enum {ssr,backend,spa,lib} + `universal` wildcard).
-// Optional field, enum-checked only when present (mirrors CHECK 4 coupling).
+// Required field, enum-checked (post-GATE-2: absent or empty → RED; mirrors CHECK 4 coupling).
 
 // A capability that carries `applies:` — valid where its members are archetype-enum values (+ evals).
 const APPLIES_CAP = (value) => `---
