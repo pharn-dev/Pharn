@@ -6,14 +6,14 @@ suppression launder on all five `scan-code-*` scanners.
 
 ## Stages run, in order, and where the run ended
 
-| stage             | ran | structural verdict read (verbatim)                 | source                    |
-| ----------------- | --- | -------------------------------------------------- | ------------------------- |
-| /pharn-dev-plan   | ✓   | (GATE 1 — human approved: Design B)                | PLAN.md                   |
-| /pharn-dev-grill  | ✓   | advisory — 5 concerns (0 blocking-severity)        | GRILL.md                  |
-| /pharn-dev-build  | ✓   | `validate.mjs` exit **0** (FLOOR: GREEN, 36 caps)  | (build floor)             |
-| /pharn-dev-regress| ✓   | `.verdict` = **`no-regressions`**                  | regression-report.json    |
-| /pharn-dev-verify | ✓   | `.verdict` = **`PASS`** (all gates exit 0)         | verify-report.json        |
-| /pharn-dev-review | ✓   | advisory — GREEN, 0 floor-gate, 3 advisory (minor) | REVIEW.md                 |
+| stage              | ran | structural verdict read (verbatim)                 | source                 |
+| ------------------ | --- | -------------------------------------------------- | ---------------------- |
+| /pharn-dev-plan    | ✓   | (GATE 1 — human approved: Design B)                | PLAN.md                |
+| /pharn-dev-grill   | ✓   | advisory — 5 concerns (0 blocking-severity)        | GRILL.md               |
+| /pharn-dev-build   | ✓   | `validate.mjs` exit **0** (FLOOR: GREEN, 36 caps)  | (build floor)          |
+| /pharn-dev-regress | ✓   | `.verdict` = **`no-regressions`**                  | regression-report.json |
+| /pharn-dev-verify  | ✓   | `.verdict` = **`PASS`** (all gates exit 0)         | verify-report.json     |
+| /pharn-dev-review  | ✓   | advisory — GREEN, 0 floor-gate, 3 advisory (minor) | REVIEW.md              |
 
 **Run ended at GATE 2** (post-review human decision). No RED-verdict STOP occurred: every structural
 floor verdict came back GREEN.

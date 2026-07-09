@@ -196,6 +196,16 @@ function maskTemplateInteriors(src) {
   while (i < N) {
     const c = src[i];
     const t = top();
+    if (t && t.kind === "tmpl" && c === "\\") {
+      // Inside a template STRING a backslash escapes the next char: `\`` is a LITERAL backtick (not a close)
+      // and `\${` is LITERAL text (not an interpolation opener). Consume BOTH chars as blanked template text so
+      // the escaped delimiter can't close the template early and leak literal string text into the suppression
+      // copy. Escapes only matter in template strings — interpolation/plain code stays readable.
+      out[i] = space(c);
+      if (i + 1 < N) out[i + 1] = space(src[i + 1]);
+      i += 2;
+      continue;
+    }
     if (c === "`") {
       if (!t || t.kind === "interp") {
         // Outside a template STRING (top level OR interpolation code): a RUN OF ≥3 BACKTICKS is a markdown
