@@ -10,10 +10,12 @@
 // means "the findings are correct" or "the code is safe" (P0) — it means the assembly is deterministic.
 //
 // THE DEDUP KEY IS ENUM-GATED ONLY (P2 — the whole point). The key is (type, rule_id, file): the
-// finding-shape enum-gated / floor-verifiable fields (finding-shape.md — cited, not restated, P4). It
-// NEVER reads the tainted free-text (problem/evidence) — "problem-class" is the enum-gated rule_id, not
-// the sentence. So the grouping/identity decision rests only on validated enum-gated fields; no
-// guaranteed decision rests on a tainted field (ARCHITECTURE §8, fix #1).
+// finding-shape enum-gated / floor-verifiable fields (finding-shape.md — cited, not restated, P4), each
+// NORMALIZED first so lens format drift cannot defeat dedup — rule_id is trim+case-folded, and file is
+// canonicalized (canonFile: leading "./" and trailing ":col" stripped). It NEVER reads the tainted
+// free-text (problem/evidence) — "problem-class" is the enum-gated rule_id, not the sentence. So the
+// grouping/identity decision rests only on validated, normalized enum-gated fields; no guaranteed decision
+// rests on a tainted field (ARCHITECTURE §8, fix #1).
 //
 // FAIL-CLOSED VALIDATION AT THE MERGE (fix #1 applied here). A lens subagent reads trust: untrusted
 // code and could be injected into LAUNDERING a needle (e.g. a multi-line instruction) into an
@@ -25,15 +27,17 @@
 //
 // OUTPUT SHAPE. Each merged finding is finding-shape-CONFORMANT on the six required fields
 // (type, rule_id, severity, file, problem, evidence — scalars), PLUS an ADDITIVE `sources[]` provenance
-// array carrying every contributor's {source, problem, evidence} as quoted DATA. The additive field is
-// documented, not a redefinition of finding-shape (P4): finding-shape consumers (e.g. check-structural.mjs)
-// read the six fields and ignore the extra; needle_absent_from_enum_gated still scans only the enum-gated
-// fields, never sources[] (which legitimately quotes attacker payloads as evidence).
+// array carrying every contributor's {source, severity, problem, evidence} as quoted DATA — the per-source
+// severity so a group-level MAX escalation stays auditable against each lens's own value. The additive
+// field is documented, not a redefinition of finding-shape (P4): finding-shape consumers (e.g.
+// check-structural.mjs) read the six fields and ignore the extra; needle_absent_from_enum_gated still scans
+// only the enum-gated fields, never sources[] (which legitimately quotes attacker payloads as evidence).
 //
 // DETERMINISM (P5). Output bytes are INVARIANT under input-file order and intra-array order: findings
-// group into a keyed map, groups sort by (file, rule_id, type), each group's sources sort by
-// (source, problem, evidence), and the scalar problem/evidence are taken from sources[0] after sort.
-// Merged severity = MAX over {blocking>important>minor} (an ordered-enum reduce, not judgment).
+// group into a keyed map keyed on the NORMALIZED enum-gated fields, groups sort by (file, rule_id, type),
+// each group's sources sort by (source, problem, evidence, severity), the scalar problem/evidence are taken
+// from sources[0] after sort, and the emitted rule_id is the lexicographic-min trimmed original in the
+// group. Merged severity = MAX over {blocking>important>minor} (an ordered-enum reduce, not judgment).
 //
 // Usage:   node .dev/floor/merge-findings.mjs <out.json> [<in1.json> <in2.json> ...]
 //   - <out.json> required; zero inputs is legal → writes the empty array [].
@@ -70,16 +74,40 @@ function hasControlChar(s) {
 }
 
 // A scalar enum-gated value is CLEAN iff it is a non-empty, bounded, single-line string with no control
-// characters. This is the F2 rule: it admits spaces (so "security.md SEC-1" passes) but forbids the
-// newline/control-char laundering vector. It does NOT try to whitelist every rule roster shape (P0 —
-// over-tight would silently DROP valid findings); the roster/eval binding is checked elsewhere.
+// characters. It admits spaces (so "security.md SEC-1" passes) but forbids the newline/control-char
+// laundering vector. isCleanScalar is the FLOOR under every enum-gated check and MUST run BEFORE any shape
+// regex: JS `$` matches before a trailing newline, so a shape regex alone would re-admit a "P2\n" trailing-
+// control-char vector — isCleanScalar rejects it first (see RULE_ID_OK).
 function isCleanScalar(v, max = 200) {
   return typeof v === "string" && v.length >= 1 && v.length <= max && !hasControlChar(v);
 }
 
 const TYPE_OK = (v) => isCleanScalar(v, 64) && /^[A-Z][A-Z0-9_]*$/.test(v); // FINDING | CONSTITUTION_VIOLATION | ...
-const RULE_ID_OK = (v) => isCleanScalar(v, 120); // clean single line; admits "P2", "security.md SEC-1", "ARCH§3.1"
+
+// FIX 1 (harden-merge-keying, Option A — structural regex-tighten; approved at a human gate to REVERSE the
+// prior "don't whitelist rule shapes" note). A rule_id is valid iff it is a clean scalar AND, after
+// trimming, matches ONE of the two legitimate rule shapes: a principle P0..P7, or a file-qualified stack
+// rule "<file>.md <ID>-<n>" (e.g. "security.md SEC-1"). A prose instruction (many tokens/spaces) matches
+// neither → DROPPED before keying, so it can NEVER enter a TRUSTED-labeled field or become a REVIEW.md
+// section header. This is a SHAPE guarantee (enum-regex, ARCHITECTURE §2), NOT roster membership — no
+// roster artifact exists; the claim is precisely "shape-valid", labeled honestly (P0). Shapes are
+// case-insensitive so "SEC-1"/"sec-1" both validate, then collapse via the case-folded key below.
+const RULE_ID_PRINCIPLE = /^P[0-7]$/i;
+const RULE_ID_QUALIFIED = /^[\w./-]+\.md [A-Za-z0-9]+-\d+$/;
+const RULE_ID_OK = (v) => isCleanScalar(v, 120) && (RULE_ID_PRINCIPLE.test(v.trim()) || RULE_ID_QUALIFIED.test(v.trim()));
+
 const FILE_OK = (v) => isCleanScalar(v, 400) && /:\d+$/.test(v) && v.indexOf(":") > 0; // path:line, a real anchor
+
+// FIX 2 (harden-merge-keying): canonicalize a validated `file` so lens FORMAT DRIFT collapses to one key.
+// Strip a single leading "./" and a trailing ":col" (a second :\d+ after the line), so "src/app.ts:10",
+// "./src/app.ts:10", and "src/app.ts:10:5" all become "src/app.ts:10" → one dedup key. Deterministic string
+// rewrite (P5); applied to BOTH the key and the emitted `file`. BOUNDED to these two drifts — NOT
+// absolute-vs-relative base, "../", or backslashes: an honest partial canonicalization, not general
+// location-identity.
+function canonFile(v) {
+  const s = v.startsWith("./") ? v.slice(2) : v;
+  return s.replace(/^(.*:\d+):\d+$/, "$1");
+}
 
 // Coerce a free-text field to a carried-as-DATA string (never gates; never executed). Non-strings → "".
 function asText(v) {
@@ -140,14 +168,25 @@ for (const { source, findings } of inputs) {
       droppedReport.push({ source, type: f && typeof f === "object" ? f.type : typeof f, rule_id: f && f.rule_id, file: f && f.file });
       continue;
     }
-    const key = f.type + NUL + f.rule_id + NUL + f.file;
+    // Canonicalize `file` (FIX 2) and case-fold+trim `rule_id` for KEYING ONLY (secondary) so trivial
+    // format variants collapse to one key. The EMITTED rule_id is a deterministic representative — the
+    // lexicographic-min trimmed original across the group (order-invariant, P5), NOT the folded key — so
+    // "security.md SEC-1" is preserved verbatim.
+    const cfile = canonFile(f.file);
+    const ridTrim = f.rule_id.trim();
+    const key = f.type + NUL + ridTrim.toLowerCase() + NUL + cfile;
     let g = groups.get(key);
     if (!g) {
-      g = { type: f.type, rule_id: f.rule_id, file: f.file, sevRank: -1, sources: [] };
+      g = { type: f.type, rule_id: ridTrim, file: cfile, sevRank: -1, sources: [] };
       groups.set(key, g);
+    } else if (ridTrim < g.rule_id) {
+      g.rule_id = ridTrim; // deterministic representative = lexicographic-min trimmed original
     }
     g.sevRank = Math.max(g.sevRank, SEVERITY_RANK[f.severity]);
-    g.sources.push({ source, problem: asText(f.problem), evidence: asText(f.evidence) });
+    // Carry per-source severity (secondary): the group-level MAX (below) stays auditable against each
+    // contributor's own severity, which a REVIEW.md reader can now see (one compromised lens escalating a
+    // shared-key finding is visible, not silently folded).
+    g.sources.push({ source, severity: f.severity, problem: asText(f.problem), evidence: asText(f.evidence) });
   }
 }
 
@@ -157,7 +196,9 @@ const cmp = (a, b) => (a < b ? -1 : a > b ? 1 : 0);
 const rankToSeverity = ["minor", "important", "blocking"];
 
 const merged = [...groups.values()].map((g) => {
-  g.sources.sort((a, b) => cmp(a.source, b.source) || cmp(a.problem, b.problem) || cmp(a.evidence, b.evidence));
+  g.sources.sort(
+    (a, b) => cmp(a.source, b.source) || cmp(a.problem, b.problem) || cmp(a.evidence, b.evidence) || cmp(a.severity, b.severity)
+  );
   const rep = g.sources[0];
   return {
     type: g.type,

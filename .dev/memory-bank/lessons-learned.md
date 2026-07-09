@@ -386,3 +386,31 @@ L11 (whole-repo scope), and L12 (prevention at build).
 - source: `.dev/features/applies-scope/REVIEW.md` (proposed lesson candidate) +
   `.dev/features/applies-scope/VERIFY.md` (L9 build-hygiene note)
 - promoted: 2026-07-07 via gated `/pharn-dev-memory-promote` (human-approved).
+
+## L14 — A shape-regex tightening of an enum-gated field must COMPOSE with the control-char guard, never replace it
+
+**Lesson.** When you tighten an enum-gated validator (e.g. `merge-findings.mjs`'s `RULE_ID_OK`) from a
+permissive "any clean single line" rule to a shape whitelist, layer the shape regex AFTER the existing
+`isCleanScalar` / `hasControlChar` guard — never as a replacement. JavaScript `$` (without the `m` flag)
+matches at end-of-string OR just before a single trailing newline, so `/^P[0-7]$/.test("P2\n") === true`
+and `/^…\d+$/.test("security.md SEC-1\n") === true`. A shape regex used ALONE would re-admit a
+trailing-newline control-char vector — exactly the laundering the control-char guard exists to reject.
+Compose: `RULE_ID_OK(v) = isCleanScalar(v,120) && (PRINCIPLE.test(v.trim()) || QUALIFIED.test(v.trim()))`,
+so the string is provably control-char-free before any anchored regex runs.
+
+**Why it matters.** Concretely (`harden-merge-keying`): FIX 1 replaced a loose `rule_id` check with a
+`^P[0-7]$` | `<file>.md <ID>-<n>` whitelist so a prose instruction could not become a trusted-labeled
+`REVIEW.md` section header (P2). The plan's "tighten `RULE_ID_OK` from X to Y" phrasing read as REPLACE;
+`/pharn-dev-grill` flagged the `$`-before-newline quirk (`GRILL.md` P2 finding), and the build folded the
+guard-first composition in with a dedicated test ("a trailing-newline `rule_id` is DROPPED"). Generalizes
+to every floor validator that adds an anchored shape check over a field that already had a control-char
+guard — the guard must stay the precondition, or the tightening silently reopens the newline hole it was
+meant to keep closed. Complements the enum-gated/free-text trust split (fix #1) and L6.
+
+**Provenance.**
+
+- feature: `harden-merge-keying`
+- commit: `9418849c9e966451be4473772d0a8ffc3f7cb2e6`
+- source: `.dev/features/harden-merge-keying/REVIEW.md` (proposed lesson candidate) +
+  `.dev/features/harden-merge-keying/GRILL.md` (P2 finding)
+- promoted: 2026-07-09 via gated `/pharn-dev-memory-promote` (human-approved).
