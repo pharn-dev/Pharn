@@ -2,13 +2,15 @@
 // .dev/floor/check-config.mjs — the deterministic pharn.config.json VALIDATOR + per-stage RESOLVER +
 // config↔frontmatter AGREEMENT checker for the /pharn-dev-* build loop's model/effort configuration.
 //
-// Floor primitives (ARCHITECTURE §2): #3 (enum / regex / presence) — every stage `model` ∈ a fixed
-// allowlist (Claude Code aliases {sonnet,opus,haiku,fable} ∪ `inherit` ∪ a `claude-*` full-id regex),
-// every `effort` ∈ {low,medium,high,xhigh,max}, a `default` entry present, resolution is the membership
-// pick `stages[stage] ?? stages.default` (P5), and each WIRED stage's command-file frontmatter
-// `model:`/`effort:` EQUALS the config-resolved value — a deterministic equality between two repo files,
-// the same drift-detection class as a content-hash (#2). NON-LLM, dependency-free (Node stdlib only). No
-// network, no child_process, no eval, no dynamic import.
+// Floor primitives (ARCHITECTURE §2): #3 (enum / regex / presence) — every stage `model` is bounded to
+// the Claude model namespace (a closed alias set {sonnet,opus,haiku,fable} ∪ `inherit` ∪ an OPEN
+// `claude-*` full-id regex — a namespace bound, NOT a closed allowlist: a non-real `claude-*` id validates),
+// every `effort` ∈ {low,medium,high,xhigh,max}, a `default` entry present, resolution is the own-property
+// membership pick `Object.hasOwn(stages, stage) ? stages[stage] : stages.default` (not inherited — P5), and
+// agreement is BIDIRECTIONAL: each WIRED stage's command-file frontmatter `model:`/`effort:` EQUALS the
+// config-resolved value, AND no command carrying `model:`/`effort:` frontmatter lacks a config stage — a
+// deterministic equality between two repo files, the same drift-detection class as a content-hash (#2).
+// NON-LLM, dependency-free (Node stdlib only). No network, no child_process, no eval, no dynamic import.
 //
 // Honest scope (P0): it guarantees the config is SHAPE/ENUM-valid, that a stage RESOLVES deterministically,
 // and that the wired commands' static `model:`/`effort:` frontmatter is CONSISTENT with the config. It does
@@ -20,23 +22,25 @@
 // config↔frontmatter consistency floor.
 //
 // Trust (P2): pharn.config.json and the command frontmatter are repo-local, human-authored DATA — parsed as
-// JSON / YAML frontmatter, NEVER executed. The verdict ranges ONLY over the enum-gated fields (model ∈
-// allowlist, effort ∈ enum, resolved == frontmatter) and rejects any non-member; a poisoned/edited config can
-// at most select a DIFFERENT allowlisted model/effort (a bounded, advisory blast radius), never inject an
-// instruction. No guaranteed decision rests on any free-text field (mirrors fix #1).
+// JSON / YAML frontmatter, NEVER executed. The verdict ranges ONLY over the enum-gated fields (model ∈ the
+// bounded namespace, effort ∈ enum, resolved == frontmatter) and rejects any non-member; a poisoned/edited
+// config can at most select a DIFFERENT namespace-valid model/effort (a bounded, advisory blast radius),
+// never inject an instruction. No guaranteed decision rests on any free-text field (mirrors fix #1).
 //
 // Usage:
 //   node .dev/floor/check-config.mjs [validate] [--config <path>]
 //        validate config shape + enums (default mode)                → exit 1 on any RED (prints each), else 0 + GREEN
 //   node .dev/floor/check-config.mjs resolve <stage> [--config <path>]
-//        print {"model":..,"effort":..} for <stage> (stages[stage] ?? stages.default) → exit 0, else RED
+//        print {"model":..,"effort":..} for <stage>
+//        (Object.hasOwn(stages, stage) ? stages[stage] : stages.default) → exit 0, else RED
 //   node .dev/floor/check-config.mjs agreement [--config <path>] [--commands-dir <dir>]
-//        validate + assert each non-`default` stage's <commands-dir>/pharn-dev-<stage>.md frontmatter
-//        `model:`/`effort:` EQUALS the config-resolved value       → exit 1 on any RED, else 0 + GREEN
+//        validate + BIDIRECTIONAL config↔frontmatter agreement — (fwd) each non-`default` stage's
+//        <commands-dir>/pharn-dev-<stage>.md `model:`/`effort:` EQUALS the config-resolved value, AND (rev)
+//        no pharn-dev-*.md carrying `model:`/`effort:` lacks a config stage → exit 1 on any RED, else 0 + GREEN
 //
 // Exit: 1 on any RED / unreadable / malformed; 0 otherwise.
 
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 
 // Enums — every branch is a presence / enum / equality membership test (P5); the terminal fallback on any
@@ -115,9 +119,12 @@ function validateStages(stages) {
   }
 }
 
-// resolve: stages[stage] ?? stages.default (a membership test, P5). Returns {model, effort} or undefined+RED.
+// resolve: Object.hasOwn(stages, stage) ? stages[stage] : stages.default (an OWN-PROPERTY membership test, P5) —
+// an INHERITED member (toString / constructor / __proto__ / hasOwnProperty) is truthy but is NOT a configured
+// stage, so `||`/`??` would leak it (returning {model:undefined,effort:undefined} → silent `{}` at exit 0, the
+// exact floor-tool-lies-quietly failure this repo exists to kill). Returns {model, effort}, or undefined + RED.
 function resolveStage(stages, stage) {
-  const entry = stages[stage] || stages.default;
+  const entry = Object.hasOwn(stages, stage) ? stages[stage] : stages.default;
   if (!entry) {
     red("resolve", `stage ${JSON.stringify(stage)} has no entry and no \`default\` fallback`);
     return undefined;
@@ -173,7 +180,7 @@ function doResolve(configPath, stage) {
   return 0;
 }
 
-// --- agreement mode: validate + each non-`default` stage's command frontmatter EQUALS its resolved value. ---
+// --- agreement mode: validate + BIDIRECTIONAL config↔command-frontmatter consistency. ---
 function doAgreement(configPath, commandsDir) {
   const cfg = readConfig(configPath);
   if (reds.length) return fail();
@@ -181,6 +188,8 @@ function doAgreement(configPath, commandsDir) {
   if (reds.length) return fail();
   validateStages(stages);
   if (reds.length) return fail();
+
+  // Forward pass (config → command): each non-`default` stage's command frontmatter EQUALS its resolved value.
   const checked = [];
   for (const name of Object.keys(stages)) {
     if (name === "default") continue;
@@ -193,7 +202,7 @@ function doAgreement(configPath, commandsDir) {
       continue;
     }
     const fm = frontmatterModelEffort(text);
-    const want = resolveStage(stages, name); // == stages[name] (name is a present key here)
+    const want = resolveStage(stages, name); // == stages[name] (name is a present own key here)
     if (fm.model === undefined) red("agreement", `stage ${JSON.stringify(name)} → ${cmdPath} frontmatter has no \`model:\``);
     else if (fm.model !== want.model)
       red(
@@ -208,8 +217,42 @@ function doAgreement(configPath, commandsDir) {
       );
     checked.push(name);
   }
+
+  // Reverse pass (command → config): a pharn-dev-*.md that CARRIES `model:`/`effort:` frontmatter MUST map to a
+  // config stage — else a command silently gains a model/effort the config never governs (the forward pass,
+  // config→command, cannot see it). Fail-closed: an unreadable commands dir is a loud RED, never a silent pass.
+  // SAME frontmatter parser as the forward pass, so `model_tier:` (a different key) never counts.
+  let dirEntries;
+  try {
+    dirEntries = readdirSync(commandsDir);
+  } catch (e) {
+    red("agreement", `commands dir unreadable (${commandsDir}): ${e.message}`);
+    return fail();
+  }
+  const configStages = new Set(Object.keys(stages));
+  for (const fileName of dirEntries) {
+    const m = fileName.match(/^pharn-dev-(.+)\.md$/);
+    if (!m) continue;
+    const stage = m[1];
+    if (stage === "default") continue; // `default` is the resolution fallback, never a command file
+    let text;
+    try {
+      text = readFileSync(join(commandsDir, fileName), "utf8");
+    } catch {
+      continue; // vanished mid-scan; the forward pass owns wired-stage presence
+    }
+    const fm = frontmatterModelEffort(text);
+    if ((fm.model !== undefined || fm.effort !== undefined) && !configStages.has(stage))
+      red(
+        "agreement",
+        `command ${JSON.stringify(fileName)} carries \`model:\`/\`effort:\` frontmatter but has no \`${stage}\` config stage (unwired-command drift)`
+      );
+  }
+
   if (reds.length) return fail();
-  console.log(`GREEN — config valid; ${checked.length} wired stage(s) [${checked.join(", ")}] agree with command frontmatter`);
+  console.log(
+    `GREEN — config valid; ${checked.length} wired stage(s) [${checked.join(", ")}] agree with command frontmatter; no unwired command carries model:/effort: (bidirectional)`
+  );
   return 0;
 }
 
