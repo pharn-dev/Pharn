@@ -18,13 +18,13 @@ One reason to change: **`check-config.mjs`'s guarantees as a floor primitive mus
 
 **FIX 1 — resolve prototype-chain leak (:120), the P0-class one.**
 `const entry = stages[stage] || stages.default;` → `const entry = Object.hasOwn(stages, stage) ? stages[stage] : stages.default;`
-An **own-property** membership test (P5), not an inherited-truthy pick. Also correct the `:8` comment to describe the code: resolution is the own-property pick `Object.hasOwn(stages, stage) ? stages[stage] : stages.default` (removes the `??`-vs-`||` doc/code drift AND documents *why* own-property — inherited members like `toString` are truthy, so neither `||` nor `??` would exclude them). Behavior after fix: `resolve toString` → the `default` entry at exit 0 (identical to any unknown stage, e.g. `resolve grill`), **never** `{}`.
+An **own-property** membership test (P5), not an inherited-truthy pick. Also correct the `:8` comment to describe the code: resolution is the own-property pick `Object.hasOwn(stages, stage) ? stages[stage] : stages.default` (removes the `??`-vs-`||` doc/code drift AND documents _why_ own-property — inherited members like `toString` are truthy, so neither `||` nor `??` would exclude them). Behavior after fix: `resolve toString` → the `default` entry at exit 0 (identical to any unknown stage, e.g. `resolve grill`), **never** `{}`.
 
 **FIX 2 — honest wording (:6, :24, :25).**
 The valid-model set is `MODEL_ALIASES` (a closed set {sonnet,opus,haiku,fable,inherit}) **∪** `MODEL_ID_RE` (an **open** `claude-*` regex admitting non-real ids). Reword "a fixed allowlist" / "∈ allowlist" / "a DIFFERENT allowlisted model" → "bounded to the Claude model namespace (a closed alias set ∪ an OPEN `claude-*` id regex — a namespace bound, not a closed allowlist)". Comments only; no logic change. Witnessed by a new test asserting a non-real `claude-*` id validates GREEN.
 
 **FIX 3 — bidirectional agreement (reverse scan).**
-`doAgreement` currently iterates config-stages → command files only. Add a **reverse** membership pass: enumerate `pharn-dev-*.md` in `commandsDir` (via `readdirSync`); for any file whose frontmatter carries `model:` or `effort:`, its `<stage>` (from `pharn-dev-<stage>.md`) MUST be a key in `models.stages`, else RED. Closes the drift where an *unwired* command gains `model:`/`effort:` frontmatter invisibly. Update the GREEN message to reflect the now-bidirectional check. GREEN over the real repo today (only build/plan/review carry the frontmatter, all three wired).
+`doAgreement` currently iterates config-stages → command files only. Add a **reverse** membership pass: enumerate `pharn-dev-*.md` in `commandsDir` (via `readdirSync`); for any file whose frontmatter carries `model:` or `effort:`, its `<stage>` (from `pharn-dev-<stage>.md`) MUST be a key in `models.stages`, else RED. Closes the drift where an _unwired_ command gains `model:`/`effort:` frontmatter invisibly. Update the GREEN message to reflect the now-bidirectional check. GREEN over the real repo today (only build/plan/review carry the frontmatter, all three wired).
 
 ## Contracts satisfied
 
@@ -41,14 +41,14 @@ The valid-model set is `MODEL_ALIASES` (a closed set {sonnet,opus,haiku,fable,in
 
 ## Guarantee audit (P0)
 
-- "`resolve <stage>` deterministically returns a stage-or-default `{model, effort}`, never a silent `{}`" → **floor: enum-regex/presence (#3)** — own-property membership + validated-present `default`; the fix makes the *existing* claim actually hold.
+- "`resolve <stage>` deterministically returns a stage-or-default `{model, effort}`, never a silent `{}`" → **floor: enum-regex/presence (#3)** — own-property membership + validated-present `default`; the fix makes the _existing_ claim actually hold.
 - "config↔commands agree in **both** directions" → **floor: enum-regex/presence (#3)** — set-membership (frontmatter-bearing command stages ⊆ config stages) + per-stage equality; deterministic file-vs-file compare (same class as content-hash #2).
 - "valid model ∈ the Claude model namespace" → **advisory-honest relabel**: the alias set is a closed enum (floor #3), but the `claude-*` regex is an OPEN bound — FIX 2 stops calling the union a "fixed allowlist." No new guarantee is claimed; an OVERSTATED one is corrected (the core P0 hygiene: "written in the comment" ≠ closed set).
 - "check-config GREEN ⇒ the stage RAN under model X" → remains **explicitly NOT guaranteed** (runtime binding is platform-applied, invisible to any hook/hash/enum; already stated at `:13–20`, unchanged).
 
 ## Trust audit (P2)
 
-`pharn.config.json` and command frontmatter are repo-local, human-authored **trusted** DATA (parsed as JSON/YAML frontmatter, never executed). No untrusted artifact is ingested. The reverse scan reads only enum-gated fields (frontmatter key *presence* + the `<stage>` filename token) and the verdict ranges only over membership — no free-text field steers control flow. Blast radius of a poisoned config is unchanged (a different namespace-valid model/effort at most; never an injected instruction).
+`pharn.config.json` and command frontmatter are repo-local, human-authored **trusted** DATA (parsed as JSON/YAML frontmatter, never executed). No untrusted artifact is ingested. The reverse scan reads only enum-gated fields (frontmatter key _presence_ + the `<stage>` filename token) and the verdict ranges only over membership — no free-text field steers control flow. Blast radius of a poisoned config is unchanged (a different namespace-valid model/effort at most; never an injected instruction).
 
 ## Determinism audit (P5)
 
@@ -60,4 +60,4 @@ The valid-model set is `MODEL_ALIASES` (a closed set {sonnet,opus,haiku,fable,in
 
 - None blocking. All three findings were reproduced against live state this run (`resolve toString` → `{}` exit 0 confirmed; `MODEL_ID_RE` open-match confirmed; only build/plan/review carry model/effort frontmatter confirmed). Two design decisions were resolved from the description + live reading and are recorded above for approval, not deferred:
   1. **Reverse scan folded into `agreement` mode** (making it bidirectional) rather than a new mode — matches "add a reverse scan" and keeps one entry point; the GREEN message is updated accordingly.
-  2. **FIX 2 wording scoped to `check-config.mjs` comments** (`:6/:24/:25`); the test file gets a *witness test* rather than comment edits (its "allowlist regex" phrasing at `:132` is accurate about the regex itself).
+  2. **FIX 2 wording scoped to `check-config.mjs` comments** (`:6/:24/:25`); the test file gets a _witness test_ rather than comment edits (its "allowlist regex" phrasing at `:132` is accurate about the regex itself).

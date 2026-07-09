@@ -1,0 +1,21 @@
+{
+  "base": "fcd568f4ced8922511d05c7a4a0506d37c93c2cd",
+  "inside": [".dev/floor/check-config.mjs", ".dev/floor/check-config.test.mjs"],
+  "outside_gates": {
+    "structural:expected-injection-comment": {
+      "base": 0,
+      "head": 0
+    },
+    "tests": {
+      "base": 0,
+      "head": 0
+    },
+    "validate": {
+      "base": 0,
+      "head": 0
+    }
+  },
+  "regressions": [],
+  "pre_existing": [],
+  "verdict": "no-regressions"
+}

@@ -93,6 +93,20 @@ test("resolve: a stage with no explicit entry (grill) falls back to default (mis
   assert.equal(r.stdout.trim(), '{"model":"sonnet","effort":"high"}');
 });
 
+test("resolve: a prototype-chain key (toString/constructor/__proto__/hasOwnProperty) falls back to default, NEVER {} (fix 1: own-property pick)", () => {
+  // Regression witness for the P0-class leak: `stages[stage] || stages.default` returned the inherited
+  // Object.prototype member (truthy) → {model:undefined,effort:undefined} → JSON.stringify emitted `{}` at exit 0.
+  for (const key of ["toString", "constructor", "__proto__", "hasOwnProperty", "valueOf"]) {
+    const r = onConfig(VALID, ["resolve", key]);
+    assert.equal(r.status, 0, `resolve ${key}: ${r.stdout}${r.stderr}`);
+    assert.equal(
+      r.stdout.trim(),
+      '{"model":"sonnet","effort":"high"}',
+      `resolve ${key} must resolve to default, got ${JSON.stringify(r.stdout.trim())}`
+    );
+  }
+});
+
 test("RED: a bad model (gpt-4o, not an alias nor a claude-* id) exits 1", () => {
   const c = clone(VALID);
   c.models.stages.plan.model = "gpt-4o";
@@ -199,6 +213,50 @@ test("agreement RED: a config stage whose command file is absent exits 1 (fail-c
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
+});
+
+test("agreement RED (reverse scan, fix 3): an UNWIRED command carrying `model:`/`effort:` frontmatter with no config stage exits 1", () => {
+  const { dir, configPath } = withConfig(VALID);
+  try {
+    const cmdDir = writeCommands(dir, {
+      plan: { model: "opus", effort: "high" },
+      build: { model: "sonnet", effort: "high" },
+      review: { model: "opus", effort: "high" },
+      eval: { model: "opus", effort: "high" }, // pharn-dev-eval.md carries model:/effort: but VALID has no `eval` stage → drift
+    });
+    const r = run(["agreement", "--config", configPath, "--commands-dir", cmdDir]);
+    assert.equal(r.status, 1, r.stdout + r.stderr);
+    assert.match(r.stdout, /unwired-command drift/);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("agreement GREEN (reverse scan, fix 3): an unwired command WITHOUT model/effort frontmatter is skipped, not flagged", () => {
+  // The negative branch the ★live★ test only covers incidentally: a command with no model:/effort: (just
+  // model_tier:) must NOT trip the reverse scan — proving frontmatterModelEffort is reused (model_tier ≠ model).
+  const { dir, configPath } = withConfig(VALID);
+  try {
+    const cmdDir = writeCommands(dir, {
+      plan: { model: "opus", effort: "high" },
+      build: { model: "sonnet", effort: "high" },
+      review: { model: "opus", effort: "high" },
+      ship: null, // pharn-dev-ship.md with NO model/effort frontmatter (only model_tier:) → skipped
+    });
+    const r = run(["agreement", "--config", configPath, "--commands-dir", cmdDir]);
+    assert.equal(r.status, 0, r.stdout + r.stderr);
+    assert.match(r.stdout, /bidirectional/);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("★ fix 2 witness: a non-real claude-* id (claude-totally-fake-9000) validates GREEN — the model bound is a NAMESPACE, not a closed allowlist", () => {
+  const c = clone(VALID);
+  c.models.stages.plan.model = "claude-totally-fake-9000";
+  const r = onConfig(c, ["validate"]);
+  assert.equal(r.status, 0, r.stdout + r.stderr);
+  assert.match(r.stdout, /GREEN/);
 });
 
 test("★ P0/P2: an instruction-looking extra config field does NOT move the verdict (config is DATA)", () => {
