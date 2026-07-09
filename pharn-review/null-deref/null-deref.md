@@ -66,9 +66,11 @@ second copy in which template-literal string content is ALSO masked. So no free 
 single/double-quoted string, OR a template literal's text — can introduce a guard or suppress a real raw deref,
 and a comment that CLAIMS a deref is unsafe cannot manufacture one over guarded code. The suppression masking is
 **monotone** (it only ADDS masking — a superset of what detection's copy blanks — and never unmasks it), so the
-fix strictly **narrows** the laundering surface and can only over-flag (a documented false-positive when a value's
-first use is a guard inside `${…}`). No **single-backtick** template-literal string content — the V1/V2 attack
-surface — can suppress a real deref. **Documented residual (the price of fence-robustness):** a run of **≥3
+fix strictly **narrows** the laundering surface and can only over-flag. No template-literal **string** content at
+**any nesting depth** — single **or** nested `${…}`, the V1/V2 attack surface — can suppress a real deref: the
+depth-aware masker blanks a nested `` `${`user`}` `` interior at any depth, while interpolation **code** (e.g.
+`${u?.name}`) stays readable so a real guard there correctly reads clean (the old Option-A `${…}` over-flag is
+**gone**, a precision gain). **Documented residual (the price of fence-robustness):** a run of **≥3
 backticks** is a markdown code-fence marker, so a ≥3-backtick-wrapped token is read as **code** — correct over a
 `.md` fixture (fenced content _is_ the code under review), a narrow residual in raw `.js`, far narrower than the
 pre-fix any-backtick hole. Within that boundary the suppression search is injection-immune by construction (proven

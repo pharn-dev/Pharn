@@ -39,8 +39,10 @@
 // (dodging empty-catch) NOR supply a fake `throw`/`return`/`reject` HANDLE token; and a comment CLAIMING "swallowed
 // here" inside a catch that actually `throw`s cannot MANUFACTURE a hit. The suppression masking is MONOTONE: it only
 // ADDS masking to the suppression copy (a SUPERSET of what `masked` blanks) and never touches detection's `masked`,
-// so the fix strictly NARROWS the laundering surface and can only over-flag, never launder. No SINGLE-backtick
-// template-literal string content — the attack surface — can suppress a real hit. DOCUMENTED RESIDUAL (the price of
+// so the fix strictly NARROWS the laundering surface and can only over-flag, never launder. No template-literal
+// STRING content at ANY nesting depth — single OR nested `${…}`, the attack surface — can suppress a real hit (a
+// nested `${`throw`}` body has its inner token masked AND its bare `${}` delimiters stripped by classify(), so it
+// reads empty, never a fake HANDLE token nor a non-empty dodge). DOCUMENTED RESIDUAL (the price of
 // fence-robustness): a run of ≥3 backticks is a MARKDOWN CODE-FENCE marker, so a ≥3-backtick-wrapped HANDLE token is
 // read as CODE — correct over a .md fixture (fenced content IS the code under review), a narrow residual in raw .js.
 // (The `}`-in-template DETECTION brace-skew is a SEPARATE documented bound, not this laundering surface.) (See the ★
@@ -165,8 +167,12 @@ const masked = mask(text);
 // detection fence-robust:
 //   • a RUN OF ≥3 BACKTICKS is a MARKDOWN CODE-FENCE marker → emitted unchanged, NOT a template delimiter (this
 //     preserves the real code that lives BETWEEN ```-fences; the ≥3-run skip is load-bearing);
-//   • a SINGLE backtick toggles template state; inside a template every char is blanked to a space (newline
-//     preserved). A run of exactly TWO backticks (``) is therefore an EMPTY template — no interior, nothing masked.
+//   • a SINGLE (or double) backtick opens a TEMPLATE STRING (mask mode); inside it every char is blanked to a space
+//     (newline preserved), and a backtick closes it (a run of exactly TWO backticks `` is an EMPTY template —
+//     nothing masked). A DEPTH-AWARE STACK (not a boolean toggle) tracks `${…}` interpolation: interpolation CODE is
+//     left READABLE, and a backtick inside it opens ANOTHER nested template (masked) — so a nested `${`throw`}` masks
+//     its inner string at ANY depth (the old boolean mis-closed on that inner backtick and re-laundered it); the
+//     bare `${}` interpolation delimiters that survive are stripped by classify() as no-op, so the body reads empty.
 // MONOTONICITY (P0/P2): this pass only ever ADDS masking to the SUPPRESSION copy; DETECTION reads the untouched
 // `masked`, so no crafted backtick input can REMOVE masking to re-enable suppression — the fix can only over-flag,
 // never launder. Length + newlines are preserved 1:1, so offsets map back to `masked`. (Verbatim the #67 helper added
@@ -175,27 +181,74 @@ function maskTemplateInteriors(src) {
   const out = src.split("");
   const N = src.length;
   const space = (ch) => (ch === "\n" ? "\n" : " ");
+  // Depth-aware template/interpolation parse (NOT a boolean toggle — the old `inTmpl` boolean mis-closed a
+  // template on the FIRST backtick inside a `${…}` interpolation, exposing a NESTED template's interior as
+  // code and re-laundering a suppressor). `stack` holds the open contexts, innermost last:
+  //   • { kind: "tmpl" }          — inside a template-literal STRING: every char is blanked (mask mode).
+  //   • { kind: "interp", depth } — inside a `${…}` interpolation: chars are readable CODE; `depth` tracks
+  //                                 `{`/`}` nesting so the matching `}` (depth 0) closes the interpolation.
+  // A backtick inside an interpolation opens ANOTHER nested template (push) — proper stack balance at ANY
+  // depth, so `${`user`}` masks the inner `user` instead of exposing it. Only template-STRING interiors are
+  // masked; interpolation code and non-template code stay readable. Length + newlines preserved 1:1.
+  const stack = [];
+  const top = () => (stack.length ? stack[stack.length - 1] : null);
   let i = 0;
-  let inTmpl = false;
   while (i < N) {
     const c = src[i];
+    const t = top();
+    if (t && t.kind === "tmpl" && c === "\\") {
+      // Inside a template STRING a backslash escapes the next char: `\`` is a LITERAL backtick (not a close)
+      // and `\${` is LITERAL text (not an interpolation opener). Consume BOTH chars as blanked template text so
+      // the escaped delimiter can't close the template early and leak literal string text into the suppression
+      // copy. Escapes only matter in template strings — interpolation/plain code stays readable.
+      out[i] = space(c);
+      if (i + 1 < N) out[i + 1] = space(src[i + 1]);
+      i += 2;
+      continue;
+    }
     if (c === "`") {
-      if (!inTmpl) {
+      if (!t || t.kind === "interp") {
+        // Outside a template STRING (top level OR interpolation code): a RUN OF ≥3 BACKTICKS is a markdown
+        // ```-fence marker → emit unchanged, do NOT open a template (preserves real code between fences).
         let j = i;
         while (j < N && src[j] === "`") j++;
         if (j - i >= 3) {
-          i = j; // ```-fence marker: skip the whole run, do NOT open a template
+          i = j;
           continue;
         }
-        inTmpl = true; // a single (or double) backtick opens a template
+        stack.push({ kind: "tmpl" }); // a single (or double) backtick opens a template (nested if in interp)
         i++;
         continue;
       }
-      inTmpl = false; // a single backtick closes the template
+      stack.pop(); // t.kind === "tmpl": a backtick closes the current template
       i++;
       continue;
     }
-    if (inTmpl) {
+    if (t && t.kind === "tmpl" && c === "$" && i + 1 < N && src[i + 1] === "{") {
+      stack.push({ kind: "interp", depth: 0 }); // `${` opens interpolation; `$` and `{` are readable code
+      i += 2;
+      continue;
+    }
+    if (t && t.kind === "interp") {
+      if (c === "{") {
+        t.depth++;
+        i++;
+        continue;
+      }
+      if (c === "}") {
+        if (t.depth === 0) {
+          stack.pop(); // matching `}` closes the interpolation, back to the enclosing template
+          i++;
+          continue;
+        }
+        t.depth--;
+        i++;
+        continue;
+      }
+      i++; // interpolation code — readable
+      continue;
+    }
+    if (t && t.kind === "tmpl") {
       out[i] = space(c); // blank a template-string char
       i++;
       continue;
@@ -237,14 +290,17 @@ const HANDLE = /\b(?:throw|return|reject)\b|\bnext\s*\(/;
 
 // Classify a catch body (given as the SUPPRESSION-masked text — maskedForSuppression) by first match (P5):
 // empty-catch | (CLEAN via handle) | log-only-catch | (CLEAN otherwise). Returns the kind string, or null for CLEAN.
-// The "empty" residual tests strip a BARE BACKTICK too: classify sees `maskedForSuppression`, where a
-// template literal's interior is already blanked and only its ` ` delimiters survive — a body that reduces to bare
-// backticks + whitespace evaluated a no-op template literal and did NOTHING to handle the error, so it swallows.
-// (Stripping backticks only ever makes "empty" MORE likely ⇒ over-flag, the monotone-safe direction — P0/P2; a real
-// template with substantive text is already blanked to bare delimiters here, never reaches classify as live code.)
+// The "empty" residual tests strip the BARE TEMPLATE DELIMITERS too: classify sees `maskedForSuppression`, where a
+// template literal's STRING interior is already blanked and only its structural delimiters survive — the backtick
+// `` ` `` AND the interpolation delimiters `${` … `}` (interpolation CODE is left readable by the depth-aware masker,
+// so a NESTED template `${`throw e`}` blanks its inner `throw e` but leaves the surrounding `${`/`}` readable). A body
+// that reduces to bare template/interpolation delimiters + whitespace evaluated a no-op template literal and did
+// NOTHING to handle the error, so it swallows. (Stripping these delimiters only ever makes "empty" MORE likely ⇒
+// over-flag, the monotone-safe direction — P0/P2; a real handler carries identifiers/calls whose letters + parens
+// survive the strip, so it never reads empty.)
 function classify(bodyMasked) {
-  // 1. EMPTY — nothing but whitespace / stray semicolons / bare template-literal delimiters (interiors already masked).
-  if (bodyMasked.replace(/[\s;`]/g, "") === "") return "empty-catch";
+  // 1. EMPTY — nothing but whitespace / stray semicolons / bare template + `${}` interpolation delimiters (interiors masked).
+  if (bodyMasked.replace(/[\s;`${}]/g, "") === "") return "empty-catch";
   // 2. HANDLE token present → the catch propagates / recovers → CLEAN.
   if (HANDLE.test(bodyMasked)) return null;
   // 3. LOG-ONLY — remove every balanced logging-call expression (+ a trailing ;); if nothing substantive
@@ -261,7 +317,7 @@ function classify(bodyMasked) {
     if (rest[after] === ";") after++;
     rest = rest.slice(0, m.index) + " ".repeat(after - m.index) + rest.slice(after);
   }
-  if (rest.replace(/[\s;`]/g, "") === "") return "log-only-catch";
+  if (rest.replace(/[\s;`${}]/g, "") === "") return "log-only-catch";
   // 4. Otherwise the body does real recovery work (an assignment / a non-log call) → CLEAN.
   return null;
 }

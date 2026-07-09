@@ -63,7 +63,8 @@
 // CLAIMING a leak over a binding that IS closed cannot manufacture a hit. The suppression masking is MONOTONE: it
 // only ADDS masking to the suppression copy (a SUPERSET of what `masked` blanks) and never touches detection's
 // `masked`, so the fix strictly NARROWS the laundering surface, never widens it, and can only over-flag. No
-// SINGLE-backtick template-literal string content — the V1/V2 attack surface — can manufacture a `NAME.close(`.
+// template-literal STRING content at ANY nesting depth — single OR nested `${…}`, the V1/V2 attack surface — can
+// manufacture a `NAME.close(` (interpolation CODE stays readable, so a real `${fd.close()}` correctly reads clean).
 // DOCUMENTED RESIDUAL (the price of fence-robustness): a run of ≥3 backticks is a MARKDOWN CODE-FENCE marker, so a
 // ≥3-backtick-wrapped token is read as CODE — correct over a .md fixture (fenced content IS the code under
 // review), a narrow residual in raw .js (the invalid 3-adjacent-template form), far narrower than the pre-fix
@@ -177,12 +178,13 @@ const masked = mask(text);
 //   • a RUN OF ≥3 BACKTICKS is a MARKDOWN CODE-FENCE marker → emitted unchanged, NOT a template delimiter (this
 //     preserves the real code that lives BETWEEN ```-fences; a naive "blank everything between backticks" masker
 //     would blank the whole fenced block and break detection — the ≥3-run skip is load-bearing);
-//   • a SINGLE backtick toggles template state; inside a template every char is blanked to a space (newline
-//     preserved). A run of exactly TWO backticks (``) is therefore an EMPTY template (open then immediate close)
-//     — no interior, nothing masked.
-// ${…} interpolation is blanked along with the surrounding string (Option A): the honest price is a documented
-// false-POSITIVE if a cleanup call were written inside ${…} — over-flagging is the SAFE direction for an
-// advisory-backing floor, mirroring the sibling scanners that read template TEXT as code. MONOTONICITY (P0/P2):
+//   • a SINGLE (or double) backtick opens a TEMPLATE STRING (mask mode); inside it every char is blanked to a space
+//     (newline preserved), and a backtick closes it (a run of exactly TWO backticks `` is an EMPTY template —
+//     nothing masked). A DEPTH-AWARE STACK (not a boolean toggle) tracks `${…}` interpolation: interpolation CODE is
+//     left READABLE, and a backtick inside it opens ANOTHER nested template (masked) — so a nested `${`fd.close()`}`
+//     masks its inner string at ANY depth (the old boolean mis-closed on that inner backtick and re-laundered it).
+// A real cleanup call in interpolation code (e.g. `${fd.close()}`) reads as code and correctly closes the resource;
+// only template-STRING text is masked. MONOTONICITY (P0/P2):
 // this pass only ever ADDS masking to the SUPPRESSION copy; DETECTION reads the untouched `masked`, so no crafted
 // backtick input can REMOVE masking to re-enable suppression — the fix can only over-flag, never launder. Length
 // + newlines are preserved 1:1, so offsets map back to `masked`.
@@ -190,27 +192,74 @@ function maskTemplateInteriors(src) {
   const out = src.split("");
   const N = src.length;
   const space = (ch) => (ch === "\n" ? "\n" : " ");
+  // Depth-aware template/interpolation parse (NOT a boolean toggle — the old `inTmpl` boolean mis-closed a
+  // template on the FIRST backtick inside a `${…}` interpolation, exposing a NESTED template's interior as
+  // code and re-laundering a suppressor). `stack` holds the open contexts, innermost last:
+  //   • { kind: "tmpl" }          — inside a template-literal STRING: every char is blanked (mask mode).
+  //   • { kind: "interp", depth } — inside a `${…}` interpolation: chars are readable CODE; `depth` tracks
+  //                                 `{`/`}` nesting so the matching `}` (depth 0) closes the interpolation.
+  // A backtick inside an interpolation opens ANOTHER nested template (push) — proper stack balance at ANY
+  // depth, so `${`user`}` masks the inner `user` instead of exposing it. Only template-STRING interiors are
+  // masked; interpolation code and non-template code stay readable. Length + newlines preserved 1:1.
+  const stack = [];
+  const top = () => (stack.length ? stack[stack.length - 1] : null);
   let i = 0;
-  let inTmpl = false;
   while (i < N) {
     const c = src[i];
+    const t = top();
+    if (t && t.kind === "tmpl" && c === "\\") {
+      // Inside a template STRING a backslash escapes the next char: `\`` is a LITERAL backtick (not a close)
+      // and `\${` is LITERAL text (not an interpolation opener). Consume BOTH chars as blanked template text so
+      // the escaped delimiter can't close the template early and leak literal string text into the suppression
+      // copy. Escapes only matter in template strings — interpolation/plain code stays readable.
+      out[i] = space(c);
+      if (i + 1 < N) out[i + 1] = space(src[i + 1]);
+      i += 2;
+      continue;
+    }
     if (c === "`") {
-      if (!inTmpl) {
+      if (!t || t.kind === "interp") {
+        // Outside a template STRING (top level OR interpolation code): a RUN OF ≥3 BACKTICKS is a markdown
+        // ```-fence marker → emit unchanged, do NOT open a template (preserves real code between fences).
         let j = i;
         while (j < N && src[j] === "`") j++;
         if (j - i >= 3) {
-          i = j; // ```-fence marker: skip the whole run, do NOT open a template
+          i = j;
           continue;
         }
-        inTmpl = true; // a single (or double) backtick opens a template
+        stack.push({ kind: "tmpl" }); // a single (or double) backtick opens a template (nested if in interp)
         i++;
         continue;
       }
-      inTmpl = false; // a single backtick closes the template
+      stack.pop(); // t.kind === "tmpl": a backtick closes the current template
       i++;
       continue;
     }
-    if (inTmpl) {
+    if (t && t.kind === "tmpl" && c === "$" && i + 1 < N && src[i + 1] === "{") {
+      stack.push({ kind: "interp", depth: 0 }); // `${` opens interpolation; `$` and `{` are readable code
+      i += 2;
+      continue;
+    }
+    if (t && t.kind === "interp") {
+      if (c === "{") {
+        t.depth++;
+        i++;
+        continue;
+      }
+      if (c === "}") {
+        if (t.depth === 0) {
+          stack.pop(); // matching `}` closes the interpolation, back to the enclosing template
+          i++;
+          continue;
+        }
+        t.depth--;
+        i++;
+        continue;
+      }
+      i++; // interpolation code — readable
+      continue;
+    }
+    if (t && t.kind === "tmpl") {
       out[i] = space(c); // blank a template-string char
       i++;
       continue;

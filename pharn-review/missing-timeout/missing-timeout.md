@@ -71,8 +71,10 @@ backtick arg containing the TEXT of an indicator token (e.g. ``db.query(`WHERE n
 the suppression copy so it can no longer read as CLEAN. A comment CLAIMING a missing timeout over a call that DOES
 pass `{ timeout }` cannot MANUFACTURE one. The suppression masking is **monotone** (it only ADDS masking — a superset
 of what detection's copy blanks — never unmasks it), so the fix strictly **narrows** the laundering surface and can
-only over-flag. No **single-backtick** template-literal string content — the attack surface — can suppress a real
-hit. **Documented residual (the price of fence-robustness):** a run of **≥3 backticks** is a markdown code-fence
+only over-flag. No template-literal **string** content at **any nesting depth** — single **or** nested `${…}`, the
+attack surface — can suppress a real hit (interpolation **code** like `${timeout}` stays readable, so a real
+variable there reads as an indicator exactly as a bare `timeout` arg would — the existing lenient-indicator bound,
+not a template-text launder). **Documented residual (the price of fence-robustness):** a run of **≥3 backticks** is a markdown code-fence
 marker, so a ≥3-backtick-wrapped indicator token is read as a **code** arg — correct over a `.md` fixture (fenced
 content _is_ the code under review), a narrow residual in raw `.js`. **A SEPARATE documented false-negative (a
 different mechanism, NOT this laundering):** a backtick/bare URL whose `//` trips the line-comment masker eats the
