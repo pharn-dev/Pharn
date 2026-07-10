@@ -1,6 +1,7 @@
 node_modules
 package-lock.json
 .dev/floor/test-fixtures
+pharn/floor/test-fixtures
 
 # Tool-managed Claude/Cursor settings (not project source)
 .claude/settings.json
@@ -9,7 +10,9 @@ package-lock.json
 # Trusted spec docs: human-only, hook-protected. Excluded from the formatter
 # so style fixes can never mutate their content-hash (fix #4 / spec-drift).
 # They may still be formatted by hand; they are out of the formatter's scope only.
-CONSTITUTION.md
-ARCHITECTURE.md
+# CONSTITUTION.md + ARCHITECTURE.md relocated under pharn/ (runtime-layout move); THREAT-MODEL.md +
+# LIMITS.md stay at root (dev docs, not installed).
+pharn/CONSTITUTION.md
+pharn/ARCHITECTURE.md
 THREAT-MODEL.md
 LIMITS.md

@@ -41,8 +41,19 @@ function setter(cwd, ...args) {
 
 // --- Hook, no scope file: fail-closed default-safe-set ---
 
-test("no scope: a module path (pharn-review/) is ALLOWED", () => {
-  assert.equal(hook(tmp(), "pharn-review/foo.md").status, 0);
+test("no scope: a relocated product module dir (pharn/pharn-review/) is ALLOWED", () => {
+  // Ported safe-set: `pharn-*/**` -> `pharn/pharn-*/**` after the runtime-layout move.
+  assert.equal(hook(tmp(), "pharn/pharn-review/foo.md").status, 0);
+});
+
+test("no scope: pharn/floor/ is DENIED (the relocated PRODUCT floor — deny-by-default, exactly as .dev/floor/ was)", () => {
+  // Posture proof for the narrow port: `pharn/pharn-*/**` intentionally does NOT match `pharn/floor/`
+  // (no hyphen after `pharn/pharn`), so the floor stays deny-by-default and cannot be self-edited.
+  assert.equal(hook(tmp(), "pharn/floor/x.mjs").status, 2);
+});
+
+test("no scope: a bare root product-module path (old layout) is now DENIED (the move is exact, not additive)", () => {
+  assert.equal(hook(tmp(), "pharn-review/foo.md").status, 2);
 });
 
 test("no scope: features/ scratch is ALLOWED", () => {

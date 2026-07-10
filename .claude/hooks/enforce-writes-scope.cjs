@@ -60,13 +60,15 @@ function resolveWriteTarget(p) {
 // the Write tool cannot self-escalate by editing the gate's input.
 const ALWAYS = [".pharn/**"];
 
-// Fail-closed allow-list used when no scope file is set. Module dirs + process scratch only; the
-// sensitive zones (.dev/memory-bank/, .dev/floor/, .claude/, root files) are intentionally absent —
-// reaching them requires an explicit `writes:` declaration. `.dev/features/**` (build-loop artifacts)
-// IS in the set: the dev/product move relocated `features/**` there, and it keeps its prior
-// writable-by-default behavior — every sensitive zone above still stays deny-by-default (it matches
-// none of these globs).
-const DEFAULT_SAFE_SET = ["features/**", ".dev/features/**", "pharn-*/**"];
+// Fail-closed allow-list used when no scope file is set. Product module dirs + process scratch only;
+// the sensitive zones (.dev/memory-bank/, .dev/floor/, pharn/floor/, pharn/CONSTITUTION.md +
+// pharn/ARCHITECTURE.md, .claude/, other root files) are intentionally absent — reaching them requires
+// an explicit `writes:` declaration. `pharn/pharn-*/**` matches the relocated product module dirs
+// (pharn/pharn-contracts, pharn/pharn-core, pharn/pharn-pipeline, pharn/pharn-review) but NOT
+// pharn/floor/ or the pharn/-top-level trusted docs (no hyphen after `pharn/pharn`), so the floor stays
+// deny-by-default exactly as `.dev/floor/` did pre-relocation. `.dev/features/**` (build-loop artifacts)
+// keeps its writable-by-default behavior; every sensitive zone above still matches none of these globs.
+const DEFAULT_SAFE_SET = ["features/**", ".dev/features/**", "pharn/pharn-*/**"];
 
 const SCOPE_FILE = ".pharn/writes-scope.json";
 

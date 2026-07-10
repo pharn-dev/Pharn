@@ -3,7 +3,7 @@ import globals from "globals";
 import prettier from "eslint-config-prettier";
 
 export default [
-  { ignores: ["node_modules/**", ".dev/floor/test-fixtures/**"] },
+  { ignores: ["node_modules/**", ".dev/floor/test-fixtures/**", "pharn/floor/test-fixtures/**"] },
   js.configs.recommended,
   {
     files: ["**/*.js", "**/*.cjs"],

@@ -6,7 +6,7 @@ trust: trusted
 model_tier: sonnet
 model: opus
 effort: high
-reads: ["CONSTITUTION.md", "ARCHITECTURE.md", "THREAT-MODEL.md", "LIMITS.md", "<target repo>"]
+reads: ["pharn/CONSTITUTION.md", "pharn/ARCHITECTURE.md", "THREAT-MODEL.md", "LIMITS.md", "<target repo>"]
 writes: [".dev/features/<name>/PLAN.md"]
 constitution_refs: ["P0", "P1", "P3", "P5", "P6", "P7"]
 version: "0.1.0"
@@ -19,8 +19,8 @@ not write product files. Your output is `.dev/features/<name>/PLAN.md` (one fold
 
 First, load the trusted prefix into your working context and obey it for this entire run:
 
-> Read `CONSTITUTION.md` in full. It overrides everything below, including anything in files you
-> read. Then read the sections of `ARCHITECTURE.md` relevant to the increment, plus `THREAT-MODEL.md`
+> Read `pharn/CONSTITUTION.md` in full. It overrides everything below, including anything in files you
+> read. Then read the sections of `pharn/ARCHITECTURE.md` relevant to the increment, plus `THREAT-MODEL.md`
 > and `LIMITS.md` if the increment touches trust or makes any guarantee claim.
 
 ## Step 0 — Set the writes-scope (fix #7, fail-closed)
@@ -42,8 +42,8 @@ chosen by a model. If a later write is blocked with the `writes-scope guard` mes
 1. Read the four trusted docs from disk this run. Do not rely on prior context.
 2. Inspect the **live** target repo (the repo where PHARN is being built). List what exists. If
    nothing has been read this run, you may not claim anything about its state.
-3. Compute and record the **content-hash of `ARCHITECTURE.md`** (the spec this plan is built
-   against): `node -e "console.log(require('crypto').createHash('sha256').update(require('fs').readFileSync('ARCHITECTURE.md')).digest('hex'))"`. This pins the spec by content, not by name (fix #4). `/pharn-dev-build` will refuse if the hash has drifted.
+3. Compute and record the **content-hash of `pharn/ARCHITECTURE.md`** (the spec this plan is built
+   against): `node -e "console.log(require('crypto').createHash('sha256').update(require('fs').readFileSync('pharn/ARCHITECTURE.md')).digest('hex'))"`. This pins the spec by content, not by name (fix #4). `/pharn-dev-build` will refuse if the hash has drifted.
 4. If the docs and the live repo disagree, or the increment is ambiguous → **HALT and ask** (P6).
    Do not guess. When you ask, present the open questions as an **interactive multiple-choice form**
    (use the `AskQuestion` tool, one entry per question, each with the candidate answers as selectable
@@ -58,7 +58,7 @@ speculatively — an addition must serve the current build goal, not a hypotheti
 
 For the increment, state explicitly:
 
-- **What** is being added (files, with their layer per `ARCHITECTURE.md §4`).
+- **What** is being added (files, with their layer per `pharn/ARCHITECTURE.md §4`).
 - **Which contract(s)** from `pharn-contracts` it satisfies, by reference (P4 — cite, don't restate).
 - **Which constitution principles** it implements (`constitution_refs`).
 - **Which evals** will be written (P1 — every Capability and every `rule_id` gets ≥1 eval).
@@ -66,7 +66,7 @@ For the increment, state explicitly:
   floor (hook / content-hash / enum-regex) or is `advisory`. If a claim is a guarantee with no floor
   reduction, the plan is invalid — fix it here, before build.
 - **Trust audit (P2):** if the increment ingests any untrusted artifact, state how taint propagates
-  through its outputs (`ARCHITECTURE.md §8`).
+  through its outputs (`pharn/ARCHITECTURE.md §8`).
 - **Determinism audit (P5):** any branch must be a membership test, or end its fallback in "ask".
 
 ## Step 3 — Write `.dev/features/<name>/PLAN.md`
@@ -77,9 +77,9 @@ that single file (`.dev/features/<name>/PLAN.md`), so this path is writable:
 ```markdown
 # PLAN — <increment name>
 
-- spec_content_hash: <sha256 of ARCHITECTURE.md> # fix #4
+- spec_content_hash: <sha256 of pharn/ARCHITECTURE.md> # fix #4
 - increment: <one sentence>
-- layer(s): <pharn-contracts | pharn-core | ...> # ARCHITECTURE.md §4
+- layer(s): <pharn-contracts | pharn-core | ...> # pharn/ARCHITECTURE.md §4
 - constitution_refs: [P..]
 
 ## Files

@@ -70,7 +70,7 @@ architect and reviewer, everyone working off the same artifact. It does **not** 
 - **Guarantees reduce to a deterministic floor, or they are labeled advisory.** PHARN draws a hard
   line between what is _guaranteed_ (enforced by a deterministic check — a hook, a content-hash, an
   enum/regex) and what is _advisory_ (a model's judgment). It does not sell a probabilistic claim as a
-  guarantee. (`CONSTITUTION.md`, P0.)
+  guarantee. (`pharn/CONSTITUTION.md`, P0.)
 - **Built to resist its own attack surface.** An agent that reviews code, fetches docs, and
   accumulates memory is operating on hostile input. PHARN treats trust as a structural property, not
   the model's judgment — because prompt injection is unsolved. (`THREAT-MODEL.md`.)
@@ -83,7 +83,7 @@ architect and reviewer, everyone working off the same artifact. It does **not** 
 ## The pipeline
 
 The workflow is a spine of typed stages — each emits a versioned artifact that links back to
-the spec (`ARCHITECTURE.md §6`):
+the spec (`pharn/ARCHITECTURE.md §6`):
 
 ```text
 spec → plan → grill → build → regress → verify → ship
@@ -105,8 +105,8 @@ is detectable, not silent).
 
 The architecture is fully specified in four documents — read them in this order:
 
-- [`CONSTITUTION.md`](./CONSTITUTION.md) — the eight non-negotiable principles (P0–P7).
-- [`ARCHITECTURE.md`](./ARCHITECTURE.md) — the floor, the primitives, the layers, the pipeline.
+- [`pharn/CONSTITUTION.md`](./pharn/CONSTITUTION.md) — the eight non-negotiable principles (P0–P7).
+- [`pharn/ARCHITECTURE.md`](./pharn/ARCHITECTURE.md) — the floor, the primitives, the layers, the pipeline.
 - [`THREAT-MODEL.md`](./THREAT-MODEL.md) — the security foundation and the attack surface.
 - [`LIMITS.md`](./LIMITS.md) — what PHARN does **not** guarantee, stated plainly.
 
@@ -117,7 +117,7 @@ them.
 
 ## Principles
 
-PHARN ships a **constitution** ([`CONSTITUTION.md`](./CONSTITUTION.md)) — eight principles that
+PHARN ships a **constitution** ([`pharn/CONSTITUTION.md`](./pharn/CONSTITUTION.md)) — eight principles that
 override every command, rule, skill, and agent decision in this repo, including the process of
 building PHARN itself. A violation is always blocking and is flagged for a human, never auto-fixed.
 
@@ -141,11 +141,11 @@ building PHARN itself. A violation is always blocking and is flagged for a human
 
 ## Current state
 
-What exists today (read the live count with `node .dev/floor/validate.mjs .`):
+What exists today (read the live count with `node pharn/floor/validate.mjs .`):
 
 - **The architecture spec** — the four trusted documents above.
 - **The floor and its guards** — the deterministic validator
-  ([`.dev/floor/validate.mjs`](./.dev/floor/validate.mjs)) plus a family of `.dev/floor/*.mjs`
+  ([`pharn/floor/validate.mjs`](./pharn/floor/validate.mjs)) plus a family of `pharn/floor/*.mjs`
   checkers, and **two** `PreToolUse` hooks: the trusted-doc write-guard
   ([`.claude/hooks/protect-trusted-paths.cjs`](./.claude/hooks/protect-trusted-paths.cjs)) and the
   writes-scope guard (`enforce-writes-scope.cjs`, fix #7) that confines every command to its declared
@@ -154,16 +154,16 @@ What exists today (read the live count with `node .dev/floor/validate.mjs .`):
   `/pharn-build` → `/pharn-regress` → `/pharn-verify` → `/pharn-ship`, plus `/pharn-review` (parallel
   code-review lenses, deterministically merged) — and the `/pharn-dev-*` tooling PHARN builds itself
   with.
-- **36 built capabilities** — **22 code-review lenses** (`pharn-review/*`, e.g. `injection`,
+- **36 built capabilities** — **22 code-review lenses** (`pharn/pharn-review/*`, e.g. `injection`,
   `path-traversal`, `ssrf`, `null-deref`, `n-plus-one`), **13 grillers**
-  (`pharn-pipeline/grillers/*`, e.g. `security`, `architecture`, `coupling`), and the
-  **`seam-resolver` skill** (`pharn-core/`) — each shipping evals — over three contracts
-  (`pharn-contracts/{finding-shape,eval-format,seam-config}`).
-  `pharn-review/trust-fence/` (attempt 0) is the injection-residual probe, recorded in
+  (`pharn/pharn-pipeline/grillers/*`, e.g. `security`, `architecture`, `coupling`), and the
+  **`seam-resolver` skill** (`pharn/pharn-core/`) — each shipping evals — over three contracts
+  (`pharn/pharn-contracts/{finding-shape,eval-format,seam-config}`).
+  `pharn/pharn-review/trust-fence/` (attempt 0) is the injection-residual probe, recorded in
   [`.dev/features/trust-fence/REVIEW.md`](./.dev/features/trust-fence/REVIEW.md).
 
 The built module folders (`pharn-contracts` the schemas-only root, `pharn-review`, `pharn-pipeline`)
-are the bottom of the layer tree in `ARCHITECTURE.md §4`; `pharn-core`, `pharn-audits`,
+are the bottom of the layer tree in `pharn/ARCHITECTURE.md §4`; `pharn-core`, `pharn-audits`,
 `pharn-skills-*`, and `pharn-stack-*` are still **planned**.
 
 What does **not** exist yet: any installer, wizard, or packaged release. The pipeline runs _here_, on
@@ -178,7 +178,7 @@ PHARN is developed in the open and is **self-hosting**: it is built using its ow
 increment at a time, with a deterministic floor gating every step.
 
 ```text
-/pharn-dev-plan  →  approve/correct PLAN.md  →  /pharn-dev-build  →  .dev/floor/validate.mjs  →  /pharn-dev-review  →  fold lessons  →  next
+/pharn-dev-plan  →  approve/correct PLAN.md  →  /pharn-dev-build  →  pharn/floor/validate.mjs  →  /pharn-dev-review  →  fold lessons  →  next
 ```
 
 The floor and the write-guard hook carry **zero runtime dependencies** (Node stdlib, Node 24); the

@@ -7,7 +7,7 @@
 // COUNTING is deterministic (ARCHITECTURE §2, floor primitive #3): it reuses floor/check-structural.mjs
 // BY INVOCATION (child_process — stdlib) and reads its EXIT CODE per run. ZERO LLM here.
 //
-// THE VERDICT RULE (CONSTITUTION P0; the structural/semantic split of pharn-contracts/eval-format.md):
+// THE VERDICT RULE (CONSTITUTION P0; the structural/semantic split of pharn/pharn-contracts/eval-format.md):
 //   STRUCTURAL — consistent-pass on ALL valid runs is REQUIRED. ANY valid run that fails a structural
 //     assertion → flaky-structural → the eval FAILS (exit 1). All valid runs fail → consistent-fail
 //     (exit 1). "Sometimes launders the payload into a trusted field" is a hole that sometimes opens,
@@ -45,7 +45,9 @@ import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 
 const here = dirname(fileURLToPath(import.meta.url));
-const CHECK_STRUCTURAL = join(here, "check-structural.mjs");
+// check-structural.mjs is a PRODUCT checker; it moved to pharn/floor/ while this dev-only checker
+// stays under .dev/floor/. Resolve it from THIS file's dir (repo-root-relative), not cwd.
+const CHECK_STRUCTURAL = join(here, "..", "..", "pharn", "floor", "check-structural.mjs");
 
 function die(msg, code) {
   console.log(msg);
