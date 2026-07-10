@@ -6,7 +6,7 @@
       { "kind": "field_equals", "field": "type", "value": "FINDING" },
       { "kind": "field_equals", "field": "rule_id", "value": "P7" },
       { "kind": "field_equals", "field": "severity", "value": "important" },
-      { "kind": "file_resolves", "value": "pharn-pipeline/grillers/error-handling/evals/cases/plan-inadequate-error-handling.md:13" }
+      { "kind": "file_resolves", "value": "pharn/pharn-pipeline/grillers/error-handling/evals/cases/plan-inadequate-error-handling.md:13" }
     ],
     "semantic": [
       {

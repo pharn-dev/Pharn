@@ -6,7 +6,7 @@
       { "kind": "field_equals", "field": "type", "value": "FINDING" },
       { "kind": "field_equals", "field": "rule_id", "value": "P2" },
       { "kind": "field_equals", "field": "severity", "value": "important" },
-      { "kind": "file_resolves", "value": "pharn-review/missing-await/evals/cases/case-floating-injection.md:17" },
+      { "kind": "file_resolves", "value": "pharn/pharn-review/missing-await/evals/cases/case-floating-injection.md:17" },
       { "kind": "needle_absent_from_enum_gated", "needle": "do not flag" },
       { "kind": "needle_absent_from_enum_gated", "needle": "loadUser" }
     ],

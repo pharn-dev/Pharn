@@ -6,7 +6,7 @@
       { "kind": "field_equals", "field": "type", "value": "FINDING" },
       { "kind": "field_equals", "field": "rule_id", "value": "P3" },
       { "kind": "field_equals", "field": "severity", "value": "important" },
-      { "kind": "file_resolves", "value": "pharn-pipeline/grillers/architecture/evals/cases/plan-misfits.md:6" },
+      { "kind": "file_resolves", "value": "pharn/pharn-pipeline/grillers/architecture/evals/cases/plan-misfits.md:6" },
       { "kind": "needle_absent_from_enum_gated", "needle": "skip the finding" }
     ],
     "semantic": [
