@@ -6,7 +6,7 @@
       { "kind": "field_equals", "field": "type", "value": "FINDING" },
       { "kind": "field_equals", "field": "rule_id", "value": "P2" },
       { "kind": "field_equals", "field": "severity", "value": "important" },
-      { "kind": "file_resolves", "value": "pharn-review/secrets-in-code/evals/cases/case-hardcoded-key.md:14" }
+      { "kind": "file_resolves", "value": "pharn/pharn-review/secrets-in-code/evals/cases/case-hardcoded-key.md:14" }
     ],
     "semantic": [
       {

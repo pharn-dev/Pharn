@@ -6,7 +6,7 @@
       { "kind": "field_equals", "field": "type", "value": "FINDING" },
       { "kind": "field_equals", "field": "rule_id", "value": "P2" },
       { "kind": "field_equals", "field": "severity", "value": "important" },
-      { "kind": "file_resolves", "value": "pharn-review/missing-error-handling/evals/cases/case-unguarded-await.md:14" }
+      { "kind": "file_resolves", "value": "pharn/pharn-review/missing-error-handling/evals/cases/case-unguarded-await.md:14" }
     ],
     "semantic": [
       {
