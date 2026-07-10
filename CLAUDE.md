@@ -14,21 +14,21 @@ There is **no application code**. The product is a _methodology expressed as pro
 - a few deterministic Node helpers (`.mjs`/`.cjs`) that Claude Code consumes. Treat the markdown as
   the source, not as docs about source.
 
-Read in this order before doing anything substantive: `README.md` → `CONSTITUTION.md` →
-`ARCHITECTURE.md` → `THREAT-MODEL.md` → `LIMITS.md`.
+Read in this order before doing anything substantive: `README.md` → `pharn/CONSTITUTION.md` →
+`pharn/ARCHITECTURE.md` → `THREAT-MODEL.md` → `LIMITS.md`.
 
 ## Repo layout — the dev/product boundary
 
 The filesystem separates **what a PHARN user receives** (the product, at the repo root) from **the
 apparatus used to build it** (under `.dev/`):
 
-- **Product + foundation (root):** `pharn-review/` (lenses) and `pharn-contracts/` (the schemas product
+- **Product + foundation (root):** `pharn/pharn-review/` (lenses) and `pharn/pharn-contracts/` (the schemas product
   capabilities obey) — what a user clones; the four trusted docs; `README`/`LICENSE`/`CHANGELOG`/`SECURITY`;
   and a root-level `features/` for **product-pipeline** artifacts (`SPEC.md`, …).
-- **Build apparatus (`.dev/`):** `.dev/floor/` (the deterministic checkers + their tests), `.dev/features/`
+- **Build apparatus (`.dev/`):** `pharn/floor/` (the deterministic checkers + their tests), `.dev/features/`
   (build-loop audit trails — building PHARN itself), `.dev/memory-bank/` (lessons/patterns learned while
   building). Committed (contributors use it), but **not** what a user receives. `.dev/` is excluded
-  **wholesale** by `.dev/floor/validate.mjs` — it scans the product surface only.
+  **wholesale** by `pharn/floor/validate.mjs` — it scans the product surface only.
 - **Commands stay at `.claude/`** (Claude Code requires it), split by the `pharn-dev-` / `pharn-` name
   prefix (below), not by folder.
 
@@ -37,8 +37,8 @@ Packaging later = "ship root minus `.dev/`". `.dev/` (committed apparatus) is un
 
 ## Hard constraints (these will bite you)
 
-1. **The four trusted docs are write-protected and human-only.** `CONSTITUTION.md`,
-   `ARCHITECTURE.md`, `THREAT-MODEL.md`, `LIMITS.md` cannot be edited by the agent. A `PreToolUse`
+1. **The four trusted docs are write-protected and human-only.** `pharn/CONSTITUTION.md`,
+   `pharn/ARCHITECTURE.md`, `THREAT-MODEL.md`, `LIMITS.md` cannot be edited by the agent. A `PreToolUse`
    hook (`.claude/hooks/protect-trusted-paths.cjs`) is **wired and active** in `.claude/settings.json`
    and will deny any Write/Edit/MultiEdit to them (exit 2). Do not try to edit them or work around the
    hook — if a change is genuinely needed, say so and let a human edit them outside the agent loop.
@@ -62,19 +62,19 @@ Packaging later = "ship root minus `.dev/`". `.dev/` (committed apparatus) is un
 ```bash
 # Run the deterministic floor against the PHARN repo being built (default: cwd).
 # Exits non-zero on any RED (blocking) finding. /pharn-dev-build runs it automatically.
-node .dev/floor/validate.mjs [target-dir]
+node pharn/floor/validate.mjs [target-dir]
 
 # Execute an eval's structural[] assertions against a skill's finding output (a JSON array).
 # Exits non-zero on any RED — e.g. a needle laundered into an enum-gated field.
-node .dev/floor/check-structural.mjs <expected.json> <actual.json> [repoDir]
+node pharn/floor/check-structural.mjs <expected.json> <actual.json> [repoDir]
 
 # Validate a memory-bank promotion candidate: mandatory provenance shape + duplicate-id + target enum.
 # Exits non-zero on any RED. /pharn-dev-memory-promote runs it before the human accept/deny gate (never writes on RED).
 node .dev/floor/check-provenance.mjs <candidate.json> <canon-file.md>
 
 # Self-test the write-guard hook:
-echo '{"tool_name":"Edit","tool_input":{"file_path":"CONSTITUTION.md"}}' | node .claude/hooks/protect-trusted-paths.cjs   # → exit 2, denied
-echo '{"tool_name":"Write","tool_input":{"file_path":"pharn-core/rules/x.md"}}' | node .claude/hooks/protect-trusted-paths.cjs  # → exit 0, allowed
+echo '{"tool_name":"Edit","tool_input":{"file_path":"pharn/CONSTITUTION.md"}}' | node .claude/hooks/protect-trusted-paths.cjs   # → exit 2, denied
+echo '{"tool_name":"Write","tool_input":{"file_path":"pharn/pharn-core/rules/x.md"}}' | node .claude/hooks/protect-trusted-paths.cjs  # → exit 0, allowed
 ```
 
 - **Slash commands `/pharn-dev-plan`, `/pharn-dev-build`, `/pharn-dev-review`** (`.claude/commands/*.md`) are the core workflow. **Command-naming convention (dev/product boundary):** build-apparatus commands carry the **`pharn-dev-`** prefix (contributor tooling — `pharn-dev-plan` / `-build` / `-grill` / `-regress` / `-verify` / `-review` / `-ship` / `-memory-promote` / `-eval`); **product** commands carry **`pharn-`** without `-dev-` (what a PHARN user runs — `/pharn-spec` / `-plan` / `-grill` / `-build` / `-regress` / `-verify` / `-ship` / `-review`, now built). The split is by **name (prefix)**, since `.claude/commands/` cannot move. The prefix is naming/menu UX only — **not** an access gate (Apache-2.0; a user who wants a dev command can still type it).
@@ -82,12 +82,12 @@ echo '{"tool_name":"Write","tool_input":{"file_path":"pharn-core/rules/x.md"}}' 
   have **zero runtime dependencies** (Node stdlib; Node 24). The repo carries **dev-only**
   devDependencies (ESLint, Prettier, markdownlint) wired as npm scripts: `npm run check`
   (`format:check` + `lint` + `lint:md` + `test`) is the aggregate gate, and `npm test` runs
-  `node --test` over the hook and floor suites (`.claude/hooks/*.test.cjs` + `.dev/floor/*.test.mjs`) —
+  `node --test` over the hook and floor suites (`.claude/hooks/*.test.cjs` + `pharn/floor/*.test.mjs`) —
   **green** at this writing; read the count live (`npm test`), never assert it from this doc (P6).
-- `node .dev/floor/validate.mjs .` reports `GREEN` over the product surface — the `pharn-review/*`
-  code-review lenses and the `pharn-pipeline/grillers/*` grillers, over the
-  `pharn-contracts/{finding-shape,eval-format,seam-config}` contracts.
-  `pharn-review/trust-fence/` (attempt 0) remains the injection-residual probe, its dogfood
+- `node pharn/floor/validate.mjs .` reports `GREEN` over the product surface — the `pharn/pharn-review/*`
+  code-review lenses and the `pharn/pharn-pipeline/grillers/*` grillers, over the
+  `pharn/pharn-contracts/{finding-shape,eval-format,seam-config}` contracts.
+  `pharn/pharn-review/trust-fence/` (attempt 0) remains the injection-residual probe, its dogfood
   `/pharn-dev-review` recorded in `.dev/features/trust-fence/REVIEW.md`. Read this count live;
   never assert repo state from memory (P6). The floor still deliberately ignores this repo's own
   tooling (`.claude/commands/`, `.dev/`).
@@ -105,7 +105,7 @@ either blocks.
   The scope is **parsed deterministically** (P0/P5) — no model picks it.
 - **Fail-closed.** With no scope file, only a default-safe-set is writable (other `.pharn/**` — not
   `writes-scope.json`, which is setter-only — `features/**`, `.dev/features/**`, `pharn-*/**`); `.dev/memory-bank/**`,
-  `.dev/floor/**`, `.claude/**`, and root files are **denied** until an explicit `writes:` declaration
+  `pharn/floor/**`, `.claude/**`, and root files are **denied** until an explicit `writes:` declaration
   names them. A **set** scope is authoritative — it replaces the safe-set for non-`.pharn` zones — so
   `writes: [".dev/memory-bank/lessons-learned.md"]` unlocks exactly that file.
 - **When a write is blocked,** the fix is to **declare the path in `writes:` and re-run the
@@ -122,11 +122,11 @@ either blocks.
 - **The spec** = the four trusted docs. The canonical reading order above. These are what PHARN is
   built _to_.
 - **The tooling** = three operational pieces that consume the spec: the commands (advisory
-  orchestration), the floor (`.dev/floor/validate.mjs` and `.dev/floor/check-structural.mjs`), and the hook
+  orchestration), the floor (`pharn/floor/validate.mjs` and `pharn/floor/check-structural.mjs`), and the hook
   (`.claude/hooks/`). **Only the floor
   and the hook are guarantees** (per P0). The commands are advisory; they _invoke_ the floor.
 
-**The floor is the only thing that actually guarantees anything** (`ARCHITECTURE.md §2`). Exactly
+**The floor is the only thing that actually guarantees anything** (`pharn/ARCHITECTURE.md §2`). Exactly
 three deterministic, non-LLM primitives — every guarantee in the system must reduce to one:
 
 1. **Hooks** — `pre-write` (block writes to protected paths / out-of-`writes`-scope), `pre-egress`
@@ -137,11 +137,11 @@ three deterministic, non-LLM primitives — every guarantee in the system must r
 **The build loop (one increment at a time):**
 
 ```text
-/pharn-dev-plan  →  human approves/corrects PLAN.md  →  /pharn-dev-build  →  .dev/floor/validate.mjs  →  /pharn-dev-review  →  fold lessons  →  next increment
+/pharn-dev-plan  →  human approves/corrects PLAN.md  →  /pharn-dev-build  →  pharn/floor/validate.mjs  →  /pharn-dev-review  →  fold lessons  →  next increment
 ```
 
 - `/pharn-dev-plan`: discovery-first, scopes the _smallest_ coherent increment, pins `spec_content_hash` (the
-  SHA-256 of `ARCHITECTURE.md`, fix #4), then **halts** — it never builds.
+  SHA-256 of `pharn/ARCHITECTURE.md`, fix #4), then **halts** — it never builds.
 - `/pharn-dev-build`: refuses if the spec hash drifted or `PLAN.md` has open questions; writes only the files
   the plan names (the pre-write hook enforces this); writes every Capability **together with its
   evals**; runs the floor and **halts on RED**.
@@ -153,7 +153,7 @@ three deterministic, non-LLM primitives — every guarantee in the system must r
 input (reviewed code, fetched docs, accumulated memory, community contributions, other models'
 output). Trust is a _structural tag_, never the model's judgment. The framing axiom: **prompt
 injection is unsolved**, so defense rests on the floor, not on "the model will notice." The
-**finding object** (`ARCHITECTURE.md §8`) is the structural expression of this: floor-verifiable
+**finding object** (`pharn/ARCHITECTURE.md §8`) is the structural expression of this: floor-verifiable
 fields (`type`, `rule_id`, `severity`, `file`) are trusted (enum/path-checked); free-text fields
 (`problem`, `evidence`) inherit the input's untrusted tag and are rendered as quoted data, never
 injected downstream as instructions. **No guaranteed decision ever rests on a tainted field.**
@@ -171,16 +171,16 @@ a typed artifact carrying `spec_id` (+ the plan additionally pins `spec_content_
 
 - **Capability = one unified shape with a `role` discriminator** (`skill | lens | validator | verifier
 | griller | auditor`) — not six kinds. A `.md` file becomes a capability the moment its frontmatter
-  has a `role:`. Full frontmatter contract in `ARCHITECTURE.md §3.1`.
+  has a `role:`. Full frontmatter contract in `pharn/ARCHITECTURE.md §3.1`.
 - **Every capability ships with evals** (P1): non-empty `<capDir>/evals/cases/*` and
   `<capDir>/evals/expected/*`. **Every `rule_id` in `enforces` must be produced by ≥1 eval fixture**
   (fix #6) — referential existence is not enough; the floor checks the binding.
 - **Rules are the single source of truth (P4).** Enforcers _cite_ file-qualified rule IDs
   (`security.md SEC-1`) in findings; they never restate rule text. Every finding names a `rule_id`.
 - **Findings must dogfood the enum-gated / free-text split** (fix #1) — see the exact shape in
-  `ARCHITECTURE.md §8` and `CONSTITUTION.md`.
+  `pharn/ARCHITECTURE.md §8` and `pharn/CONSTITUTION.md`.
 - **`coupling`** classifies by _axis of change_, not domain noun (`agnostic | framework-seam |
-framework-specific`), via the first-match-wins procedure in `ARCHITECTURE.md §3.2`. The question is
+framework-specific`), via the first-match-wins procedure in `pharn/ARCHITECTURE.md §3.2`. The question is
   always "what forces this content to change," never "what _is_ auth."
 - **Branch on deterministic membership tests, not LLM classification (P5);** the terminal fallback of
   any resolution chain is **ask the human**, never a guess.

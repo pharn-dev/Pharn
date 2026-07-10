@@ -4,7 +4,7 @@ PHARN is an audit-grade methodology — taking security seriously is part of the
 
 ## What this repo is, and its security surface
 
-This repository **is PHARN-OSS** — the audit-grade methodology itself, early-stage and in active development. Its security surface is small by design: four trusted markdown spec docs, the `pharn-dev-*` build and `pharn-*` product commands, two `PreToolUse` hooks (`.claude/hooks/protect-trusted-paths.cjs`, the trusted-doc write-guard, and `enforce-writes-scope.cjs`, the writes-scope guard), and the deterministic floor (`.dev/floor/`). No transpile step, no bundled runtime dependencies, no network egress, no secrets — stdlib-only Node (`.cjs`/`.mjs`) plus markdown.
+This repository **is PHARN-OSS** — the audit-grade methodology itself, early-stage and in active development. Its security surface is small by design: four trusted markdown spec docs, the `pharn-dev-*` build and `pharn-*` product commands, two `PreToolUse` hooks (`.claude/hooks/protect-trusted-paths.cjs`, the trusted-doc write-guard, and `enforce-writes-scope.cjs`, the writes-scope guard), and the deterministic floor (`pharn/floor/`). No transpile step, no bundled runtime dependencies, no network egress, no secrets — stdlib-only Node (`.cjs`/`.mjs`) plus markdown.
 
 PHARN's security model (`THREAT-MODEL.md`, threat model B) starts from one axiom: **prompt injection is not solved.** An agent that must read hostile context — code under review, fetched docs, accumulated memory, another model's output — cannot be made to reliably ignore instructions embedded in that content. Defense therefore rests on the **deterministic floor** (hooks, content-hashes, enum/regex checks that do not depend on model judgment), not on "the model will notice the attack." The security-relevant surfaces of this repo follow from that shape.
 
@@ -49,7 +49,7 @@ We will keep you informed throughout, coordinate disclosure timing with you, and
 
 - **Prompt injection** in the trusted spec docs, the `pharn-dev-*` / `pharn-*` commands, or a capability — content that bypasses the constitution, or launders untrusted data into a guaranteed decision (the trust-fence; `THREAT-MODEL.md §5`).
 - **Write-guard bypass** — any input that makes `protect-trusted-paths.cjs` _allow_ a Write/Edit it should deny to a trusted doc (e.g. a path-normalization or path-traversal gap; fix #2, `THREAT-MODEL.md §4`).
-- **Floor false-negative** — a logic flaw in `.dev/floor/validate.mjs` (or any `.dev/floor/*.mjs` checker) that reports GREEN for input violating an invariant it claims to enforce (a false guarantee — the exact P0 failure mode).
+- **Floor false-negative** — a logic flaw in `pharn/floor/validate.mjs` (or any `pharn/floor/*.mjs` checker) that reports GREEN for input violating an invariant it claims to enforce (a false guarantee — the exact P0 failure mode).
 - Any other defect in the executable floor (the `.cjs` hook or the `.mjs` validator) that undermines a guarantee the docs claim.
 
 ### Out of scope
@@ -66,7 +66,7 @@ The write-guard hook and the floor are defense-in-depth, not a guarantee _of cor
 
 1. **Keep the write-guard hook wired** in `.claude/settings.json` — trust-by-location is only real if the trusted docs are write-protected at the floor.
 2. **Review what the agent produces** before you run or merge it — that is the methodology's whole point.
-3. **Do not over-trust GREEN.** The floor guarantees structural shape, never that the architecture or content is correct (see `.dev/floor/README.md`, "Honest scope"). Correctness is `/pharn-dev-review`'s (and `/pharn-review`'s) advisory job, and yours.
+3. **Do not over-trust GREEN.** The floor guarantees structural shape, never that the architecture or content is correct (see `pharn/floor/README.md`, "Honest scope"). Correctness is `/pharn-dev-review`'s (and `/pharn-review`'s) advisory job, and yours.
 
 ## Acknowledgements
 

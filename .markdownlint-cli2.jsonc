@@ -4,7 +4,18 @@
   // Trusted spec docs are human-only and hook-protected; they are excluded so
   // style fixes can never mutate their content-hash (fix #4 / spec-drift).
   // They may still be formatted by hand; this only removes them from scope.
-  "ignores": ["node_modules", ".dev/floor/test-fixtures", "CONSTITUTION.md", "ARCHITECTURE.md", "THREAT-MODEL.md", "LIMITS.md"],
+  // CONSTITUTION.md + ARCHITECTURE.md relocated under pharn/ (runtime-layout move); THREAT-MODEL.md +
+  // LIMITS.md stay at root. pharn/floor/test-fixtures added alongside .dev/floor/test-fixtures (the
+  // product fixtures relocated there; the variance fixture stayed under .dev/floor/test-fixtures).
+  "ignores": [
+    "node_modules",
+    ".dev/floor/test-fixtures",
+    "pharn/floor/test-fixtures",
+    "pharn/CONSTITUTION.md",
+    "pharn/ARCHITECTURE.md",
+    "THREAT-MODEL.md",
+    "LIMITS.md",
+  ],
   "config": {
     "default": true,
     // Long-form specs use wide lines and occasional inline HTML.
