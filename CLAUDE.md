@@ -19,16 +19,21 @@ Read in this order before doing anything substantive: `README.md` → `pharn/CON
 
 ## Repo layout — the dev/product boundary
 
-The filesystem separates **what a PHARN user receives** (the product, at the repo root) from **the
-apparatus used to build it** (under `.dev/`):
+The filesystem separates **what a PHARN user receives** (the product, under `pharn/` plus the root
+docs) from **the apparatus used to build it** (under `.dev/`):
 
-- **Product + foundation (root):** `pharn/pharn-review/` (lenses) and `pharn/pharn-contracts/` (the schemas product
-  capabilities obey) — what a user clones; the four trusted docs; `README`/`LICENSE`/`CHANGELOG`/`SECURITY`;
-  and a root-level `features/` for **product-pipeline** artifacts (`SPEC.md`, …).
-- **Build apparatus (`.dev/`):** `pharn/floor/` (the deterministic checkers + their tests), `.dev/features/`
-  (build-loop audit trails — building PHARN itself), `.dev/memory-bank/` (lessons/patterns learned while
-  building). Committed (contributors use it), but **not** what a user receives. `.dev/` is excluded
-  **wholesale** by `pharn/floor/validate.mjs` — it scans the product surface only.
+- **Product surface (`pharn/` + root docs):** the capability tree under `pharn/` — `pharn/pharn-contracts/`
+  (schemas; the layer-tree root), `pharn/pharn-core/` (e.g. `seam-resolver/`), `pharn/pharn-pipeline/grillers/`
+  (grillers), `pharn/pharn-review/` (code-review lenses) — **plus the product floor** `pharn/floor/` (the
+  deterministic checkers + their tests that the `/pharn-*` product commands run on a user's code). Two of the
+  four trusted docs live here too (`pharn/CONSTITUTION.md`, `pharn/ARCHITECTURE.md`); the other two
+  (`THREAT-MODEL.md`, `LIMITS.md`), `README`/`LICENSE`/`CHANGELOG`/`SECURITY`, `pharn.config.json`, and a
+  root-level `features/` for **product-pipeline** artifacts (`SPEC.md`, …) sit at the root. This is what a user clones.
+- **Build apparatus (`.dev/`):** `.dev/floor/` (dev-only checkers — `check-provenance`, `check-variance`,
+  `check-config`, and the `scan-plan-*` grill-scanners — with their tests), `.dev/features/` (build-loop audit
+  trails — building PHARN itself), `.dev/memory-bank/` (lessons/patterns learned while building). Committed
+  (contributors use it), but **not** what a user receives. `.dev/` is excluded **wholesale** by
+  `pharn/floor/validate.mjs` — it scans the product surface only.
 - **Commands stay at `.claude/`** (Claude Code requires it), split by the `pharn-dev-` / `pharn-` name
   prefix (below), not by folder.
 
@@ -72,21 +77,27 @@ node pharn/floor/check-structural.mjs <expected.json> <actual.json> [repoDir]
 # Exits non-zero on any RED. /pharn-dev-memory-promote runs it before the human accept/deny gate (never writes on RED).
 node .dev/floor/check-provenance.mjs <candidate.json> <canon-file.md>
 
+# Validate pharn.config.json (per-stage model/effort) and check that the wired /pharn-dev-* command
+# frontmatter AGREES with it. Config-validity + config↔frontmatter consistency only — NOT proof a stage
+# ran under that model (the platform applies model/effort; that binding is advisory). Exits non-zero on RED.
+node .dev/floor/check-config.mjs [validate | resolve <stage> | agreement]
+
 # Self-test the write-guard hook:
 echo '{"tool_name":"Edit","tool_input":{"file_path":"pharn/CONSTITUTION.md"}}' | node .claude/hooks/protect-trusted-paths.cjs   # → exit 2, denied
 echo '{"tool_name":"Write","tool_input":{"file_path":"pharn/pharn-core/rules/x.md"}}' | node .claude/hooks/protect-trusted-paths.cjs  # → exit 0, allowed
 ```
 
-- **Slash commands `/pharn-dev-plan`, `/pharn-dev-build`, `/pharn-dev-review`** (`.claude/commands/*.md`) are the core workflow. **Command-naming convention (dev/product boundary):** build-apparatus commands carry the **`pharn-dev-`** prefix (contributor tooling — `pharn-dev-plan` / `-build` / `-grill` / `-regress` / `-verify` / `-review` / `-ship` / `-memory-promote` / `-eval`); **product** commands carry **`pharn-`** without `-dev-` (what a PHARN user runs — `/pharn-spec` / `-plan` / `-grill` / `-build` / `-regress` / `-verify` / `-ship` / `-review`, now built). The split is by **name (prefix)**, since `.claude/commands/` cannot move. The prefix is naming/menu UX only — **not** an access gate (Apache-2.0; a user who wants a dev command can still type it).
+- **Slash commands `/pharn-dev-plan`, `/pharn-dev-build`, `/pharn-dev-review`** (`.claude/commands/*.md`) are the core workflow. **Command-naming convention (dev/product boundary):** build-apparatus commands carry the **`pharn-dev-`** prefix (contributor tooling — `pharn-dev-plan` / `-build` / `-grill` / `-regress` / `-verify` / `-review` / `-ship` / `-memory-promote` / `-eval`); **product** commands carry **`pharn-`** without `-dev-` (what a PHARN user runs — `/pharn-spec` / `-plan` / `-grill` / `-build` / `-regress` / `-verify` / `-ship` / `-review` / `-loop`, now built). The split is by **name (prefix)**, since `.claude/commands/` cannot move. The prefix is naming/menu UX only — **not** an access gate (Apache-2.0; a user who wants a dev command can still type it).
 - **Dev tooling is real; the methodology stays stdlib-only.** The floor, the hook, and the commands
   have **zero runtime dependencies** (Node stdlib; Node 24). The repo carries **dev-only**
   devDependencies (ESLint, Prettier, markdownlint) wired as npm scripts: `npm run check`
   (`format:check` + `lint` + `lint:md` + `test`) is the aggregate gate, and `npm test` runs
-  `node --test` over the hook and floor suites (`.claude/hooks/*.test.cjs` + `pharn/floor/*.test.mjs`) —
-  **green** at this writing; read the count live (`npm test`), never assert it from this doc (P6).
+  `node --test` over the hook, product-floor, and dev-floor suites (`.claude/hooks/*.test.cjs` +
+  `pharn/floor/*.test.mjs` + `.dev/floor/*.test.mjs`) — **green** at this writing; read the count live
+  (`npm test`), never assert it from this doc (P6).
 - `node pharn/floor/validate.mjs .` reports `GREEN` over the product surface — the `pharn/pharn-review/*`
-  code-review lenses and the `pharn/pharn-pipeline/grillers/*` grillers, over the
-  `pharn/pharn-contracts/{finding-shape,eval-format,seam-config}` contracts.
+  code-review lenses, the `pharn/pharn-pipeline/grillers/*` grillers, and `pharn/pharn-core/seam-resolver/`,
+  over the `pharn/pharn-contracts/{finding-shape,eval-format,seam-config}` contracts.
   `pharn/pharn-review/trust-fence/` (attempt 0) remains the injection-residual probe, its dogfood
   `/pharn-dev-review` recorded in `.dev/features/trust-fence/REVIEW.md`. Read this count live;
   never assert repo state from memory (P6). The floor still deliberately ignores this repo's own
@@ -104,9 +115,10 @@ either blocks.
   (`--from-frontmatter <cap.md>`) or, for `/pharn-dev-build`, the plan's `## Files` (`--from-plan <PLAN.md>`).
   The scope is **parsed deterministically** (P0/P5) — no model picks it.
 - **Fail-closed.** With no scope file, only a default-safe-set is writable (other `.pharn/**` — not
-  `writes-scope.json`, which is setter-only — `features/**`, `.dev/features/**`, `pharn-*/**`); `.dev/memory-bank/**`,
-  `pharn/floor/**`, `.claude/**`, and root files are **denied** until an explicit `writes:` declaration
-  names them. A **set** scope is authoritative — it replaces the safe-set for non-`.pharn` zones — so
+  `writes-scope.json`, which is setter-only — `features/**`, `.dev/features/**`, `pharn/pharn-*/**` — which
+  matches the relocated module dirs but **not** `pharn/floor/` or the `pharn/` trusted docs); `.dev/memory-bank/**`,
+  `.dev/floor/**`, `pharn/floor/**`, `.claude/**`, and root files are **denied** until an explicit `writes:`
+  declaration names them. A **set** scope is authoritative — it replaces the safe-set for non-`.pharn` zones — so
   `writes: [".dev/memory-bank/lessons-learned.md"]` unlocks exactly that file.
 - **When a write is blocked,** the fix is to **declare the path in `writes:` and re-run the
   scope-setter** — _never_ to bypass the hook. The deny message names the blocked path and the active
