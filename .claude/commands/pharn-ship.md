@@ -18,10 +18,13 @@ reads:
     "pharn/floor/check-spec-approved.mjs",
     "pharn/floor/check-plan-spec-agree.mjs",
     "pharn/floor/validate.mjs",
+    "pharn/floor/check-attestation.mjs",
+    "pharn/pharn-contracts/ship-record.md",
+    "pharn.config.json",
   ]
-writes: ["features/<name>/SHIP.md"]
+writes: ["features/<name>/SHIP.md", "features/<name>/ship-record.json"]
 constitution_refs: ["P0", "P2", "P5", "P6", "P7"]
-version: "0.1.0"
+version: "0.2.0"
 ---
 
 # /pharn-ship — run the product pipeline, end at a human gate
@@ -236,11 +239,11 @@ incomplete (a plan-declared `## Files` path is absent; `.completeness.missing[]`
 
 `/pharn-ship` sets **no global scope** and never an over-broad one. Each sub-stage already runs its **own**
 Step 0 writes-scope setter (overwriting `.pharn/writes-scope.json` per stage — the per-stage propagation).
-`/pharn-ship`'s **only** Write-tool output is `SHIP.md`; scope it to itself **immediately before writing**,
-after `/pharn-verify`:
+`/pharn-ship`'s **only** Write-tool outputs are `SHIP.md` and (Step 3b) `ship-record.json`; scope it to
+exactly those two (its declared `writes:`) **immediately before writing**, after `/pharn-verify`:
 
 ```bash
-node .claude/hooks/set-writes-scope.cjs --from-frontmatter .claude/commands/pharn-ship.md --target features/<name>/SHIP.md
+node .claude/hooks/set-writes-scope.cjs --from-frontmatter .claude/commands/pharn-ship.md
 ```
 
 Deterministic floor step (P0/P5): scope is parsed from `writes:` and narrowed to `--target` — never chosen
@@ -266,6 +269,74 @@ Write **`features/<name>/SHIP.md`** — a thin, **advisory** roll-up:
   disease, P0). End with the honest line: _"chain ran; the named floor verdicts are as shown, and the human
   approved the intent at the SPEC gate — this is NOT a judgment that the increment is good or wise; that is
   the human's call at the post-verify gate."_
+
+## Step 3b — Named-human "read the record" attestation (OPTIONAL; the honest seal clause)
+
+Contract: `pharn/pharn-contracts/ship-record.md` (cite, do not restate — P4). Attestation lets a **named
+human** attest to having **READ** the ship-record, **content-bound** by a hash. It is **not** a claim of
+comprehension, correctness, or a self-issued seal — **attestation ≠ comprehension** (P0); the base
+`PHARN ✓ reviewed` seal and the merge decision remain the human's GATE-2 call (unchanged).
+
+1. **Emit the machine record.** Write `features/<name>/ship-record.json` — a JSON object carrying the same
+   advisory roll-up as `SHIP.md` (stages that ran, the floor verdicts read, `decision: null`), **without**
+   an `attestation` key yet.
+
+2. **Read the gate (deterministic membership, P5).** Read `ship.requireAttestation` from `pharn.config.json`:
+   - **key absent** (no `ship` block, or no `requireAttestation`) → treat as `false` (the default; keeps
+     `/pharn-loop` autonomous — attestation stays optional and ship proceeds `· unattested`);
+   - **present and boolean** → use it (`true` enables the halt-and-ask below);
+   - **present but MALFORMED** (a `ship` block whose `requireAttestation` is a non-boolean — e.g. a typo'd or
+     mistyped value) → **do NOT silently treat as false**; surface it to the human as a config error and ask
+     whether to proceed unattested or fix the config (a silent `false` would disable a gate the author
+     intended — fix F3). This is a membership test, not a guess.
+
+3. **Elicit attestation — NEVER self-fill (P2, constraint the command MUST honor).** You, the agent, **MUST
+   NOT** write `by` yourself, invent a handle, or infer it from git. Ask the human via an **interactive
+   question** (the seam-resolver terminal-fallback — ask, never guess): _"A named human may attest to having
+   READ `features/<name>/ship-record.json` + `SHIP.md`. Enter your handle to attest, or decline to ship
+   unattested."_
+   - **Human declines / no handle** → leave the record with **no** `attestation` block (state = unattested).
+   - **Human supplies a handle `<by>`** → construct the block: `by = <the human's handle, verbatim>`;
+     `at =` the current timestamp you stamp (`new Date().toISOString()` — a tool stamp, regex-checked, advisory
+     as to _when they truly read it_); and compute `record_hash` from the **one** shared hasher — never by
+     hand:
+
+     ```bash
+     node pharn/floor/check-attestation.mjs --compute features/<name>/ship-record.json
+     ```
+
+     Add `attestation: { by, at, record_hash }` to the record and re-write `features/<name>/ship-record.json`.
+     (Using `--compute` — the same code the verifier runs — is why a genuine attestation can never spuriously
+     read `stale`; fix F1.)
+
+4. **Verify + render the clause (FLOOR verdict; rendering is ADVISORY).** Run the checker and branch **only**
+   on its `verdict` (a membership test, P5):
+
+   ```bash
+   node pharn/floor/check-attestation.mjs features/<name>/ship-record.json
+   ```
+
+   - `attested` → render the **clause `· attested by <by>`** into `SHIP.md` as an annotation on the human's
+     decision line. Render **only** the clause — **never** the `PHARN ✓ reviewed` base seal, which the human
+     confers at GATE 2 (Q1: annotation, not self-seal; consistent with GATE 2 above — `/pharn-ship` never
+     applies the seal). So the human's conferred seal reads `PHARN ✓ reviewed · attested by <by>`, but the
+     `PHARN ✓ reviewed` half is **theirs**, the `· attested by <by>` half is **your floor-verified clause**.
+   - `unattested` → render **`· unattested`**. **If `requireAttestation` is `true`,** do **not** end the run
+     here: **halt-and-ask** the human to attest (repeat step 3); the loop-default `false` never reaches this
+     halt.
+   - `stale` / `malformed` → a floor-detected inconsistency (record edited after attestation, or a
+     shape-invalid block). **STOP** and present it to the human as DATA — never render it as attested, never
+     "fix" it by re-hashing silently.
+
+   **State is ALWAYS shown** (P0): the clause is `· attested by <name>` or `· unattested`, never omitted — a
+   silent absence would let "written" masquerade as "verified", the disease.
+
+**Guarantee audit for Step 3b (P0):** FLOOR — the attestation **shape** (enum/regex) + **`record_hash`
+recompute** (content-hash), both in `pharn/floor/check-attestation.mjs`. ADVISORY — that a **real human, not
+the agent**, supplied `by` (elicited interactively, agent self-fill forbidden; git authorship corroborating
+only); the **rendering** of the verdict into `SHIP.md`; and that the human **understood** anything
+(attestation ≠ comprehension). No new floor primitive is added to `/pharn-ship` beyond the one sub-checker it
+invokes.
 
 Then **end your turn** at the human gate. `/pharn-ship` does not merge, push, or seal.
 

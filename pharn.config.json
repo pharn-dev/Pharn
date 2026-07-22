@@ -6,5 +6,6 @@
       "build": { "model": "sonnet", "effort": "high" },
       "review": { "model": "opus", "effort": "high" }
     }
-  }
+  },
+  "ship": { "requireAttestation": false }
 }
