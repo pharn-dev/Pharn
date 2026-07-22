@@ -2,7 +2,7 @@
 
 # PHARN
 
-**Ship at agent speed. Keep the understanding of a craftsman.**
+**Ship at agent speed. Keep the record a craftsman would demand.**
 
 PHARN is an agent-orchestrated intent layer for Claude Code that keeps comprehension debt legible instead of silent. This
 repository, **PHARN-OSS**, is its open-source edition.
