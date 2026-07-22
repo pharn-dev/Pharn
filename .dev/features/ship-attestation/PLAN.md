@@ -53,7 +53,7 @@
   `pharn/floor/check-attestation.mjs`) and `writes:` (+ `features/<name>/ship-record.json`). Bump command
   `version` `0.1.0 → 0.2.0`. — product command surface (EXCLUDED from `validate.mjs`)
 - `pharn.config.json` — MODIFY — add top-level `"ship": { "requireAttestation": false }`. (`check-config
-  validate`/`agreement` read only `models.stages`, so this stays GREEN — verified at build.) — root config
+validate`/`agreement` read only `models.stages`, so this stays GREEN — verified at build.) — root config
 - `CHANGELOG.md` — MODIFY — a `## [Unreleased] / ### Added` entry for ship-attestation. — root docs
 - `SKILLS_VERSION` — MODIFY (PROPOSED, pending Open Question 1) — bump `1.0.0 → 1.1.0` (additive shipped-surface
   feature; SemVer minor). — root
@@ -67,8 +67,8 @@ stale and not CI-gated; the only gate is `npm run check`.
   `check-attestation.mjs` and `.claude/commands/pharn-ship.md` **cite** it; they do not restate its semantics (P4).
 - `pharn/pharn-contracts/finding-shape.md` (cited, not restated — P4) — the **pattern** this reuses: the
   enum-gated/floor-verifiable vs untrusted/advisory split. Attestation's analog: `at` + `record_hash` are
-  floor-verifiable (regex + content-hash); `by`'s *value* is shape-gated (non-empty) but its *truth* (a real
-  named human) is advisory — exactly as `severity`'s value is enum-gated but its *assignment* is advisory (fix #3).
+  floor-verifiable (regex + content-hash); `by`'s _value_ is shape-gated (non-empty) but its _truth_ (a real
+  named human) is advisory — exactly as `severity`'s value is enum-gated but its _assignment_ is advisory (fix #3).
 
 ## Evals to write (P1)
 
@@ -100,7 +100,7 @@ stale and not CI-gated; the only gate is `npm run check`.
 - **"`requireAttestation` gates ship"** → the config **read** (`=== true`) is a **deterministic boolean
   membership test (P5)**; the command **halting** on it is **ADVISORY** orchestration. No new primitive here.
 - **"The loop stays autonomous"** → **STRUCTURAL/ADVISORY** (default `false` → proceed unattested → never
-  waits; + loop cannot reach ship). **NOT** a floor guarantee — the floor does not *force* the command to
+  waits; + loop cannot reach ship). **NOT** a floor guarantee — the floor does not _force_ the command to
   honor the default; it only validates config shape + attestation. Labeled honestly.
 - **Base `PHARN ✓ reviewed` seal + merge decision** → **UNCHANGED — the human's GATE-2 call.** `/pharn-ship`
   still never self-issues it (P0 stance preserved).

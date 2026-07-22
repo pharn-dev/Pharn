@@ -93,7 +93,14 @@ function attestationWellShaped(a) {
   if (!a || typeof a !== "object" || Array.isArray(a)) return false;
   const keys = Object.keys(a).sort();
   if (keys.length !== ATTESTATION_KEYS.length || !keys.every((k, i) => k === ATTESTATION_KEYS[i])) return false;
-  return typeof a.by === "string" && BY_RE.test(a.by) && typeof a.at === "string" && AT_RE.test(a.at) && typeof a.record_hash === "string" && HASH_RE.test(a.record_hash);
+  return (
+    typeof a.by === "string" &&
+    BY_RE.test(a.by) &&
+    typeof a.at === "string" &&
+    AT_RE.test(a.at) &&
+    typeof a.record_hash === "string" &&
+    HASH_RE.test(a.record_hash)
+  );
 }
 
 function emit(verdict, extra) {

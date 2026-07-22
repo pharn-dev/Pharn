@@ -42,11 +42,11 @@ ship-record: # features/<name>/ship-record.json — a JSON object
 
 ## Field shape + trust classes (the attestation block)
 
-| field         | shape (FLOOR — enum/regex/hash)                                      | trust                                                       |
-| ------------- | ------------------------------------------------------------------- | ---------------------------------------------------------- |
-| `by`          | single-line bounded handle: `^[A-Za-z0-9._@-]{1,64}$`                | **value** shape-gated; that it is a **real human** advisory |
+| field         | shape (FLOOR — enum/regex/hash)                                               | trust                                                       |
+| ------------- | ----------------------------------------------------------------------------- | ----------------------------------------------------------- |
+| `by`          | single-line bounded handle: `^[A-Za-z0-9._@-]{1,64}$`                         | **value** shape-gated; that it is a **real human** advisory |
 | `at`          | ISO-8601: `^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?(Z\|[+-]\d{2}:\d{2})$` | trusted (regex)                                             |
-| `record_hash` | `^[0-9a-f]{64}$` **and** equals the recomputed hash (below)          | trusted (content-hash)                                      |
+| `record_hash` | `^[0-9a-f]{64}$` **and** equals the recomputed hash (below)                   | trusted (content-hash)                                      |
 
 The `attestation` object MUST contain **exactly** these three keys (no more) or it is `malformed` — this
 prevents smuggling extra fields past the shape gate. `by`'s single-line bounded regex is deliberate (fix
@@ -55,8 +55,8 @@ clause or the record (P2; bounds — does not zero — the `LIMITS.md §2` resid
 
 ## record_hash — the content-hash binding (ONE implementation, no desync)
 
-`record_hash` = `sha256( canonicalJSON( record with the `attestation` key removed ) )`, where
-**`canonicalJSON`** is: recursively **key-sorted** objects (ascending by code unit), arrays in order,
+`record_hash` = sha256(canonicalJSON(record with the `attestation` key removed)), where
+**canonicalJSON** is: recursively **key-sorted** objects (ascending by code unit), arrays in order,
 **compact** separators (`,` `:`), standard JSON scalar encoding.
 
 **Critical (fix F1):** the canonicalization has **exactly one implementation** —

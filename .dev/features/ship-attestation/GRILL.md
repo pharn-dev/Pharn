@@ -41,7 +41,7 @@ not blockers — the highest-value one (canonicalization) is a real correctness 
 ## Prose summary
 
 - **Canonicalization is the one to take seriously (F1).** "Content-hash" is only a guarantee if emitter and
-  verifier hash *identical bytes*. Recommendation for build: pin the canonicalization in the **contract**
+  verifier hash _identical bytes_. Recommendation for build: pin the canonicalization in the **contract**
   (`ship-record.md`) as the SoT, and have the command compute `record_hash` via the **same code** the
   checker uses (e.g. a `check-attestation.mjs --compute` mode, or a shared writer) rather than an ad-hoc
   node one-liner — so the two can never desync. This is also comprehension debt: pin the WHY/HOW so the
@@ -52,7 +52,7 @@ not blockers — the highest-value one (canonicalization) is a real correctness 
   a multi-line injection vector — bounds (not zeroes) the LIMITS §2 residual, consistent with the plan's own
   trust audit.
 - **Absent vs malformed config (F3).** Keep absent → false (the loop-autonomy default), but treat a
-  *present-but-malformed* `ship` block as a surfaced condition (warn / ask), not a silent false — else a
+  _present-but-malformed_ `ship` block as a surfaced condition (warn / ask), not a silent false — else a
   typo disables the very gate the user opted into. A deterministic membership test can distinguish "key
   absent" from "key present, wrong type."
 - **Docs (F4, minor).** Ensure the command prose states `requireAttestation`'s semantics (not just the
