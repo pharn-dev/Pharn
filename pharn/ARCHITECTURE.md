@@ -217,6 +217,17 @@ decision chain actually audit-grade — and it is the foundation under the 2.0 m
 the one thing only you have"). An audit whose spec content floats under a stable id is **not**
 audit-grade.
 
+**The ship stage's optional attestation clause (content-bound).** Beside `SHIP.md`, `/pharn-ship`
+emits the machine-readable roll-up `features/<name>/ship-record.json`, which may carry an **optional**
+`attestation` block — a **named human's** attestation to having **read** the record, bound to its
+content by a hash so a later edit is **detectable, not silent** (the same content-hash mechanism as
+`spec_content_hash` above) and gated by the config key `ship.requireAttestation` (default `false`).
+The floor checker `pharn/floor/check-attestation.mjs` verifies the block's **shape** (enum/regex) and
+**recomputes `record_hash`** (content-hash), yielding `attested` / `unattested` / `stale` /
+`malformed`; everything beyond that — that a _real_ human, not the agent, supplied the handle, and
+that attestation **≠ comprehension** — is advisory. Field shape, the hashing algorithm, and the full
+IS / IS-NOT boundary are defined once in `pharn-contracts/ship-record.md` (cited, not restated — P4).
+
 ---
 
 ## 7. Enforcement — three moments, two gate kinds
