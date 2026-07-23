@@ -40,6 +40,33 @@ docs) from **the apparatus used to build it** (under `.dev/`):
 Packaging later = "ship root minus `.dev/`". `.dev/` (committed apparatus) is unrelated to `.pharn/`
 (gitignored runtime scratch).
 
+## SKILLS_VERSION discipline (versioning the shipped surface)
+
+`SKILLS_VERSION` (repo root) versions the **product surface** — the bytes a PHARN user receives (the
+`pharn` CLI installs them; `pharn status` / `pharn update` compare a user's install against this
+file). It does **not** version the build apparatus.
+
+- **Any change that alters product-surface bytes MUST bump `SKILLS_VERSION` and add a `CHANGELOG.md`
+  entry — prose-only edits included.** A clarified `/pharn-*` command step, a reworded contract, or a
+  corrected shipped-doc sentence all ship, so all bump; "docs-only" is not an exemption when the doc
+  ships (e.g. a `pharn/ARCHITECTURE.md` edit or a `/pharn-ship` step reword).
+- **Apparatus-only changes do NOT bump.** Per the dev/product boundary above, that is everything under
+  `.dev/**` (`.dev/floor/`, `.dev/features/`, `.dev/memory-bank/`), the `pharn-dev-*` commands, and
+  every `*.test.*` file (the checkers' tests never ship). Pure repo-meta (`README` / `CHANGELOG` /
+  `SECURITY` / `CONTRIBUTING` / `LICENSE` / CI / `package.json` / `SKILLS_VERSION` itself) does not
+  bump either — it is not methodology a user runs.
+- **The bump-triggering set (the product surface), concretely:** the `pharn/` capability tree
+  (`pharn/pharn-contracts/`, `pharn/pharn-core/`, `pharn/pharn-pipeline/grillers/`,
+  `pharn/pharn-review/`); the product-floor checkers `pharn/floor/*.mjs` (not their `*.test.mjs`); the
+  four trusted docs (`pharn/CONSTITUTION.md`, `pharn/ARCHITECTURE.md`, `THREAT-MODEL.md`, `LIMITS.md`);
+  and the product `.claude/` surface (`pharn-*` — non-`pharn-dev-*` — commands, `.cjs` hooks,
+  `settings.json`).
+- **Bump size (SemVer over the product surface):** **patch** = a correction/clarification to bytes that
+  already shipped; **minor** = a newly shipped capability / command / checker; **major** = a breaking
+  shape change (a contract / finding-shape / frontmatter change that invalidates existing installs).
+  Record the bump in the same CHANGELOG entry that describes the change (it may sit under
+  `[Unreleased]`).
+
 ## Hard constraints (these will bite you)
 
 1. **The four trusted docs are write-protected and human-only.** `pharn/CONSTITUTION.md`,
