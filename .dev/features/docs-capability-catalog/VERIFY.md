@@ -5,14 +5,14 @@ exit 0). Run at HEAD (`5d6429e`), whole-repo with the feature present.
 
 ## FLOOR layer — deterministic gates (owns the verdict)
 
-| Gate                     | exit | note                                                       |
-| ------------------------ | ---- | ---------------------------------------------------------- |
-| test                     | 0    | full `npm test` suite (766 incl. the 14 new catalog tests) |
-| validate                 | 0    | `pharn/floor/validate.mjs .` — 36 capabilities, GREEN      |
-| lint                     | 0    | eslint clean                                               |
-| format:check             | 0    | prettier clean (generated docs formatter-excluded)         |
-| lint:md                  | 0    | markdownlint clean (generated docs lint-excluded)          |
-| structural:trust-fence   | 0    | the one committed eval pair still passes                   |
+| Gate                   | exit | note                                                       |
+| ---------------------- | ---- | ---------------------------------------------------------- |
+| test                   | 0    | full `npm test` suite (766 incl. the 14 new catalog tests) |
+| validate               | 0    | `pharn/floor/validate.mjs .` — 36 capabilities, GREEN      |
+| lint                   | 0    | eslint clean                                               |
+| format:check           | 0    | prettier clean (generated docs formatter-excluded)         |
+| lint:md                | 0    | markdownlint clean (generated docs lint-excluded)          |
+| structural:trust-fence | 0    | the one committed eval pair still passes                   |
 
 **VERIFIED: floor gates PASS.**
 

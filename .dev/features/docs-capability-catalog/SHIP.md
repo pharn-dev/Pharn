@@ -5,14 +5,14 @@ No RED-verdict stop occurred.
 
 ## Stages run, in order
 
-| Stage             | Outcome                                                             |
-| ----------------- | ------------------------------------------------------------------ |
-| /pharn-dev-plan   | PLAN.md written; **GATE 1 approved** (Q1a omit-install, Q2a dev-apparatus/no-bump, Q3a CI-step+npm) |
-| /pharn-dev-grill  | GRILL.md — advisory, 3 concerns (1 important folded into build: deterministic page-key) |
-| /pharn-dev-build  | floor GREEN; catalog generated (37 files)                          |
-| /pharn-dev-regress| regression-report.json                                             |
-| /pharn-dev-verify | verify-report.json                                                 |
-| /pharn-dev-review | REVIEW.md — GREEN, 0 blocking, 3 advisory                          |
+| Stage              | Outcome                                                                                             |
+| ------------------ | --------------------------------------------------------------------------------------------------- |
+| /pharn-dev-plan    | PLAN.md written; **GATE 1 approved** (Q1a omit-install, Q2a dev-apparatus/no-bump, Q3a CI-step+npm) |
+| /pharn-dev-grill   | GRILL.md — advisory, 3 concerns (1 important folded into build: deterministic page-key)             |
+| /pharn-dev-build   | floor GREEN; catalog generated (37 files)                                                           |
+| /pharn-dev-regress | regression-report.json                                                                              |
+| /pharn-dev-verify  | verify-report.json                                                                                  |
+| /pharn-dev-review  | REVIEW.md — GREEN, 0 blocking, 3 advisory                                                           |
 
 ## Structural verdicts read, verbatim (the floor clocks)
 
