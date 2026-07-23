@@ -3,6 +3,11 @@ package-lock.json
 .dev/floor/test-fixtures
 pharn/floor/test-fixtures
 
+# Generated capability catalog: byte-for-byte output of `npm run docs:generate`, guarded by
+# .dev/floor/check-capability-catalog.mjs. Excluded so the formatter can never rewrite committed
+# bytes and make the drift checker see false drift (committed must equal the generator's raw output).
+docs/capabilities/
+
 # Tool-managed Claude/Cursor settings (not project source)
 .claude/settings.json
 .claude/settings.local.json

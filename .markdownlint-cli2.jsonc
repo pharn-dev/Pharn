@@ -15,6 +15,10 @@
     "pharn/ARCHITECTURE.md",
     "THREAT-MODEL.md",
     "LIMITS.md",
+    // Generated capability catalog (byte-for-byte output of `npm run docs:generate`, guarded by
+    // .dev/floor/check-capability-catalog.mjs). Excluded so linting can never rewrite committed bytes
+    // and make the drift checker see false drift.
+    "docs/capabilities",
   ],
   "config": {
     "default": true,
