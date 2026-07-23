@@ -282,8 +282,8 @@ comprehension, correctness, or a self-issued seal — **attestation ≠ comprehe
    an `attestation` key yet.
 
 2. **Read the gate (deterministic membership, P5).** Read `ship.requireAttestation` from `pharn.config.json`:
-   - **key absent** (no `ship` block, or no `requireAttestation`) → treat as `false` (the default; keeps
-     `/pharn-loop` autonomous — attestation stays optional and ship proceeds `· unattested`);
+   - **key absent** (no `ship` block, or no `requireAttestation`) → treat as `false` (the default —
+     attestation stays optional and ship proceeds `· unattested`, never blocking on a handle);
    - **present and boolean** → use it (`true` enables the halt-and-ask below);
    - **present but MALFORMED** (a `ship` block whose `requireAttestation` is a non-boolean — e.g. a typo'd or
      mistyped value) → **do NOT silently treat as false**; surface it to the human as a config error and ask
@@ -322,8 +322,9 @@ comprehension, correctness, or a self-issued seal — **attestation ≠ comprehe
      applies the seal). So the human's conferred seal reads `PHARN ✓ reviewed · attested by <by>`, but the
      `PHARN ✓ reviewed` half is **theirs**, the `· attested by <by>` half is **your floor-verified clause**.
    - `unattested` → render **`· unattested`**. **If `requireAttestation` is `true`,** do **not** end the run
-     here: **halt-and-ask** the human to attest (repeat step 3); the loop-default `false` never reaches this
-     halt.
+     here: **halt-and-ask** the human to attest (repeat step 3). This gate lives only in the human-run
+     `/pharn-ship`; `/pharn-loop` never reaches attestation (it ends at GATE 2 → `LOOP.md`) — see
+     `/pharn-loop`'s "What `/pharn-loop` does NOT do" note.
    - `stale` / `malformed` → a floor-detected inconsistency (record edited after attestation, or a
      shape-invalid block). **STOP** and present it to the human as DATA — never render it as attested, never
      "fix" it by re-hashing silently.

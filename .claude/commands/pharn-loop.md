@@ -272,6 +272,11 @@ iter < cap`; `STOP_TERMINAL` on any real red) — enum membership, `pharn/ARCHIT
   non-negotiable: GATE 1 (SPEC approval, once) and GATE 2 (present at every stop).
 - **No auto-act at GATE 2.** Reaching any stop is permission to **present**, never to merge / ship / seal /
   commit. The decision is the human's.
+- **No attestation.** The named-human "read the record" attestation is a **`/pharn-ship` concern**
+  (`pharn/ARCHITECTURE.md §6`; `pharn/pharn-contracts/ship-record.md`): `/pharn-loop` ends at GATE 2
+  writing `LOOP.md` and **never emits a `ship-record.json` or runs attestation**. A human runs
+  `/pharn-ship` **after** the GATE-2 decision to attest and ship, so `ship.requireAttestation: true`
+  gates only that human-run stage — it **cannot stall the loop**, which never reaches it.
 - **No unbounded iteration.** `check-loop.mjs` bounds the loop at `cap` (`STOP_CAP`); an infinite loop is
   impossible.
 - **No retry of a terminal failure.** A real `FAIL` / `INCONCLUSIVE` / regression is `STOP_TERMINAL` —
