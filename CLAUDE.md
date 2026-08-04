@@ -225,6 +225,15 @@ framework-specific`), via the first-match-wins procedure in `pharn/ARCHITECTURE.
   any resolution chain is **ask the human**, never a guess.
 - `seal: "PHARN ✓ reviewed"` only on `kind: pharn-owned`. Community capabilities are markdown-only and
   cannot declare trusted-write or off-allowlist egress.
+- **Two doc regions are GENERATED — never hand-edit them.** `docs/capabilities/**`, and the root
+  `README.md` `## Current state` inventory between its `<!-- CURRENT-STATE:BEGIN -->` /
+  `<!-- CURRENT-STATE:END -->` markers (the marker lines are themselves inside the guarded region, so
+  editing one is drift). Both are rendered by `.dev/floor/capability-catalog-core.mjs` and regenerated
+  with **`npm run docs:generate`**; `npm run docs:check` (in `npm run check` and as its own CI step)
+  RED-fails on any byte difference. Change a capability, contract, command, hook, or floor checker →
+  **regenerate and commit** rather than editing the rendered text. The guarantee is byte-equality
+  (committed == recomputed), **not** truth: a wrong enumerator regenerates cleanly and stays GREEN, and
+  README prose **outside** the markers is hand-written, advisory, and entirely unguarded.
 
 ## Why it's shaped this way: the experiment agenda
 

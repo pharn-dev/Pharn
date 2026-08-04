@@ -1,0 +1,33 @@
+{
+  "base": "252cd25",
+  "inside": [
+    ".dev/features/readme-current-state/GRILL.md",
+    ".dev/features/readme-current-state/PLAN.md",
+    ".dev/floor/capability-catalog-core.mjs",
+    ".dev/floor/capability-catalog-core.test.mjs",
+    ".dev/floor/check-capability-catalog.mjs",
+    ".dev/floor/check-capability-catalog.test.mjs",
+    ".dev/floor/gen-capability-catalog.mjs",
+    ".dev/floor/gen-capability-catalog.test.mjs",
+    "CHANGELOG.md",
+    "CLAUDE.md",
+    "README.md"
+  ],
+  "outside_gates": {
+    "structural:expected-injection-comment": {
+      "base": 0,
+      "head": 0
+    },
+    "tests": {
+      "base": 0,
+      "head": 0
+    },
+    "validate": {
+      "base": 0,
+      "head": 0
+    }
+  },
+  "regressions": [],
+  "pre_existing": [],
+  "verdict": "no-regressions"
+}
