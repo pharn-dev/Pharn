@@ -1,7 +1,7 @@
 // .dev/floor/capability-catalog-core.test.mjs — hermetic tests for the shared catalog core.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, rmSync, symlinkSync } from "node:fs";
+import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, rmSync, symlinkSync, existsSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -463,24 +463,41 @@ test("splice: propagates the marker throw — the generator never invents or rel
 // The block is spliced into a README that STAYS under prettier + markdownlint (README.md is not
 // ignored by either tool). If the renderer emitted anything either tool would rewrite, `npm run check`
 // would fight `npm run docs:generate` forever. Run the repo's OWN binaries and the repo's OWN rules.
-test("style: a spliced README passes the repo's prettier and markdownlint unchanged", () => {
-  const root = makeRepo();
-  try {
-    surface(root);
-    const file = join(root, README_PATH);
-    writeFileSync(file, spliceCurrentState(readmeWith("\n\n"), renderReadmeCurrentState(root)));
+//
+// This is the one test here that needs the DEV toolchain, and those binaries exist only after
+// `npm ci`. The `floor` workflow (.github/workflows/floor.yml) runs this suite on Node stdlib alone
+// — deliberately, to prove the floor carries zero dependencies — so there both spawns are an ENOENT
+// (status null, stdout/stderr undefined). Skip when a binary is absent instead of reporting that as
+// a style failure. The gate still runs wherever the toolchain exists: local `npm test`, and ci.yml's
+// Test step, which is itself conditioned on a successful install. A spawn that fails WITH the binary
+// present stays a failure (assert.ifError) — a broken toolchain never launders into a pass.
+const devBin = (name) => join(REPO_ROOT, "node_modules/.bin", name);
+const missingBins = ["prettier", "markdownlint-cli2"].filter((name) => !existsSync(devBin(name)));
 
-    const pretty = spawnSync(join(REPO_ROOT, "node_modules/.bin/prettier"), ["--check", file], { encoding: "utf8" });
-    assert.equal(pretty.status, 0, `prettier would rewrite the spliced README:\n${pretty.stdout}${pretty.stderr}`);
+test(
+  "style: a spliced README passes the repo's prettier and markdownlint unchanged",
+  { skip: missingBins.length > 0 && `dev toolchain not installed (missing ${missingBins.join(", ")}) — run \`npm ci\`` },
+  () => {
+    const root = makeRepo();
+    try {
+      surface(root);
+      const file = join(root, README_PATH);
+      writeFileSync(file, spliceCurrentState(readmeWith("\n\n"), renderReadmeCurrentState(root)));
 
-    // Reuse the repo's rule set (minus its repo-wide globs) so these assertions cannot drift from it.
-    const jsonc = readFileSync(join(REPO_ROOT, ".markdownlint-cli2.jsonc"), "utf8");
-    const rules = JSON.parse(jsonc.replace(/^\s*\/\/.*$/gm, "").replace(/,(\s*[}\]])/g, "$1")).config;
-    const cfg = join(root, ".markdownlint-cli2.jsonc");
-    writeFileSync(cfg, JSON.stringify({ config: rules }));
-    const mdl = spawnSync(join(REPO_ROOT, "node_modules/.bin/markdownlint-cli2"), ["--config", cfg, file], { encoding: "utf8" });
-    assert.equal(mdl.status, 0, `markdownlint flagged the spliced README:\n${mdl.stdout}${mdl.stderr}`);
-  } finally {
-    rmSync(root, { recursive: true, force: true });
+      const pretty = spawnSync(devBin("prettier"), ["--check", file], { encoding: "utf8" });
+      assert.ifError(pretty.error);
+      assert.equal(pretty.status, 0, `prettier would rewrite the spliced README:\n${pretty.stdout}${pretty.stderr}`);
+
+      // Reuse the repo's rule set (minus its repo-wide globs) so these assertions cannot drift from it.
+      const jsonc = readFileSync(join(REPO_ROOT, ".markdownlint-cli2.jsonc"), "utf8");
+      const rules = JSON.parse(jsonc.replace(/^\s*\/\/.*$/gm, "").replace(/,(\s*[}\]])/g, "$1")).config;
+      const cfg = join(root, ".markdownlint-cli2.jsonc");
+      writeFileSync(cfg, JSON.stringify({ config: rules }));
+      const mdl = spawnSync(devBin("markdownlint-cli2"), ["--config", cfg, file], { encoding: "utf8" });
+      assert.ifError(mdl.error);
+      assert.equal(mdl.status, 0, `markdownlint flagged the spliced README:\n${mdl.stdout}${mdl.stderr}`);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
   }
-});
+);
