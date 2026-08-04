@@ -11,6 +11,14 @@
 // shape that pharn/floor/validate.mjs enforces (ARCHITECTURE §3.1) — it renders only fields that script
 // recognizes and enumerates by the SAME `role:` membership test (cite, don't restate — P4).
 //
+// SCOPE NOTE (P3, stated rather than hidden): this module renders TWO generated artifacts, not one —
+// the capability catalog (docs/capabilities/**) and the root README's `## Current state` block. Its
+// filename says only the first. That is a KNOWN, accepted cost: the alternative (a separate core +
+// generator + checker per artifact) was put to the human at the plan gate for the readme-current-state
+// increment and Option A — "extend this file" — was chosen, in exchange for reusing the existing
+// generate/check wiring and CI step unchanged. The two artifacts share one enumeration source, which is
+// the point; they are kept in clearly separated sections below.
+//
 // Deterministic (P5): enumeration = walk + frontmatter `role` membership (no LLM); ordering = fixed role
 // order then slug ascending (a total order, independent of readdir order); rendering = a pure function of
 // (frontmatter, source H1 tagline); NO timestamps anywhere → running twice yields byte-identical output.
@@ -257,4 +265,176 @@ export function listCommittedPages(targetDir) {
     .filter((f) => f.endsWith(".md"))
     .map((f) => `${OUT_DIR}/${f}`)
     .sort();
+}
+
+// ---------------------------------------------------------------------------------------------------
+// SECOND ARTIFACT — the root README's `## Current state` block.
+//
+// Same discipline as the catalog: ONE renderer, shared by the generator and the drift checker, so
+// "recompute" is byte-identical to "generate" by construction. Everything below is a pure function of
+// the live filesystem — no timestamps, every listing sorted, so two runs render identical bytes.
+//
+// WHAT THIS DOES AND DOES NOT BUY (P0). The guarantee is byte-equality: the committed block equals the
+// recomputed block. It is NOT a guarantee that the block is TRUE in any deeper sense — a wrong
+// enumerator here would be regenerated, committed wrongly, and the gate would stay GREEN. And the
+// capability count MIRRORS pharn/floor/validate.mjs's `role:` test in a second implementation (that
+// script exports nothing); nothing on the floor forces the two to agree, so that agreement is ADVISORY.
+// Prose OUTSIDE the markers is unguarded entirely.
+// ---------------------------------------------------------------------------------------------------
+
+export const README_PATH = "README.md";
+const CONTRACTS_DIR = "pharn/pharn-contracts";
+const COMMANDS_DIR = ".claude/commands";
+const HOOKS_DIR = ".claude/hooks";
+const FLOOR_DIR = "pharn/floor";
+const CATALOG_INDEX_LINK = `./${OUT_DIR}/README.md`;
+
+// Singular / plural noun per role, so a count of 1 does not render as "1 lenses".
+export const ROLE_NOUN = {
+  griller: ["griller", "grillers"],
+  lens: ["lens", "lenses"],
+  skill: ["skill", "skills"],
+  validator: ["validator", "validators"],
+  verifier: ["verifier", "verifiers"],
+  auditor: ["auditor", "auditors"],
+};
+
+// A rendered basename must be inert markdown. A name carrying a `|`, a backtick, a bracket or a newline
+// would distort the README (the residual recorded in .dev/features/docs-capability-catalog/REVIEW.md,
+// L-trust). Fail closed (P5): throw rather than emit it. Not sanitization — refusal.
+const SAFE_BASENAME = /^[A-Za-z0-9._-]+$/;
+
+/**
+ * Sorted basenames in <targetDir>/<relDir> matching `predicate`.
+ * Throws if the directory is missing/unreadable — rendering a plausible-looking "0" would be a lie, and
+ * a lie that regenerates cleanly is worse than a hard error (P5, fail-closed).
+ * Throws if a matching basename is not inert markdown (SAFE_BASENAME).
+ */
+function listDir(targetDir, relDir, predicate) {
+  let entries;
+  try {
+    entries = readdirSync(join(targetDir, relDir));
+  } catch {
+    throw new Error(`current-state: expected directory is missing or unreadable: ${relDir} — refusing to render a count of 0 as fact`);
+  }
+  const out = [];
+  for (const name of entries) {
+    if (!predicate(name)) continue;
+    if (!SAFE_BASENAME.test(name)) {
+      throw new Error(`current-state: unsafe basename in ${relDir}: ${JSON.stringify(name)} — refusing to render it into README.md`);
+    }
+    out.push(name);
+  }
+  return out.sort();
+}
+
+const stripExt = (n) => n.replace(/\.[^.]+$/, "");
+
+/** Contract names (extension stripped) under pharn/pharn-contracts/. */
+export function enumerateContracts(targetDir) {
+  return listDir(targetDir, CONTRACTS_DIR, (n) => n.endsWith(".md")).map(stripExt);
+}
+
+/** `pharn-*` command names, split by the `pharn-dev-` prefix into { product, dev } (P5: prefix membership). */
+export function enumerateCommands(targetDir) {
+  const all = listDir(targetDir, COMMANDS_DIR, (n) => n.startsWith("pharn-") && n.endsWith(".md")).map(stripExt);
+  return {
+    product: all.filter((n) => !n.startsWith("pharn-dev-")),
+    dev: all.filter((n) => n.startsWith("pharn-dev-")),
+  };
+}
+
+/** Hook filenames under .claude/hooks/, tests excluded. */
+export function enumerateHooks(targetDir) {
+  return listDir(targetDir, HOOKS_DIR, (n) => n.endsWith(".cjs") && !n.endsWith(".test.cjs"));
+}
+
+/** Count of floor checkers under pharn/floor/ — `*.mjs`, tests excluded (test-fixtures/ is not a .mjs). */
+export function countFloorCheckers(targetDir) {
+  return listDir(targetDir, FLOOR_DIR, (n) => n.endsWith(".mjs") && !n.endsWith(".test.mjs")).length;
+}
+
+// The marker pair. The BEGIN line is GENERATED (it names the generator), so both marker lines sit INSIDE
+// the guarded region — hand-editing a marker is itself drift, not an unguarded escape hatch.
+const BEGIN_LINE = `<!-- CURRENT-STATE:BEGIN ${"—"} GENERATED by ${GEN}. DO NOT EDIT BETWEEN MARKERS. Regenerate: ${REGEN} -->`;
+const END_LINE = `<!-- CURRENT-STATE:END -->`;
+const BEGIN_RE = /^<!-- CURRENT-STATE:BEGIN\b[^\n]*-->[ \t]*$/gm;
+const END_RE = /^<!-- CURRENT-STATE:END -->[ \t]*$/gm;
+
+function countOf(re, text) {
+  return [...text.matchAll(re)];
+}
+
+/**
+ * Locate the guarded region (both marker lines INCLUDED). Returns { start, end, region }.
+ * Throws — with a message naming the exact defect — on a missing, duplicated, or inverted marker pair.
+ * Deterministic (P5): occurrence COUNT plus an index comparison; never a nearest-match heuristic, and
+ * never an invented marker.
+ */
+export function extractCurrentState(readmeText) {
+  const begins = countOf(BEGIN_RE, readmeText);
+  const ends = countOf(END_RE, readmeText);
+  if (begins.length === 0) throw new Error(`current-state: no <!-- CURRENT-STATE:BEGIN ... --> marker found`);
+  if (ends.length === 0) throw new Error(`current-state: no <!-- CURRENT-STATE:END --> marker found`);
+  if (begins.length > 1) throw new Error(`current-state: ${begins.length} BEGIN markers found — exactly one pair is required`);
+  if (ends.length > 1) throw new Error(`current-state: ${ends.length} END markers found — exactly one pair is required`);
+  const start = begins[0].index;
+  const end = ends[0].index + ends[0][0].length;
+  if (end <= start) throw new Error(`current-state: END marker precedes BEGIN marker — the pair is inverted`);
+  return { start, end, region: readmeText.slice(start, end) };
+}
+
+/** Render the whole guarded region — both marker lines included — from live repo state. */
+export function renderReadmeCurrentState(targetDir) {
+  const caps = enumerateCapabilities(targetDir);
+  const counts = new Map(ROLE_ORDER.map((r) => [r, 0]));
+  for (const c of caps) if (counts.has(c.role)) counts.set(c.role, counts.get(c.role) + 1);
+
+  // Every role in ROLE_ORDER renders, including the zero ones: "the enum exists, instances do not" is
+  // the honest read, and omitting a zero would quietly hide it (P0). This deliberately differs from
+  // renderIndex(), which skips empty groups because a catalog lists MEMBERS, not the enum.
+  const roleParts = ROLE_ORDER.map((role) => {
+    const n = counts.get(role);
+    const noun = ROLE_NOUN[role][n === 1 ? 0 : 1];
+    if (role !== "skill" || n === 0) return `**${n}** ${noun}`;
+    const dirs = caps
+      .filter((c) => c.role === "skill")
+      .map((c) => `\`${c.srcRel.slice(0, c.srcRel.lastIndexOf("/") + 1)}\``)
+      .join(", ");
+    return `**${n}** ${noun} (${dirs})`;
+  });
+
+  const contracts = enumerateContracts(targetDir);
+  const { product, dev } = enumerateCommands(targetDir);
+  const hooks = enumerateHooks(targetDir);
+  const checkers = countFloorCheckers(targetDir);
+  const code = (xs) => xs.map((x) => `\`${x}\``).join(", ");
+  const cmds = (xs) => xs.map((x) => `\`/${x}\``).join(", ");
+
+  const bullets = [
+    `- **Capabilities ${"—"} ${caps.length} built**, counted by the \`role:\` frontmatter test (mirrors \`${FLOOR_DIR}/validate.mjs\`): ` +
+      `${roleParts.join(", ")}. Full list: [\`${OUT_DIR}/README.md\`](${CATALOG_INDEX_LINK}).`,
+    `- **Contracts ${"—"} ${contracts.length}** (\`${CONTRACTS_DIR}/\`): ${code(contracts)}.`,
+    `- **Product commands ${"—"} ${product.length}** (\`${COMMANDS_DIR}/\`): ${cmds(product)}.`,
+    `- **Dev-apparatus commands ${"—"} ${dev.length}** (\`${COMMANDS_DIR}/\`): ${cmds(dev)}.`,
+    // "Hook scripts", NOT "write-guards": only two of these are registered as PreToolUse guards in
+    // .claude/settings.json; set-writes-scope.cjs is the setter commands call. A directory listing
+    // cannot tell the difference, so the label must not claim what the enumeration does not know (P0).
+    `- **Hook scripts ${"—"} ${hooks.length}** (\`${HOOKS_DIR}/\`): ${code(hooks)}.`,
+    `- **Floor checkers ${"—"} ${checkers}** \`.mjs\` files under \`${FLOOR_DIR}/\` (tests excluded).`,
+  ];
+
+  return `${BEGIN_LINE}\n\n${bullets.join("\n")}\n\n${END_LINE}`;
+}
+
+/**
+ * Replace the guarded region in `readmeText` with `region`, leaving exactly one blank line on each side.
+ * Splices strictly BETWEEN an existing marker pair — it never invents markers and never guesses
+ * boundaries; a missing/duplicated/inverted pair propagates extractCurrentState's throw.
+ */
+export function spliceCurrentState(readmeText, region) {
+  const { start, end } = extractCurrentState(readmeText);
+  const before = readmeText.slice(0, start).replace(/\s*$/, "");
+  const after = readmeText.slice(end).replace(/^\s*/, "");
+  return (before ? `${before}\n\n` : "") + region + (after ? `\n\n${after}` : "\n");
 }
