@@ -299,13 +299,35 @@ export const ROLE_NOUN = {
   auditor: ["auditor", "auditors"],
 };
 
-// A rendered basename must be inert markdown. A name carrying a `|`, a backtick, a bracket or a newline
-// would distort the README (the residual recorded in .dev/features/docs-capability-catalog/REVIEW.md,
-// L-trust). Fail closed (P5): throw rather than emit it. Not sanitization — refusal.
+// A rendered name — a basename OR any directory segment of a rendered path — must be inert markdown. A
+// name carrying a `|`, a backtick, a bracket or a newline would distort the README (the residual recorded
+// in .dev/features/docs-capability-catalog/REVIEW.md, L-trust). Fail closed (P5): throw rather than emit
+// it. Not sanitization — refusal.
 const SAFE_BASENAME = /^[A-Za-z0-9._-]+$/;
 
 /**
- * Sorted basenames in <targetDir>/<relDir> matching `predicate`.
+ * The POSIX parent directory of a capability's `srcRel` (trailing "/" kept, "" at the repo root),
+ * validated segment-by-segment against SAFE_BASENAME.
+ *
+ * Capability paths arrive from the filesystem WALK in enumerateCapabilities(), NOT from listDir(), so
+ * they never passed that guard: a directory named with a backtick closes the code span this string is
+ * rendered into and spills the rest into live README markdown. Same policy, same refusal — reject the
+ * capability outright rather than sanitize it or render it (P5, fail-closed).
+ */
+function safeParentDir(srcRel) {
+  const segments = srcRel.split("/").slice(0, -1);
+  for (const seg of segments) {
+    if (!SAFE_BASENAME.test(seg)) {
+      throw new Error(
+        `current-state: unsafe path segment ${JSON.stringify(seg)} in capability path ${JSON.stringify(srcRel)} — refusing to render it into README.md`
+      );
+    }
+  }
+  return segments.length === 0 ? "" : `${segments.join("/")}/`;
+}
+
+/**
+ * Sorted basenames of the regular FILES in <targetDir>/<relDir> matching `predicate`.
  * Throws if the directory is missing/unreadable — rendering a plausible-looking "0" would be a lie, and
  * a lie that regenerates cleanly is worse than a hard error (P5, fail-closed).
  * Throws if a matching basename is not inert markdown (SAFE_BASENAME).
@@ -313,12 +335,19 @@ const SAFE_BASENAME = /^[A-Za-z0-9._-]+$/;
 function listDir(targetDir, relDir, predicate) {
   let entries;
   try {
-    entries = readdirSync(join(targetDir, relDir));
+    entries = readdirSync(join(targetDir, relDir), { withFileTypes: true });
   } catch {
     throw new Error(`current-state: expected directory is missing or unreadable: ${relDir} — refusing to render a count of 0 as fact`);
   }
   const out = [];
-  for (const name of entries) {
+  for (const entry of entries) {
+    // TYPE first, name second. Every predicate below tests only the NAME, so a DIRECTORY called
+    // `scratch.mjs` (or a symlink to anywhere) would otherwise be counted as a checker and the README
+    // would state a number no file on disk backs — the same "plausible-looking lie" the missing-directory
+    // throw above exists to refuse. Regular files only, deliberately: nothing else is a contract, a
+    // command, a hook, or a checker.
+    if (!entry.isFile()) continue;
+    const name = entry.name;
     if (!predicate(name)) continue;
     if (!SAFE_BASENAME.test(name)) {
       throw new Error(`current-state: unsafe basename in ${relDir}: ${JSON.stringify(name)} — refusing to render it into README.md`);
@@ -349,7 +378,7 @@ export function enumerateHooks(targetDir) {
   return listDir(targetDir, HOOKS_DIR, (n) => n.endsWith(".cjs") && !n.endsWith(".test.cjs"));
 }
 
-/** Count of floor checkers under pharn/floor/ — `*.mjs`, tests excluded (test-fixtures/ is not a .mjs). */
+/** Count of floor checkers under pharn/floor/ — `*.mjs` FILES, tests excluded (test-fixtures/ is a dir). */
 export function countFloorCheckers(targetDir) {
   return listDir(targetDir, FLOOR_DIR, (n) => n.endsWith(".mjs") && !n.endsWith(".test.mjs")).length;
 }
@@ -399,7 +428,7 @@ export function renderReadmeCurrentState(targetDir) {
     if (role !== "skill" || n === 0) return `**${n}** ${noun}`;
     const dirs = caps
       .filter((c) => c.role === "skill")
-      .map((c) => `\`${c.srcRel.slice(0, c.srcRel.lastIndexOf("/") + 1)}\``)
+      .map((c) => `\`${safeParentDir(c.srcRel)}\``)
       .join(", ");
     return `**${n}** ${noun} (${dirs})`;
   });

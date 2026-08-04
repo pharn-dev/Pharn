@@ -1,7 +1,7 @@
 // .dev/floor/capability-catalog-core.test.mjs — hermetic tests for the shared catalog core.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, rmSync } from "node:fs";
+import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, rmSync, symlinkSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -298,6 +298,28 @@ test("enumerators: extensions stripped, prefix split, tests excluded, sorted (no
   }
 });
 
+test("enumerators: a DIRECTORY or SYMLINK whose NAME matches the predicate is not counted as a file", () => {
+  const root = makeRepo();
+  try {
+    surface(root, { contracts: ["real.md"], commands: ["pharn-spec.md"], hooks: ["real.cjs"], floor: ["real.mjs"] });
+    // Each predicate tests only the name, so without a type test these would inflate every count —
+    // the README would assert a number no file on disk backs. `pharn/floor/test-fixtures/` is the live
+    // instance of this shape; it escapes today only because it happens not to end in `.mjs`.
+    mkdirSync(join(root, "pharn/pharn-contracts/notes.md"));
+    mkdirSync(join(root, ".claude/commands/pharn-old.md"));
+    mkdirSync(join(root, ".claude/hooks/vendor.cjs"));
+    mkdirSync(join(root, "pharn/floor/scratch.mjs"));
+    symlinkSync(join(root, "pharn/floor/real.mjs"), join(root, "pharn/floor/link.mjs"));
+
+    assert.deepEqual(enumerateContracts(root), ["real"]);
+    assert.deepEqual(enumerateCommands(root), { product: ["pharn-spec"], dev: [] });
+    assert.deepEqual(enumerateHooks(root), ["real.cjs"]);
+    assert.equal(countFloorCheckers(root), 1);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
 test("render: every role renders including the ZERO ones, skill named with its directory", () => {
   const root = makeRepo();
   try {
@@ -354,6 +376,30 @@ test("render: fails closed on a basename that is not inert markdown", () => {
   try {
     surface(root, { contracts: ["ok.md", "we|ird.md"] });
     assert.throws(() => renderReadmeCurrentState(root), /unsafe basename in pharn\/pharn-contracts/);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("render: fails closed on an unsafe DIRECTORY segment of a rendered skill path", () => {
+  const root = makeRepo();
+  try {
+    surface(root);
+    // Capability paths come from the walk, not listDir — so this segment never met SAFE_BASENAME.
+    // A backtick would close the code span it is rendered into and spill into live README markdown.
+    cap(root, "pharn/pharn-core/ev`il|dir", "s", { name: "s", role: "skill", version: "0.1.0" }, "# s — does s");
+    assert.throws(() => renderReadmeCurrentState(root), /unsafe path segment "ev`il\|dir" in capability path/);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("render: a repo-root capability renders an empty parent dir rather than throwing", () => {
+  const root = makeRepo();
+  try {
+    surface(root);
+    cap(root, ".", "s", { name: "s", role: "skill", version: "0.1.0" }, "# s — does s");
+    assert.match(renderReadmeCurrentState(root), /\*\*1\*\* skill \(``\)/);
   } finally {
     rmSync(root, { recursive: true, force: true });
   }
