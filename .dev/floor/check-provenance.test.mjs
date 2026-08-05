@@ -3,8 +3,9 @@
 //
 // Run as a subprocess (mirrors check-structural.test.mjs / validate.test.mjs) so check-provenance.mjs keeps
 // its dependency-free, top-level-exec contract: we assert only on its public surface (exit code + RED/GREEN
-// stdout). Inputs are written to a fresh temp dir per run — no committed fixtures (the plan scopes only the
-// two floor files, not a fixtures dir), and nothing touches the real memory-bank.
+// stdout). Inputs are written to a fresh temp dir per run (the plan scopes only the two floor files, not a
+// fixtures dir), and nothing touches the real memory-bank — except the ✧ agreement test, which reads
+// check-provenance.mjs and pharn-dev-memory-promote.md by design (P4 drift guard; see typeEnumFrom*).
 //
 // The ★ test (needle-in-body-is-ignored) is the one that proves the P2 thesis is ENFORCED, not decorative:
 // an instruction-looking payload in the untrusted free-text body does NOT move the verdict, because the

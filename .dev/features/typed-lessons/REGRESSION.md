@@ -24,6 +24,10 @@ fix #7 scope breach.
 
 ### L17 applied — the escape set excludes this feature's own pipeline artifacts
 
+**Scope note:** the PLAN's floor-checked `applied_lessons` is `[L1, L2, L3, L6, L7, L14]` — L17 is **not**
+declared there. L17 (and L5/L16 below) are applied as **advisory orchestration**; only the PLAN-declared
+subset is shape-checked by `check-plan-lessons.mjs`.
+
 `git diff HEAD` also listed `.dev/features/typed-lessons/PLAN.md` and `…/GRILL.md`. Those were **excluded
 from `inside`** before calling `scope`, per `.dev/memory-bank/lessons-learned.md` **L17** (cited, not
 restated — P4): `scope` computes a **changed-since-base** set, which with `base = HEAD` is not the same

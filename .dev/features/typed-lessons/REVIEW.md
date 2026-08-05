@@ -110,16 +110,21 @@ had already decided it. The distinction that matters is that no _guaranteed_ dec
 any of that text — the four proceed/stop decisions came from `validate` exit 0, `check-regress` verdict,
 `check-verify` verdict, and `check-plan-lessons` exit 0, none of which reads free text.
 
-**One honest note on trust and the memory-bank.** I applied L14 and L17 this run, and the memory-bank is
-`trust: untrusted` content by P2. So untrusted canon _did_ steer this build. That is by design and the
-design holds: consumption is declared (`applied_lessons: [L1, L2, L3, L6, L7, L14]`), the declaration is
-floor-checked for shape, and the human approved the plan carrying it at GATE 1. The steering passed through
-a human gate rather than around one. Worth restating because this increment makes that path wider.
+**One honest note on trust and the memory-bank.** Lessons from the memory-bank steered this build — including
+L17, which is **not** in the PLAN's `applied_lessons` list — and the memory-bank is `trust: untrusted`
+content by P2. That is by design and the design holds: `applied_lessons` enumerates **only the lessons
+declared in the human-approved PLAN** (`[L1, L2, L3, L6, L7, L14]` here); the floor checks that declaration
+for shape and id existence, not whether each cited lesson was genuinely applied. L17 (regress partitioning)
+and L5/L16 (outside-tests harness) were applied as **advisory orchestration** beyond that declaration — the
+same two-clocks split REGRESSION.md states. The steering passed through a human gate rather than around one.
+Worth restating because this increment makes that path wider.
 
 **No guaranteed decision rests on a tainted field.** Confirmed by reading the verdict path:
 `check-provenance.mjs` ranges over `target` / `provenance` / `id` / `type` / `concepts` and never `title` /
-`body`; the retained ★ needle test proves it, and now proves more than it did, since two additional
-enum-gated fields exist for a needle to aim at.
+`body`. `type` is **enum-gated**; `concepts` is **shape-checked** (open vocabulary — not enum-gated) and
+retains semantic untrustworthiness — a well-shaped but misleading tag still passes. The retained ★ needle
+test proves the free-text boundary, and now proves more than it did, since two additional floor-verifiable
+fields exist for a needle to aim at.
 
 ## L-axis → P3
 
@@ -258,7 +263,15 @@ fixes and are 0 after — so that artifact remains accurate as written.
 
 **Still open, deliberately not touched here** (the human scoped this pass to F1 and F2):
 
-- **F3 (P4, important)** — `.dev/floor/check-provenance.test.mjs:6`'s header still claims "no committed
-  fixtures", which the two agreement tests contradict. One line.
 - **F4 (P2, minor)** — the retrieval-control mechanism behind the misleading-tag residual is still unnamed.
 - **F5 (P3, important, standing)** — the taxonomy's home in `check-provenance.mjs`, decided by the brief.
+
+**Post-postscript fixes** (human-directed, after the F1/F2 pass):
+
+- **F3 (P4, important — false "no committed fixtures" header) → FIXED.**
+  `.dev/floor/check-provenance.test.mjs:6-7` now states temp-dir fixtures **except** the ✧ agreement test,
+  which reads `check-provenance.mjs` and `pharn-dev-memory-promote.md` by design.
+
+- **`applied_lessons` scope clarification → FIXED** in this file (`L-trust` note) and
+  `.dev/features/typed-lessons/REGRESSION.md` (L17 section): the floor-checked list is PLAN-declared only;
+  L17/L5/L16 applied beyond it are advisory orchestration.
