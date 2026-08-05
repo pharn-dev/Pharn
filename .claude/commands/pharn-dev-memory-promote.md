@@ -15,7 +15,7 @@ reads:
   ]
 writes: [".dev/memory-bank/<canon-file>"]
 constitution_refs: ["P0", "P2", "P4", "P5", "P6", "P7"]
-version: "0.1.0"
+version: "0.2.0"
 ---
 
 # /pharn-dev-memory-promote — prepare and GATE a promotion to canon
