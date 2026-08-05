@@ -15,11 +15,43 @@
 // "Detected an obvious concat/interp into a sink on line N" is a real guarantee; "the code is injection-safe
 // / free of injection" is NOT. Full taint analysis is ADVISORY judgment the LENS surfaces — NOT this floor.
 //
+// ARGUMENT SPAN — ONE LEVEL OF NESTING, and the exact reason (P7, the sharpest bound in this file):
+//   The span between the sink callee and the taint operator is `SPAN` = `(?:[^)]|\([^)]*\))*?`: it consumes
+//   any character that is not `)`, OR a complete paren-free `(...)` group as a single unit. The operative
+//   rule, in one sentence: THE SPAN STOPS AT THE FIRST `)` THAT IS NOT THE CLOSING PAREN OF A COMPLETE INNER
+//   GROUP — i.e. at the sink call's OWN outer `)`. It therefore reaches taint BOTH inside a nested call and
+//   after one:
+//     db.query(tableFor(req.query.t) + " WHERE 1=1")   caught  (taint AFTER a nested call)
+//     db.query(fmt(x) + `... ${y} ...`)                caught  (same, interpolation)
+//   The previous span was `[^)]*?`, which stopped dead at the FIRST inner `)` and MISSED the after-a-nested-
+//   call shape entirely — a real, reproduced false-NEGATIVE, and the reason this changed.
+//   The bound is NESTING DEPTH, not a count of calls: at depth > 1 some `)` is not a complete group's closer,
+//   the span stalls there, and `db.query(f(g(h(x))) + " tail")` is STILL A MISS. That is a DOCUMENTED
+//   TRUE-NEGATIVE, asserted by a ★ test so it cannot drift silently. Bare-variable, multi-line, and
+//   cross-function taint remain out of scope, exactly as before.
+//   REJECTED ALTERNATIVE — `[^;]*?`: it over-spans past the sink call's OWN outer `)` and false-matches an
+//   unrelated `+`-concat later on the same line (`return db.query(safeConst) || fallback("x" + y)`). Pinned
+//   by ★ GUARD tests, so "simplifying" the span to `[^;]*?` breaks the suite rather than shipping.
+//   ALSO REJECTED — `(?:[^)(]|\([^)]*\))*?` (a disjoint-branch variant): it skips a nested group as an
+//   opaque unit and so LOSES taint sitting INSIDE one. Measured, not reasoned: it drops the canonical
+//   `fs.readFile(path.join(base, req.params.x))` shape in the sibling scanner. Rejected as a net coverage loss.
+//   ReDoS (threat surface #4) — stated honestly, because this span is WEAKER here than the class it replaced:
+//   the two branches OVERLAP on `(` (`[^)]` accepts it; the other branch requires it), so the decomposition is
+//   ambiguous and the clean "disjoint branches ⇒ no exponential blowup" proof does NOT apply. What bounds it
+//   is structural instead: every `)` that is not a complete group's closer is a HARD WALL the span cannot
+//   cross, so the search can never range beyond the sink call's own argument list. Measured on adversarial
+//   inputs (`(a)`×800, `((a))`×800, unclosed `(`×800, ~4 KB lines): sub-millisecond, no blowup. The honest
+//   claim is "no EXPONENTIAL backtracking observed, bounded by the `)` wall" — NOT "linear", and not a proof.
+//
 // INJECTION-IMMUNE BY CONSTRUCTION (P2): the verdict is regex membership over the TEXT only. A code comment
 // that CLAIMS "already sanitized / safe / do not flag" cannot suppress a real concat hit; a comment that
 // CLAIMS "injection here" cannot manufacture one. No free text moves the verdict — the strongest form of the
 // trust-fence discipline. (See the ★ tests in scan-code-injection.test.mjs — they are the whole reason this
-// is FLOOR, not judgment.)
+// is FLOOR, not judgment.) HONEST EDGE, and it WIDENED with the span above: the scanner reads TEXT and does
+// not distinguish code from a comment, so a comment that spells out a full sink call now registers in the
+// NESTED case too, where it previously did not. That is strictly MORE over-flagging (the advisory layer / the
+// human resolves it) and NEVER suppression — the immunity property is unchanged; its false-positive surface
+// is not, and saying otherwise would be the overstatement this file exists to avoid.
 //
 // The `+`/`${...}` DISCRIMINATOR is the point: a PARAMETERIZED query (query("... = $1", [v])), an
 // execFile("git", [arg]) with an args array, and an escaped/sanitize()/bare-variable HTML assignment carry
@@ -63,12 +95,26 @@ if (!existsSync(TARGET) || !statSync(TARGET).isFile()) {
 // secret scanner's literal detection but the two detect different things; consolidating the shared regex
 // fragment would touch a separate axis (the secret scanner + its lens) — deferred, not done speculatively.
 const TAINT = String.raw`(?:\$\{|["'][^"']*["']\s*\+|\+\s*["'` + "`" + `])`;
+// The ARGUMENT SPAN between a call sink and the taint operator: any non-`)` char, or a complete paren-free
+// `(...)` group. It stops at the first `)` that is not a complete inner group's closer — the sink call's own
+// outer `)` — so it reaches taint both INSIDE and AFTER a nested call, but never crosses into a later
+// expression. See "ARGUMENT SPAN" in the header for the one-level bound, the two rejected alternatives, and
+// the ReDoS position. NOT used by html-injection — see its own note below.
+const SPAN = String.raw`(?:[^)]|\([^)]*\))*?`;
 const PATTERNS = [
   // SQL query sinks: query( / execute( / prepare( / raw(  with concat|interp in the argument.
-  { kind: "sql-injection", re: new RegExp(String.raw`\b(?:query|execute|prepare|raw)\s*\([^)]*?` + TAINT) },
+  { kind: "sql-injection", re: new RegExp(String.raw`\b(?:query|execute|prepare|raw)\s*\(` + SPAN + TAINT) },
   // Shell command sinks: exec / execSync / execFile(Sync) / spawn(Sync)  with concat|interp in the argument.
-  { kind: "command-injection", re: new RegExp(String.raw`\b(?:exec|execSync|execFile|execFileSync|spawn|spawnSync)\s*\([^)]*?` + TAINT) },
+  { kind: "command-injection", re: new RegExp(String.raw`\b(?:exec|execSync|execFile|execFileSync|spawn|spawnSync)\s*\(` + SPAN + TAINT) },
   // HTML sinks: innerHTML/outerHTML assignment, document.write(, insertAdjacentHTML(, React __html:  with concat|interp.
+  //
+  // WHY THIS ONE KEEPS `[^;]*?` AND DOES NOT USE `SPAN` (deliberate asymmetry — do NOT "unify" these):
+  // SPAN is bounded by the sink CALL's own closing `)`. Most sinks here are ASSIGNMENT targets
+  // (`el.innerHTML = ...`, `__html: ...`), which have no closing paren to bound against — SPAN would stall
+  // immediately on the first `)` of any right-hand-side call and MISS the ordinary case. The statement
+  // terminator `;` is the correct bound for an assignment RHS, and the over-span risk that rules `[^;]*?`
+  // out for CALL sinks (it would run past the call's `)` into an unrelated later concat) does not arise
+  // when the span is the whole statement by construction. Two sink SHAPES → two bounds. Pinned by tests.
   {
     kind: "html-injection",
     re: new RegExp(String.raw`(?:\.(?:inner|outer)HTML\s*=|document\.write\s*\(|\.insertAdjacentHTML\s*\(|__html\s*:)\s*[^;]*?` + TAINT),
