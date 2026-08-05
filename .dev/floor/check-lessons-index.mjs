@@ -75,9 +75,7 @@ function main() {
   }
   const hasEnumError = findings.some((f) => f.type === "ENUM_ERROR");
   if (hasEnumError) {
-    process.stdout.write(
-      `LESSONS-INDEX: RED — ${findings.length} finding(s); canonical input is invalid — the index cannot be rendered\n`
-    );
+    process.stdout.write(`LESSONS-INDEX: RED — ${findings.length} finding(s); canonical input is invalid — the index cannot be rendered\n`);
   } else {
     process.stdout.write(`LESSONS-INDEX: RED — ${findings.length} finding(s); the generated index is out of date\n`);
   }
@@ -85,9 +83,7 @@ function main() {
     process.stdout.write(`- [${f.type}] ${f.file}\n    ${f.problem}\n`);
   }
   if (hasEnumError) {
-    process.stdout.write(
-      `\nFIX: correct the canonical input in ${CANON_PATH} — ${FIX} cannot succeed until the input error is resolved\n`
-    );
+    process.stdout.write(`\nFIX: correct the canonical input in ${CANON_PATH} — ${FIX} cannot succeed until the input error is resolved\n`);
   } else {
     process.stdout.write(`\nFIX: regenerate and commit — ${FIX}\n`);
   }

@@ -183,3 +183,29 @@ test("✧ the generated index is exempt from BOTH style gates (L11 — else one 
   assert.match(readFileSync(new URL(".prettierignore", root), "utf8"), /^docs\/lessons-index\.md$/m);
   assert.match(readFileSync(new URL(".markdownlint-cli2.jsonc", root), "utf8"), /"docs\/lessons-index\.md"/);
 });
+
+test("✧ CI actually INVOKES the drift check, and its step is not disabled by an `if:` (L2)", () => {
+  // WHY this guard exists (L2 — a doc may cite only a LIVE floor op): CLAUDE.md tells every future
+  // session that the generated regions are "guarded by `npm run docs:check` … as its own CI step". That
+  // sentence was FALSE for one commit — ci.yml invoked the catalog checker directly and nothing ran the
+  // lessons checker on a PR. The wiring has since landed; this pins it so the claim cannot quietly become
+  // false again.
+  //
+  // The `if:` assertion is deliberate (GRILL F3). Matching only the `run:` string would let an edit to
+  // `if: false` leave the invocation present, this test green, and the guard dead — the same defect one
+  // level down. The condition lives in the file under test, so it is in-repo and pinnable, NOT the
+  // harness-layer residual below.
+  const ci = readFileSync(new URL("../../.github/workflows/ci.yml", import.meta.url), "utf8");
+  const step = ci.match(/^ {6}- name: [^\n]*\n(?: {8}[^\n]*\n)*? {8}run: npm run docs:check[ \t]*$/m);
+  assert.ok(step, "ci.yml must contain a step whose `run:` is `npm run docs:check`");
+  assert.match(
+    step[0],
+    /^ {8}if: \$\{\{ always\(\) && steps\.install\.outcome == 'success' \}\}$/m,
+    "the docs:check step must carry the same install-gated `if:` as its sibling steps — a disabled step is a dead guard"
+  );
+
+  // HONEST RESIDUAL (P0), stated so this guard is not oversold: what remains uncheckable from inside the
+  // repo is that GitHub EXECUTED the job, that the workflow is enabled, and that branch protection
+  // requires this check. Those are harness-layer facts — the same boundary LIMITS.md §1d draws for an
+  // out-of-band approval signal. "The wiring is pinned" NEVER means "CI is guaranteed to run it".
+});

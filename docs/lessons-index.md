@@ -10,7 +10,7 @@ lessons to fetch; canon stays the source of truth and the floor's verification t
 applied, without fetching its full `## L<n>` entry from canon, is the P0 disease. "The index was
 consulted" never means "the relevant lessons were read".
 
-17 lessons · 0 tagged · 0 malformed · 17 untagged · ~9194 tokens total
+19 lessons · 2 tagged · 0 malformed · 17 untagged · ~10410 tokens total
 
 Columns: `id | type | concepts | title | promoted | ~tokens`. `-` = no tag line (the pre-#114
 legacy shape — expected and benign). `?` = a tag line is present but failed its gate — that is
@@ -19,21 +19,23 @@ unexpected; read the entry in canon. `~tokens` is `ceil(chars / 4)` over the FUL
 (`LIMITS.md §1c`). Titles are canon free text, reproduced verbatim as DATA.
 
 ```text
-L1  | -    | -        | `/plan` must scope the meta-docs an increment invalidates | 2026-06-24 | ~331
-L2  | -    | -        | A contract's honesty must travel with the artifact, and may cite only live floor ops | 2026-06-25 | ~407
-L3  | -    | -        | Making a declarative field load-bearing requires re-auditing every existing declaration of it | 2026-06-25 | ~446
-L4  | -    | -        | An authored fixture passes by construction; a live capability must be measured | 2026-06-25 | ~902
-L5  | -    | -        | A floor verdict is only as trustworthy as the orchestration that captures its inputs | 2026-06-27 | ~484
-L6  | -    | -        | Membership/structural facts are read from the structured location, never grepped from free text | 2026-06-29 | ~456
-L7  | -    | -        | A stage's writes: must equal exactly what it writes — never declare a downstream gate's target upstream | 2026-06-29 | ~548
-L8  | -    | -        | The writes-scope setter resolves one --target — favor single-file command outputs | 2026-06-30 | ~556
-L9  | -    | -        | An increment's own markdown style is gated by neither /pharn-dev-regress nor /pharn-dev-verify | 2026-06-30 | ~652
-L10 | -    | -        | Product-pipeline artifacts sit on the validate-SCANNED surface; `.dev/` dev artifacts don't | - | ~503
-L11 | -    | -        | Verify's whole-repo style gates let a pre-existing unrelated error block every later feature's verify | 2026-07-01 | ~586
-L12 | -    | -        | Prevent an increment's own style misses at BUILD (format written files), don't only DETECT them at verify | 2026-07-06 | ~715
-L13 | -    | -        | Extend the Step-2b format discipline (L12) to every artifact-writing stage, not just `/pharn-dev-build` | 2026-07-07 | ~456
-L14 | -    | -        | A shape-regex tightening of an enum-gated field must COMPOSE with the control-char guard, never replace it | 2026-07-09 | ~516
-L15 | -    | -        | Index an arbitrary key with an own-property test, never `||`/`??` — inherited prototype members leak silently | 2026-07-09 | ~515
-L16 | -    | -        | L5's own remedy is a portability trap: `xargs -a` is GNU-only and fabricates a false red | 2026-08-05 | ~553
-L17 | -    | -        | `check-regress scope` tests changed-since-base, not written-by-the-build | 2026-08-05 | ~568
+L1  | -       | -                                  | `/plan` must scope the meta-docs an increment invalidates | 2026-06-24 | ~331
+L2  | -       | -                                  | A contract's honesty must travel with the artifact, and may cite only live floor ops | 2026-06-25 | ~407
+L3  | -       | -                                  | Making a declarative field load-bearing requires re-auditing every existing declaration of it | 2026-06-25 | ~446
+L4  | -       | -                                  | An authored fixture passes by construction; a live capability must be measured | 2026-06-25 | ~902
+L5  | -       | -                                  | A floor verdict is only as trustworthy as the orchestration that captures its inputs | 2026-06-27 | ~484
+L6  | -       | -                                  | Membership/structural facts are read from the structured location, never grepped from free text | 2026-06-29 | ~456
+L7  | -       | -                                  | A stage's writes: must equal exactly what it writes — never declare a downstream gate's target upstream | 2026-06-29 | ~548
+L8  | -       | -                                  | The writes-scope setter resolves one --target — favor single-file command outputs | 2026-06-30 | ~556
+L9  | -       | -                                  | An increment's own markdown style is gated by neither /pharn-dev-regress nor /pharn-dev-verify | 2026-06-30 | ~652
+L10 | -       | -                                  | Product-pipeline artifacts sit on the validate-SCANNED surface; `.dev/` dev artifacts don't | - | ~503
+L11 | -       | -                                  | Verify's whole-repo style gates let a pre-existing unrelated error block every later feature's verify | 2026-07-01 | ~586
+L12 | -       | -                                  | Prevent an increment's own style misses at BUILD (format written files), don't only DETECT them at verify | 2026-07-06 | ~715
+L13 | -       | -                                  | Extend the Step-2b format discipline (L12) to every artifact-writing stage, not just `/pharn-dev-build` | 2026-07-07 | ~456
+L14 | -       | -                                  | A shape-regex tightening of an enum-gated field must COMPOSE with the control-char guard, never replace it | 2026-07-09 | ~516
+L15 | -       | -                                  | Index an arbitrary key with an own-property test, never `||`/`??` — inherited prototype members leak silently | 2026-07-09 | ~515
+L16 | -       | -                                  | L5's own remedy is a portability trap: `xargs -a` is GNU-only and fabricates a false red | 2026-08-05 | ~553
+L17 | -       | -                                  | `check-regress scope` tests changed-since-base, not written-by-the-build | 2026-08-05 | ~568
+L18 | scoping | writes-scope,plan-shape,fail-open  | A PLAN's exclusion subsection must be a HEADING — a bold prose intro fails OPEN | 2026-08-05 | ~578
+L19 | scoping | writes-scope,bash-escape,formatter | A stage's Bash-run tooling escapes `writes:` scope — repo-wide formatters are the live instance | 2026-08-05 | ~638
 ```

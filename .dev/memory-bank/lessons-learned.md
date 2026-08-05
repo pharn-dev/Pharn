@@ -504,3 +504,70 @@ is only as trustworthy as the inputs the orchestration captures).
   `.dev/features/applied-lessons/REGRESSION.md` (defect 2), with the fix #2 hook denial verified live as
   the disproof
 - promoted: 2026-08-05 via gated `/pharn-dev-memory-promote` (human-approved).
+
+## L18 — A PLAN's exclusion subsection must be a HEADING — a bold prose intro fails OPEN
+
+type: scoping · concepts: [writes-scope, plan-shape, fail-open]
+
+**Lesson.** In a `PLAN.md`'s `## Files`, the block listing paths the increment must NOT touch has to be its
+own markdown **heading** (`### Deliberately NOT in scope`). `set-writes-scope.cjs --from-plan` ends the
+authorized list at any heading (`:165` — structural, wording-independent) **or** at a non-path prose cue
+(`:179`) whose vocabulary is narrow: `not touch|writ|modif|edit|chang`, `explicitly excluded`,
+`out of scope`, `off limits`. A bold prose intro outside that vocabulary — here
+`**Deliberately NOT in scope, each with its reason:**` — matches nothing, so the exclusion block is scanned
+as ordinary `## Files` items and **every path it names is granted write-scope**.
+
+**Why it matters.** It fails in the **dangerous** direction and silently. The setter reported `16 path(s)`
+where the human had approved **13**, handing the build write-scope to `SKILLS_VERSION`,
+`.claude/commands/pharn-plan.md`, and the fix #2 trusted doc `pharn/ARCHITECTURE.md` — the over-declaration
+class L7 documents, reached this time not through a `writes:` field but through a **plan's prose
+formatting**. Nothing would have complained: fix #2 independently denies the trusted doc, and the other two
+would simply have been writable. It was caught only because the setter **prints its path count** and that
+count was read against the approved list. Remedy: use the heading form (structural, so it cannot depend on
+wording), and treat the setter's printed count as a **checkable number**, not decoration. Complements
+L3 / L7 / L8 / L17 — the `writes:`/scope family — and is the first entry in it concerning the **PLAN
+document's own shape** rather than a declaration's content or the setter's resolution. Confirmed the very
+next increment: the `###` form bounded the list to exactly the declared paths.
+
+**Provenance.**
+
+- feature: `lessons-index`
+- commit: `0323bf9f63d6fb63e79d8aeab9de6d8a3bcd60fd`
+- source: `.dev/features/lessons-index/REVIEW.md` (proposed lesson Candidate A) +
+  `.dev/features/lessons-index/PLAN.md` (the corrected exclusion block), reproduced live at build Step 0
+- promoted: 2026-08-05 via gated `/pharn-dev-memory-promote` (human-approved).
+
+## L19 — A stage's Bash-run tooling escapes `writes:` scope — repo-wide formatters are the live instance
+
+type: scoping · concepts: [writes-scope, bash-escape, formatter]
+
+**Lesson.** fix #7 gates `Write|Edit|MultiEdit` only, so **any tool a stage invokes through Bash writes
+outside the writes-scope unchecked** — and `/pharn-dev-build`'s Step 2b does exactly that today: it says "run
+the project formatter over the **just-written files**" while prescribing `npm run format`, which is
+`prettier --write .` over the **whole repo**. Every increment that reaches Step 2b silently rewrites any
+unformatted file anywhere in the tree and sweeps it into that increment's diff. Either scope the command to
+the written files (`npx prettier --write <paths from the plan's ## Files>`) or declare the repo-wide sweep
+honestly as an accepted, out-of-scope side effect — but do not let the prose say "just-written files" while
+the command says otherwise.
+
+**Why it matters.** It is the `writes:`/scope family's most dangerous axis in principle: L3 is a declaration
+too narrow, L7 a declaration too broad, L8 the setter's one-`--target` resolution, L18 the PLAN's own
+formatting — all visible in something a human can read — while this one is a write that **never passes the
+gate at all** and leaves no trace except a file in the diff nobody declared. Concretely: Step 2b reformatted
+`.dev/floor/check-lessons-index.mjs`, a file the approved plan did not name, and it surfaced only because
+`check-regress.mjs scope` reported it and the result was **investigated rather than recorded** (L16). The
+outcome was benign and in fact useful — that file had been committed format-RED, so the sweep repaired a red
+that would otherwise have blocked every later feature's verify (L11) — and that benign-usefulness is
+precisely why it survived unnoticed: **the mechanism is wrong, the result usually looks right.** Note the
+same escape is unavoidable for any generated artifact (regenerating `docs/lessons-index.md` after a
+promotion is a Bash write outside any declared scope); the remedy there is to **declare it**, not to pretend
+the gate covered it.
+
+**Provenance.**
+
+- feature: `guard-coverage`
+- commit: `0323bf9f63d6fb63e79d8aeab9de6d8a3bcd60fd`
+- source: `.dev/features/guard-coverage/REVIEW.md` (proposed lesson Candidate B, finding F2) +
+  `.dev/features/guard-coverage/REGRESSION.md` (the scope-escape investigation), with the format-RED
+  baseline reproduced live in a `git worktree`
+- promoted: 2026-08-05 via gated `/pharn-dev-memory-promote` (human-approved).

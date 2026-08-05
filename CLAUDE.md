@@ -257,12 +257,23 @@ framework-specific`), via the first-match-wins procedure in `pharn/ARCHITECTURE.
   `.dev/memory-bank/lessons-learned.md`. The first two are rendered by
   `.dev/floor/capability-catalog-core.mjs`, the third by `.dev/floor/lessons-index-core.mjs`; **all three**
   are regenerated with **`npm run docs:generate`** and guarded by **`npm run docs:check`** (in
-  `npm run check` and as its own CI step), which RED-fails on any byte difference. Change a capability,
-  contract, command, hook, or floor checker — **or promote a lesson to canon** — → **regenerate and
-  commit** rather than editing the rendered text. The guarantee is byte-equality (committed ==
-  recomputed), **not** truth: a wrong enumerator regenerates cleanly and stays GREEN, and README prose
-  **outside** the markers is hand-written, advisory, and entirely unguarded. All three generated regions
-  are excluded from prettier + markdownlint so a formatter can never induce false drift.
+  `npm run check`, and in CI — where a ✧ test in `.dev/floor/lessons-index-core.test.mjs` pins **that
+  `ci.yml` invokes `npm run docs:check` and that the step is not disabled by its `if:`**, so the guard
+  cannot be removed or switched off unnoticed; the step's NAME is deliberately not cited here, because
+  the test does not pin it), which RED-fails on any byte difference. Change a capability, contract, command, hook, or floor checker —
+  **or promote a lesson to canon** — → **regenerate and commit** rather than editing the rendered text.
+  The guarantee is byte-equality (committed == recomputed), **not** truth: a wrong enumerator regenerates
+  cleanly and stays GREEN, and README prose **outside** the markers is hand-written, advisory, and
+  entirely unguarded. All three generated regions are excluded from prettier + markdownlint so a
+  formatter can never induce false drift.
+  - **Both `docs:*` scripts are `&&`-chained, so a first RED short-circuits the rest.** One run reports
+    the first failing region only; re-run after fixing. This is deliberate — the portable alternative
+    would be the repo's first `sh`-only script (`.dev/memory-bank/lessons-learned.md` L16: a remedy can
+    itself be a portability trap) — and it costs little, because `npm run docs:generate` regenerates
+    **all** regions, so the remedy is the same command either way.
+  - **The one exception where regenerating does NOT help:** an `ENUM_ERROR` (a duplicate lesson id, an
+    unsafe title, unreadable canon). The generator refuses on the same invalid input, so the checker says
+    so explicitly and names the canon file instead of prescribing a regenerate that cannot succeed.
 - **The lessons index is an ADDRESS BOOK, never a substitute for canon.** `/pharn-dev-plan`'s mandatory
   lessons sweep now runs in two steps: **select** candidates from `docs/lessons-index.md`, then **read
   each candidate's full `## L<n>` entry from `.dev/memory-bank/lessons-learned.md`** before declaring

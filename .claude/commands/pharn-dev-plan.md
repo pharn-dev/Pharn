@@ -64,10 +64,12 @@ chosen by a model. If a later write is blocked with the `writes-scope guard` mes
       — canon, not the index — **before** deciding anything. This is not optional and not
       substitutable: the declaration owes **one line per cited id saying HOW it was applied**, which a
       title cannot support. A lesson you did not read in full is a lesson you may not cite.
-      Then carry the applicable ids into the plan's `applied_lessons` field (Step 3), one body line each.
-      If none apply, the field is the explicit value `none` plus a one-line note saying why — **omission
-      is not the escape** (the floor rejects an absent field; see Step 4). Reading the lessons and judging
-      relevance is **model work and advisory**; only the DECLARATION's shape is floor-checked.
+
+   Then — this applies to the sweep as a WHOLE, not to step (ii) alone — carry the applicable ids into
+   the plan's `applied_lessons` field (Step 3), one body line each. If none apply, the field is the
+   explicit value `none` plus a one-line note saying why — **omission is not the escape** (the floor
+   rejects an absent field; see Step 4). Reading the lessons and judging relevance is **model work and
+   advisory**; only the DECLARATION's shape is floor-checked.
 
    > **What the index does and does not buy (P0).** It is an **addressability** layer, not a
    > substitute for canon and not a load-reduction guarantee. **"The index was consulted" NEVER means
