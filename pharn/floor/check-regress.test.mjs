@@ -1,4 +1,4 @@
-// floor/check-regress.test.mjs — hermetic tests for the deterministic regression core.
+// pharn/floor/check-regress.test.mjs — hermetic tests for the deterministic regression core.
 //
 // NO `claude -p`, NO git, NO network. `scope` is pure set math over CLI args; `verdict` reads two small
 // results maps we compose in an os.tmpdir() scratch dir. We assert the public surface (exit code +

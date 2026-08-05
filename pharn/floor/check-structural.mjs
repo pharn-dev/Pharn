@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// floor/check-structural.mjs — the deterministic STRUCTURAL CHECKER for PHARN evals.
+// pharn/floor/check-structural.mjs — the deterministic STRUCTURAL CHECKER for PHARN evals.
 //
 // Floor primitive #3 (enum / regex-substring / path-resolution; ARCHITECTURE §2), like validate.mjs.
 // It EXECUTES the `structural[]` reduction that pharn-contracts/eval-format.md documents, turning
@@ -19,7 +19,7 @@
 // / equality). They are never eval'd, executed, spawned, or sent anywhere. No guaranteed decision
 // rests on a free-text field — needle scans range ONLY over the enum-gated fields (finding-shape.md).
 //
-// Usage:  node floor/check-structural.mjs <expected.json> <actual.json> [repoDir]
+// Usage:  node pharn/floor/check-structural.mjs <expected.json> <actual.json> [repoDir]
 //   expected.json : { skill_kind, assertions: { structural: [...], semantic?: [...] } }
 //   actual.json   : [ finding-shape object, ... ]   (the skill's emitted findings)
 //   repoDir       : root for file_resolves path resolution (default ".")
@@ -164,7 +164,7 @@ function main() {
   const repoDir = process.argv[4] || ".";
 
   if (!expectedPath || !actualPath) {
-    console.log("RED — usage: node floor/check-structural.mjs <expected.json> <actual.json> [repoDir]");
+    console.log("RED — usage: node pharn/floor/check-structural.mjs <expected.json> <actual.json> [repoDir]");
     return 1;
   }
 

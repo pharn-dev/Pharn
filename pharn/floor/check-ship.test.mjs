@@ -1,4 +1,4 @@
-// floor/check-ship.test.mjs — hermetic tests for the `/ship --loop` stop-decision core.
+// pharn/floor/check-ship.test.mjs — hermetic tests for the `/ship --loop` stop-decision core.
 //
 // NO `claude -p`, NO git, NO network. The decision reads two small report objects ({verdict, …}) we
 // compose in an os.tmpdir() scratch dir + two integer flags. We assert the public surface (exit code +

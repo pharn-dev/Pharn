@@ -1,4 +1,4 @@
-// floor/check-build-complete.test.mjs — hermetic tests for the deterministic build-completeness checker.
+// pharn/floor/check-build-complete.test.mjs — hermetic tests for the deterministic build-completeness checker.
 //
 // NO `claude -p`, NO network. We compose a scratch repo (os.tmpdir()) with a PLAN.md and optionally touch
 // the declared files, then assert the public surface (exit code + stdout JSON) by subprocess — mirroring

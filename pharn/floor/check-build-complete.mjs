@@ -1,8 +1,8 @@
 #!/usr/bin/env node
-// floor/check-build-complete.mjs — the deterministic BUILD-COMPLETENESS checker for the /verify stage.
+// pharn/floor/check-build-complete.mjs — the deterministic BUILD-COMPLETENESS checker for the /verify stage.
 //
 // Floor/eval infrastructure — NOT a Capability (no `role:`; the floor capability count stays 1, exactly
-// like floor/check-verify.mjs / floor/check-regress.mjs, which live in this floor-ignored dir). It owns
+// like pharn/floor/check-verify.mjs / pharn/floor/check-regress.mjs, which live in this floor-ignored dir). It owns
 // ONE cohesive axis — "did the build produce every path the plan DECLARED?" — separate from
 // check-verify's "are all gates green?" axis, hence a separate file (P3).
 //
@@ -40,7 +40,7 @@
 // setter's isConcrete filter.
 //
 // Usage:
-//   node floor/check-build-complete.mjs <PLAN.md> [repoDir]
+//   node pharn/floor/check-build-complete.mjs <PLAN.md> [repoDir]
 //     PLAN.md : the feature plan whose `## Files` declares the paths the build must have produced.
 //     repoDir : root the declared (repo-relative) paths resolve against (default ".").
 //

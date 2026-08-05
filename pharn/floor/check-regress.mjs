@@ -1,8 +1,8 @@
 #!/usr/bin/env node
-// floor/check-regress.mjs — the deterministic REGRESSION CORE for the /regress stage.
+// pharn/floor/check-regress.mjs — the deterministic REGRESSION CORE for the /regress stage.
 //
 // Floor/eval infrastructure — NOT a Capability (no `role:`; the floor capability count stays 1, exactly
-// like floor/check-variance.mjs and floor/check-structural.mjs, which live in this floor-ignored dir).
+// like floor/check-variance.mjs and pharn/floor/check-structural.mjs, which live in this floor-ignored dir).
 // It owns the WHOLE deterministic verdict of /regress so the maximum surface is in tested Node, not in
 // the command's Bash. The command (.claude/commands/regress.md) owns only the I/O side-effects (git,
 // worktree, running the suite, writing artifacts); this helper does the set math and the comparison.
@@ -38,8 +38,8 @@
 // No child process, no network. No guaranteed decision rests on a tainted field.
 //
 // Usage:
-//   node floor/check-regress.mjs scope   --changed <list> --declared <list> [--tests <list>] [--eval-pairs <list>]
-//   node floor/check-regress.mjs verdict <base-results.json> <head-results.json> [--base <ref>] [--inside <list>]
+//   node pharn/floor/check-regress.mjs scope   --changed <list> --declared <list> [--tests <list>] [--eval-pairs <list>]
+//   node pharn/floor/check-regress.mjs verdict <base-results.json> <head-results.json> [--base <ref>] [--inside <list>]
 //     <list>       : comma/whitespace-separated repo-relative paths
 //     <eval-pairs> : comma/whitespace-separated "EXPECTED::ACTUAL" tokens (the committed eval pairs)
 //     results.json : a flat { "<gate-id>": <exit-code int>, ... } map written by the command
