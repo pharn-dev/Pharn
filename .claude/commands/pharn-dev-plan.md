@@ -1,15 +1,24 @@
 ---
-description: "Plan ONE increment of PHARN. Discovery-first, grounded in live state, pins the architecture content-hash, halts and asks before any build. Produces PLAN.md."
+description: "Plan ONE increment of PHARN. Discovery-first, grounded in live state, pins the architecture content-hash, halts and asks before any build. Produces PLAN.md. FLOOR (deterministic, pharn/floor/check-plan-lessons.mjs): the PLAN must DECLARE `applied_lessons` — present, well-formed (`none` | `[L<n>…]`), every cited id resolving to a real lesson heading — so a promoted lesson can never be silently ignored. ADVISORY: whether those lessons were GENUINELY applied, and whether a `none` is justified, is model judgment the checker cannot see — grill/review territory. 'The plan cited L1' NEVER means 'the plan applied L1' (P0)."
 role: skill
 kind: pharn-owned
 trust: trusted
 model_tier: sonnet
 model: opus
 effort: high
-reads: ["pharn/CONSTITUTION.md", "pharn/ARCHITECTURE.md", "THREAT-MODEL.md", "LIMITS.md", "<target repo>"]
+reads:
+  [
+    "pharn/CONSTITUTION.md",
+    "pharn/ARCHITECTURE.md",
+    "THREAT-MODEL.md",
+    "LIMITS.md",
+    ".dev/memory-bank/lessons-learned.md",
+    "pharn/floor/check-plan-lessons.mjs",
+    "<target repo>",
+  ]
 writes: [".dev/features/<name>/PLAN.md"]
 constitution_refs: ["P0", "P1", "P3", "P5", "P6", "P7"]
-version: "0.1.0"
+version: "0.2.0"
 ---
 
 # /pharn-dev-plan — plan one increment of PHARN
@@ -44,7 +53,14 @@ chosen by a model. If a later write is blocked with the `writes-scope guard` mes
    nothing has been read this run, you may not claim anything about its state.
 3. Compute and record the **content-hash of `pharn/ARCHITECTURE.md`** (the spec this plan is built
    against): `node -e "console.log(require('crypto').createHash('sha256').update(require('fs').readFileSync('pharn/ARCHITECTURE.md')).digest('hex'))"`. This pins the spec by content, not by name (fix #4). `/pharn-dev-build` will refuse if the hash has drifted.
-4. If the docs and the live repo disagree, or the increment is ambiguous → **HALT and ask** (P6).
+4. **Lessons sweep (mandatory — the `applied_lessons` input).** Read
+   `.dev/memory-bank/lessons-learned.md` **in full** (it is small by design). For each lesson, decide
+   whether it bears on **this** increment. Carry the applicable ids into the plan's `applied_lessons`
+   field (Step 3) and give each cited id **one line in the plan body saying HOW it was applied**. If
+   none apply, the field is the explicit value `none` plus a one-line note saying why — **omission is
+   not the escape** (the floor rejects an absent field; see Step 4). Reading the lessons and judging
+   relevance is **model work and advisory**; only the DECLARATION's shape is floor-checked.
+5. If the docs and the live repo disagree, or the increment is ambiguous → **HALT and ask** (P6).
    Do not guess. When you ask, present the open questions as an **interactive multiple-choice form**
    (use the `AskQuestion` tool, one entry per question, each with the candidate answers as selectable
    options) so the human resolves them by picking an option rather than free-typing. Wait for the
@@ -78,9 +94,15 @@ that single file (`.dev/features/<name>/PLAN.md`), so this path is writable:
 # PLAN — <increment name>
 
 - spec_content_hash: <sha256 of pharn/ARCHITECTURE.md> # fix #4
+- applied_lessons: none | [L1, L2] # MANDATORY — floor-checked; `none` is the escape, omission is not
 - increment: <one sentence>
 - layer(s): <pharn-contracts | pharn-core | ...> # pharn/ARCHITECTURE.md §4
 - constitution_refs: [P..]
+
+## Applied lessons
+
+- <L<n>> — <one line: HOW this lesson was applied to THIS increment> # one line per cited id
+  # …or, when the field is `none`: one line saying why no promoted lesson bears on this increment.
 
 ## Files
 
@@ -107,9 +129,27 @@ that single file (`.dev/features/<name>/PLAN.md`), so this path is writable:
 - <question>
 ```
 
-## Step 4 — Halt (P6)
+## Step 4 — Check the lessons declaration (FLOOR), then halt (P6)
 
-After writing `.dev/features/<name>/PLAN.md`, do **not** build. Resolve any remaining open questions and confirm approval
+**First, self-check the declaration you just wrote** and branch **only** on its exit code (a membership
+test, P5 — the checker **owns** this verdict; you do not re-decide it):
+
+```bash
+node pharn/floor/check-plan-lessons.mjs .dev/features/<name>/PLAN.md .dev/memory-bank/lessons-learned.md
+```
+
+- **exit 0 (GREEN)** → the declaration is present and well-formed → proceed to the halt below.
+- **exit non-zero (RED)** → **fix the PLAN and re-run.** The message names the refusal: an absent field
+  (add `applied_lessons`), a malformed value (`none` or `[L1, L2]`), `[]` (use `none`), or a cited id
+  with no matching lesson heading (cite only promoted lessons). Never relax or skip the check.
+
+> **Two clocks, honestly (P0).** The checker's **verdict** is FLOOR (enum/regex + heading membership).
+> This command's **act** of invoking it is **ADVISORY** orchestration — nothing on the floor forces this
+> prose to run it. And the checker verifies the **declaration**, never the **application**: it cannot
+> tell whether you actually applied L1, only that you said you did in a well-formed way. Do not write
+> "the plan applies its lessons" — write that it **declares** them.
+
+Then, do **not** build. Resolve any remaining open questions and confirm approval
 through an **interactive form**, then end your turn:
 
 1. **Open questions → selectable form.** For every entry under `## Open questions (HALT)` that is still

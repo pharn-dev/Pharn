@@ -100,6 +100,12 @@ node pharn/floor/validate.mjs [target-dir]
 # Exits non-zero on any RED — e.g. a needle laundered into an enum-gated field.
 node pharn/floor/check-structural.mjs <expected.json> <actual.json> [repoDir]
 
+# Check that a PLAN DECLARES which promoted lessons it applied (the `applied_lessons` field).
+# Floor: the field is present + well-formed (`none` | `[L<n>…]`) + every cited id resolves to a
+# `## L<n> ` heading. ADVISORY (never checked): whether the lessons were genuinely applied.
+# Both /pharn-plan and /pharn-dev-plan self-run it before their halt. Exits non-zero on RED.
+node pharn/floor/check-plan-lessons.mjs <PLAN.md> <lessons-learned.md>
+
 # Validate a memory-bank promotion candidate: mandatory provenance shape + duplicate-id + target enum.
 # Exits non-zero on any RED. /pharn-dev-memory-promote runs it before the human accept/deny gate (never writes on RED).
 node .dev/floor/check-provenance.mjs <candidate.json> <canon-file.md>
@@ -221,6 +227,14 @@ a typed artifact carrying `spec_id` (+ the plan additionally pins `spec_content_
 - **`coupling`** classifies by _axis of change_, not domain noun (`agnostic | framework-seam |
 framework-specific`), via the first-match-wins procedure in `pharn/ARCHITECTURE.md §3.2`. The question is
   always "what forces this content to change," never "what _is_ auth."
+- **Every PLAN declares `applied_lessons` (floor-checked).** Both plan stages read the memory-bank's
+  `lessons-learned.md` and emit the field in the PLAN's **structured header** — YAML frontmatter for a
+  product `features/<name>/PLAN.md`, the leading `- key: value` bullet block for a dev
+  `.dev/features/<name>/PLAN.md`. The value is `none` **or** a list of `L<n>` ids, each cited id getting
+  one body line saying **how** it was applied. `pharn/floor/check-plan-lessons.mjs` enforces
+  presence + shape + id-existence; **omission is not the escape — the value `none` is.** The floor sees
+  only the declaration: whether the lessons were genuinely applied is advisory (grill/review), and no
+  downstream stage re-verifies the field yet (follow-up `grill-lessons-reverify`).
 - **Branch on deterministic membership tests, not LLM classification (P5);** the terminal fallback of
   any resolution chain is **ask the human**, never a guess.
 - `seal: "PHARN ✓ reviewed"` only on `kind: pharn-owned`. Community capabilities are markdown-only and

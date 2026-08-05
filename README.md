@@ -152,7 +152,7 @@ around it is hand-written and carries no such guarantee.
 - **Product commands — 9** (`.claude/commands/`): `/pharn-build`, `/pharn-grill`, `/pharn-loop`, `/pharn-plan`, `/pharn-regress`, `/pharn-review`, `/pharn-ship`, `/pharn-spec`, `/pharn-verify`.
 - **Dev-apparatus commands — 9** (`.claude/commands/`): `/pharn-dev-build`, `/pharn-dev-eval`, `/pharn-dev-grill`, `/pharn-dev-memory-promote`, `/pharn-dev-plan`, `/pharn-dev-regress`, `/pharn-dev-review`, `/pharn-dev-ship`, `/pharn-dev-verify`.
 - **Hook scripts — 3** (`.claude/hooks/`): `enforce-writes-scope.cjs`, `protect-trusted-paths.cjs`, `set-writes-scope.cjs`.
-- **Floor checkers — 35** `.mjs` files under `pharn/floor/` (tests excluded).
+- **Floor checkers — 36** `.mjs` files under `pharn/floor/` (tests excluded).
 
 <!-- CURRENT-STATE:END -->
 

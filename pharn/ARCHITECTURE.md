@@ -202,7 +202,7 @@ linking back to the spec:
 | stage   | artifact             | key field                                    |
 | ------- | -------------------- | -------------------------------------------- |
 | spec    | `SPEC.md`            | intent (Draft → Approved)                    |
-| plan    | `PLAN.md`            | `spec_id` **+ `spec_content_hash`** (fix #4) |
+| plan | `PLAN.md` | `spec_id` **+ `spec_content_hash`** (fix #4) + `applied_lessons` (floor-shaped: `none` \| `[L<n>…]`; content advisory) |
 | grill   | grill-log            | findings vs plan                             |
 | build   | `build-summary.json` | per-phase results                            |
 | regress | regression-report    | regressions outside the feature              |

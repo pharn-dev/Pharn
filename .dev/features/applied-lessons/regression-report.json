@@ -1,0 +1,29 @@
+{
+  "base": "de83cbbf4ff3ecf90584eae382bc06f49cdc5f46",
+  "inside": [
+    ".claude/commands/pharn-dev-plan.md",
+    ".claude/commands/pharn-plan.md",
+    ".dev/features/applied-lessons/GRILL.md",
+    ".dev/features/applied-lessons/PLAN.md",
+    "CHANGELOG.md",
+    "CLAUDE.md",
+    "README.md",
+    "SKILLS_VERSION",
+    "pharn/ARCHITECTURE.md",
+    "pharn/floor/check-plan-lessons.mjs",
+    "pharn/floor/check-plan-lessons.test.mjs"
+  ],
+  "outside_gates": {
+    "tests": {
+      "base": 0,
+      "head": 0
+    },
+    "validate": {
+      "base": 0,
+      "head": 0
+    }
+  },
+  "regressions": [],
+  "pre_existing": [],
+  "verdict": "no-regressions"
+}
