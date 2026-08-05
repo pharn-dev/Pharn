@@ -187,6 +187,21 @@ Write `.dev/features/<name>/GRILL.md` containing, in order:
   `ADVISORY VERDICT: N concerns raised (M blocking-severity, K advisory) — for the human to weigh
 before /pharn-dev-build`. **Never** "grill passed" or any wording that reads as a guarantee (P0).
 
+### Format this stage's own artifact (ADVISORY — `.dev/memory-bank/lessons-learned.md` L13)
+
+Immediately after writing it, and **before** ending the turn:
+
+```bash
+npx prettier --ignore-unknown --write .dev/features/<name>/GRILL.md
+npx markdownlint-cli2 --fix .dev/features/<name>/GRILL.md
+```
+
+Scoped to **this stage's own artifact** — never a repo-wide formatter, whose writes escape the fix #7
+scope through Bash (`.dev/memory-bank/lessons-learned.md` **L19**, cited not restated — P4).
+`--ignore-unknown` keeps a non-prettier path from erroring the step. **ADVISORY** (P0): running a formatter is orchestration, not a
+floor op; it never blocks, and the deterministic style gate remains `/pharn-dev-verify`'s
+`check-verify.mjs` gate map (L9).
+
 Then **end your turn**. `/pharn-dev-grill` does not invoke `/pharn-dev-build` and does not gate it — the human reads the
 grill-log and decides. Building is a separate `/pharn-dev-build` run.
 

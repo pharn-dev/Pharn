@@ -229,6 +229,21 @@ floor checked `type` / `concepts` at Step 3, on the CANDIDATE; nothing re-checks
 re-typing it by hand here would drop the entry outside everything the floor verified. Copy the values
 through verbatim.
 
+### Format this stage's own artifact (ADVISORY — `.dev/memory-bank/lessons-learned.md` L13)
+
+Immediately after writing it, and **before** ending the turn:
+
+```bash
+npx prettier --ignore-unknown --write <canon-file>
+npx markdownlint-cli2 --fix <canon-file>
+```
+
+Scoped to **this stage's own artifact** — never a repo-wide formatter, whose writes escape the fix #7
+scope through Bash (`.dev/memory-bank/lessons-learned.md` **L19**, cited not restated — P4).
+`--ignore-unknown` keeps a non-prettier path from erroring the step. **ADVISORY** (P0): running a formatter is orchestration, not a
+floor op; it never blocks, and the deterministic style gate remains `/pharn-dev-verify`'s
+`check-verify.mjs` gate map (L9) — `<canon-file>` is the one path Step 0 pinned.
+
 Then **end your turn.** `/pharn-dev-memory-promote` does one thing: it lands **one** vetted, provenance-carrying entry.
 It does not chain to another stage.
 

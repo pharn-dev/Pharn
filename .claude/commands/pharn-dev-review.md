@@ -120,5 +120,21 @@ If a finding reveals a **real** recurring failure (P7 — real, not hypothetical
 for canon (`.dev/memory-bank/lessons-learned.md`): record it **inside this `REVIEW.md`** as a proposed
 candidate with provenance (this increment's id/diff). Do **not** write canon here — `/pharn-dev-review`'s scope is
 `REVIEW.md` only. The actual promotion is a separate, human-gated `/pharn-dev-memory-promote` run that sets its own
-scope, runs `check-provenance.mjs`, and halts for accept/deny (the model never self-promotes — P2). End
-your turn.
+scope, runs `check-provenance.mjs`, and halts for accept/deny (the model never self-promotes — P2).
+
+### Format this stage's own artifact (ADVISORY — `.dev/memory-bank/lessons-learned.md` L13)
+
+Immediately after writing it, and **before** ending the turn:
+
+```bash
+npx prettier --ignore-unknown --write .dev/features/<name>/REVIEW.md
+npx markdownlint-cli2 --fix .dev/features/<name>/REVIEW.md
+```
+
+Scoped to **this stage's own artifact** — never a repo-wide formatter, whose writes escape the fix #7
+scope through Bash (`.dev/memory-bank/lessons-learned.md` **L19**, cited not restated — P4).
+`--ignore-unknown` keeps a non-prettier path from erroring the step. **ADVISORY** (P0): running a formatter is orchestration, not a
+floor op; it never blocks, and the deterministic style gate remains `/pharn-dev-verify`'s
+`check-verify.mjs` gate map (L9).
+
+End your turn.

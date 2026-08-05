@@ -198,6 +198,21 @@ Write, in order (re-scoping per artifact, per Step 0's caveat):
    **Never** write "`/pharn-dev-verify` ensures the feature is correct" (the disease, P0) — it certifies only the
    gates it ran.
 
+### Format this stage's own artifact (ADVISORY — `.dev/memory-bank/lessons-learned.md` L13)
+
+Immediately after writing it, and **before** ending the turn:
+
+```bash
+npx prettier --ignore-unknown --write .dev/features/<name>/VERIFY.md
+npx markdownlint-cli2 --fix .dev/features/<name>/VERIFY.md
+```
+
+Scoped to **this stage's own artifact** — never a repo-wide formatter, whose writes escape the fix #7
+scope through Bash (`.dev/memory-bank/lessons-learned.md` **L19**, cited not restated — P4).
+`--ignore-unknown` keeps a non-prettier path from erroring the step. **ADVISORY** (P0): running a formatter is orchestration, not a
+floor op; it never blocks, and the deterministic style gate remains `/pharn-dev-verify`'s
+`check-verify.mjs` gate map (L9) — and `verify-report.json` is deliberately **NOT** formatted, for the same verbatim reason.
+
 Then **end your turn.** `/pharn-dev-verify` does **not** invoke `/pharn-dev-ship` and does not gate it — the human reads the
 report and the verdict's exit code decides the stage.
 
