@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// .dev/floor/check-plan-spec-agree.mjs — the deterministic spec→plan HASH-CHAIN re-verification for /pharn-grill.
+// pharn/floor/check-plan-spec-agree.mjs — the deterministic spec→plan HASH-CHAIN re-verification for /pharn-grill.
 //
 // Floor primitives (ARCHITECTURE §2): #3 (enum) for the SPEC's state === "Approved", and #2 (content-hash)
 // for the chain equality — the PLAN's carried spec_content_hash MUST equal the SPEC's CURRENT body hash. It
@@ -33,7 +33,7 @@
 // not-a-hash (the ★ tests prove a needle in plan/spec prose does not move the verdict).
 //
 // Usage:
-//   node .dev/floor/check-plan-spec-agree.mjs <PLAN.md> <SPEC.md>
+//   node pharn/floor/check-plan-spec-agree.mjs <PLAN.md> <SPEC.md>
 //       exit 0 iff the SPEC is Approved+un-drifted AND the PLAN's carried spec_content_hash equals the
 //       SPEC's current body hash (GREEN); exit 1 otherwise (spec Draft / drift / malformed, or a stale /
 //       broken chain, or a missing / malformed carried hash), printing a clear RED.
@@ -151,7 +151,7 @@ function main() {
   const planPath = process.argv[2];
   const specPath = process.argv[3];
   if (!planPath || !specPath) {
-    console.log("RED — usage: node .dev/floor/check-plan-spec-agree.mjs <PLAN.md> <SPEC.md>");
+    console.log("RED — usage: node pharn/floor/check-plan-spec-agree.mjs <PLAN.md> <SPEC.md>");
     return 1;
   }
   return gate(planPath, specPath);

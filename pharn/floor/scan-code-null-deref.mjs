@@ -1,7 +1,7 @@
 #!/usr/bin/env node
-// .dev/floor/scan-code-null-deref.mjs — deterministic UNCHECKED-DEREF scanner over a CODE file (CONSTITUTION P0/P5).
+// pharn/floor/scan-code-null-deref.mjs — deterministic UNCHECKED-DEREF scanner over a CODE file (CONSTITUTION P0/P5).
 //
-// A sibling of .dev/floor/scan-code-swallowed-exception.mjs / scan-code-injection.mjs in the scan-code-* family.
+// A sibling of pharn/floor/scan-code-swallowed-exception.mjs / scan-code-injection.mjs in the scan-code-* family.
 // Where those back the swallowed-exception / injection LENSes' FLOOR sub-checks, this one backs the `null-deref`
 // LENS's FLOOR sub-check (pharn-review/null-deref/): a value bound from a NULL-RETURNING SOURCE and then
 // DEREFERENCED with no null-check between. Detection is a FIXED, non-LLM procedure: a comment/string MASK, an
@@ -64,7 +64,7 @@
 // Non-LLM, stdlib-only, fail-closed. MIRRORS the fail-closed contract of the sibling scanners: a missing /
 // non-file target is an ERROR (nonzero exit, NOTHING on stdout), never a silent "clean".
 //
-// Usage:  node .dev/floor/scan-code-null-deref.mjs <code-file>
+// Usage:  node pharn/floor/scan-code-null-deref.mjs <code-file>
 // Output: {"found":<bool>,"hits":[{"line":<int>,"kind":"unchecked-deref"},...]} on stdout; exit 0 on a successful
 //         scan (whatever the result). `found` === (hits.length > 0); hits sorted by line. `line` is the DEREF
 //         line (the crash / fix site — where a guard or `?.` belongs), never the assignment or a comment line.

@@ -1,4 +1,4 @@
-// .dev/floor/check-seam-config.test.mjs — black-box tests for the deterministic seam-config validator.
+// pharn/floor/check-seam-config.test.mjs — black-box tests for the deterministic seam-config validator.
 //
 // Run as a subprocess (mirrors check-provenance.test.mjs / check-structural.test.mjs) so check-seam-config.mjs
 // keeps its dependency-free, top-level-exec contract: we assert only on its public surface (exit code +

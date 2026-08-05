@@ -1,4 +1,4 @@
-// .dev/floor/count-verifiers.test.mjs — hermetic tests for the deterministic verifier-membership counter.
+// pharn/floor/count-verifiers.test.mjs — hermetic tests for the deterministic verifier-membership counter.
 //
 // NO `claude -p`, NO git, NO network. Each test builds a small repo in an os.tmpdir() scratch dir and
 // asserts the public surface (exit code + stdout JSON) by subprocess — mirroring check-verify.test.mjs.

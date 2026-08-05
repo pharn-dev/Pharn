@@ -1,7 +1,7 @@
 #!/usr/bin/env node
-// .dev/floor/scan-code-swallowed-exception.mjs — deterministic EMPTY / LOG-ONLY catch scanner over a CODE file (CONSTITUTION P0/P5).
+// pharn/floor/scan-code-swallowed-exception.mjs — deterministic EMPTY / LOG-ONLY catch scanner over a CODE file (CONSTITUTION P0/P5).
 //
-// A sibling of .dev/floor/scan-code-injection.mjs in the scan-code-* family. Where that scanner backs the
+// A sibling of pharn/floor/scan-code-injection.mjs in the scan-code-* family. Where that scanner backs the
 // `injection` LENS's FLOOR sub-check (a concat/interp-into-sink SHAPE), this one backs the `swallowed-exception`
 // LENS's FLOOR sub-check (pharn-review/swallowed-exception/): does a `catch` clause SWALLOW the error — is its
 // body EMPTY, or does it contain ONLY logging calls with no `throw` / `return` / `reject` / `next(...)` to
@@ -59,10 +59,10 @@
 // A multi-file / directory sweep is a FUTURE increment (P7 — not built speculatively); the lens applies this
 // scanner per file today.
 //
-// Non-LLM, stdlib-only, fail-closed. MIRRORS the fail-closed contract of .dev/floor/scan-code-injection.mjs:
+// Non-LLM, stdlib-only, fail-closed. MIRRORS the fail-closed contract of pharn/floor/scan-code-injection.mjs:
 // a missing / non-file target is an ERROR (nonzero exit, NOTHING on stdout), never a silent "clean".
 //
-// Usage:  node .dev/floor/scan-code-swallowed-exception.mjs <code-file>
+// Usage:  node pharn/floor/scan-code-swallowed-exception.mjs <code-file>
 // Output: {"found":<bool>,"hits":[{"line":<int>,"kind":"empty-catch|log-only-catch"},...]} on stdout; exit 0 on
 //         a successful scan (whatever the result). `found` === (hits.length > 0); hits sorted by line, then kind.
 //         Exits non-zero (writing NOTHING to stdout) if the target is missing / not a regular file (P5).

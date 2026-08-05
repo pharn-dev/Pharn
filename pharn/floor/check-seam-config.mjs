@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// .dev/floor/check-seam-config.mjs — the deterministic SEAM-RESOLUTION-CONFIG validator.
+// pharn/floor/check-seam-config.mjs — the deterministic SEAM-RESOLUTION-CONFIG validator.
 //
 // Floor primitive #3 (enum / presence / type; ARCHITECTURE §2), like validate.mjs, check-structural.mjs,
 // and check-provenance.mjs. It is the floor reduction of ARCHITECTURE §5's confidence-gated chain: the
@@ -24,7 +24,7 @@
 // steps, "ask" presence, the threshold enum, the boolean type). Any extra free-text field is IGNORED — no
 // guaranteed decision rests on it (mirrors check-provenance.mjs). Taint cannot flip the verdict.
 //
-// Usage:  node .dev/floor/check-seam-config.mjs <seam-config.json>
+// Usage:  node pharn/floor/check-seam-config.mjs <seam-config.json>
 //   seam-config.json : { resolutionOrder: [step,...], modelConfidenceThreshold?, haltOnUnknown? }
 //                      (the top-level object IS the seam config — i.e. the `seam` block of a project config)
 //
@@ -68,7 +68,7 @@ function fail() {
 function main() {
   const configPath = process.argv[2];
   if (!configPath) {
-    console.log("RED — usage: node .dev/floor/check-seam-config.mjs <seam-config.json>");
+    console.log("RED — usage: node pharn/floor/check-seam-config.mjs <seam-config.json>");
     return 1;
   }
 

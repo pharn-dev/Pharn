@@ -1,4 +1,4 @@
-// .dev/floor/scan-code-magic-values.test.mjs — hermetic tests for the deterministic MAGIC-VALUE shape scanner.
+// pharn/floor/scan-code-magic-values.test.mjs — hermetic tests for the deterministic MAGIC-VALUE shape scanner.
 //
 // NO `claude -p`, NO git, NO network, and NO reading of the product eval fixtures (pharn-review/magic-values/evals/**):
 // each test writes a small SELF-CONTAINED code file in an os.tmpdir() scratch dir and asserts the public surface

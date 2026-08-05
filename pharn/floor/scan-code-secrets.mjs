@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// .dev/floor/scan-code-secrets.mjs — deterministic secret-literal SCANNER over a CODE file (CONSTITUTION P0/P5).
+// pharn/floor/scan-code-secrets.mjs — deterministic secret-literal SCANNER over a CODE file (CONSTITUTION P0/P5).
 //
 // The CODE-side twin of .dev/floor/scan-plan-secrets.mjs. Where that scanner backs the security GRILLER's
 // FLOOR sub-check over a PLAN, this one backs the `secrets-in-code` LENS's FLOOR sub-check over CODE under
@@ -25,7 +25,7 @@
 // Non-LLM, stdlib-only, fail-closed. MIRRORS the fail-closed contract of .dev/floor/scan-plan-secrets.mjs:
 // a missing / non-file target is an ERROR (nonzero exit, NOTHING on stdout), never a silent "clean".
 //
-// Usage:  node .dev/floor/scan-code-secrets.mjs <code-file>
+// Usage:  node pharn/floor/scan-code-secrets.mjs <code-file>
 // Output: {"found":<bool>,"hits":[{"line":<int>,"kind":"<pattern-kind>"},...]} on stdout; exit 0 on a
 //         successful scan (whatever the result). `found` === (hits.length > 0); hits sorted by line.
 //         Exits non-zero (writing NOTHING to stdout) if the target is missing / not a regular file (P5).

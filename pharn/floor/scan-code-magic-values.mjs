@@ -1,7 +1,7 @@
 #!/usr/bin/env node
-// .dev/floor/scan-code-magic-values.mjs — deterministic MAGIC-VALUE shape scanner over a CODE file (CONSTITUTION P0/P5).
+// pharn/floor/scan-code-magic-values.mjs — deterministic MAGIC-VALUE shape scanner over a CODE file (CONSTITUTION P0/P5).
 //
-// A sibling of .dev/floor/scan-code-off-by-one.mjs / scan-code-copy-paste-drift.mjs / scan-code-duplicated-logic.mjs in
+// A sibling of pharn/floor/scan-code-off-by-one.mjs / scan-code-copy-paste-drift.mjs / scan-code-duplicated-logic.mjs in
 // the scan-code-* family. It backs the `magic-values` LENS's FLOOR sub-check (pharn-review/magic-values/): does the file
 // contain an unexplained magic LITERAL used in a comparison? TWO detection sub-checks, both a FIXED, non-LLM procedure
 // over comment/string-MASKED text — they reduce to ARCHITECTURE §2 primitive #3 (regex / value-membership / span match):
@@ -49,7 +49,7 @@
 // target is an ERROR (nonzero exit, NOTHING on stdout), never a silent "clean". A readable file with no magic-literal
 // shape (empty, prose, or clean code) is a SUCCESSFUL scan → {"found":false,"hits":[]} on stdout, exit 0.
 //
-// Usage:  node .dev/floor/scan-code-magic-values.mjs <code-file>
+// Usage:  node pharn/floor/scan-code-magic-values.mjs <code-file>
 // Output: {"found":<bool>,"hits":[{"line":<int>,"kind":"number"|"string","literal":"<the literal text>"}]} on stdout;
 //         exit 0 on a successful scan (whatever the result). `line` = the 1-based ORIGINAL line of the comparison
 //         operand. `literal` = the matched CODE text (a number like "86400", or a string WITH quotes like "\"ADMIN\"")

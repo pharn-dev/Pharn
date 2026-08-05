@@ -1,4 +1,4 @@
-// .dev/floor/scan-code-path-traversal.test.mjs — hermetic tests for the deterministic CODE
+// pharn/floor/scan-code-path-traversal.test.mjs — hermetic tests for the deterministic CODE
 // request-source-into-filesystem-path-sink scanner.
 //
 // NO `claude -p`, NO git, NO network. Each test writes a small code file in an os.tmpdir() scratch dir and

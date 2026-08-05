@@ -1,15 +1,15 @@
 #!/usr/bin/env node
-// .dev/floor/count-lenses.mjs — deterministic lens-MEMBERSHIP counter (CONSTITUTION P0/P5).
+// pharn/floor/count-lenses.mjs — deterministic lens-MEMBERSHIP counter (CONSTITUTION P0/P5).
 //
 // Answers ONE structural question for a parallel /pharn-review: which capabilities DECLARE `role: lens`?
 // That set is exactly the lenses the review spawns (one subagent each) and whose findings.json the
-// deterministic .dev/floor/merge-findings.mjs assembles. Membership is read ONLY from the `---`-fenced
+// deterministic pharn/floor/merge-findings.mjs assembles. Membership is read ONLY from the `---`-fenced
 // YAML frontmatter — never a substring grep over file contents. A `role: lens` string in PROSE or a
 // fenced code block is DATA *about* lenses, not a declaration *of* one (the enum-gated / free-text split
 // of ARCHITECTURE §8 / fix #1, applied to membership detection). This is the direct sibling of
-// .dev/floor/count-verifiers.mjs (the /verify slot) and .dev/floor/count-grillers.mjs (the /grill slot).
+// pharn/floor/count-verifiers.mjs (the /verify slot) and pharn/floor/count-grillers.mjs (the /grill slot).
 //
-// Non-LLM, stdlib-only, fail-closed. It MIRRORS .dev/floor/validate.mjs (does not import — validate.mjs
+// Non-LLM, stdlib-only, fail-closed. It MIRRORS pharn/floor/validate.mjs (does not import — validate.mjs
 // exports nothing, it runs on load): the same `walk` + EXCLUDE_SEGMENTS capability surface AND the same
 // `parseFrontmatter` fence/line algorithm for reading `role` — so it counts EXACTLY the files
 // validate.mjs treats as role-bearing capabilities, byte-for-byte on all inputs. Cite, don't restate
@@ -19,7 +19,7 @@
 // one of the product-surface lenses (it is the reviewer, not a reviewed lens) — the same reason
 // count-verifiers.mjs does not count the /verify command.
 //
-// Usage:  node .dev/floor/count-lenses.mjs [targetDir]      (default: cwd)
+// Usage:  node pharn/floor/count-lenses.mjs [targetDir]      (default: cwd)
 // Output: {"registered":<int>,"lenses":[<repo-rel path>,...]} on stdout; exit 0 on success.
 //         Exits non-zero (writing NOTHING to stdout) if targetDir is missing / not a directory — never a
 //         silent 0 from looking in the wrong place (P5, fail-closed).
@@ -28,7 +28,7 @@ import { readFileSync, readdirSync, statSync, existsSync } from "node:fs";
 import { join, relative, sep } from "node:path";
 
 const TARGET = process.argv[2] || ".";
-// Same exclusions as .dev/floor/validate.mjs: tooling (.claude/commands, .dev/) and noise are NOT the
+// Same exclusions as pharn/floor/validate.mjs: tooling (.claude/commands, .dev/) and noise are NOT the
 // capability surface, so a `role: lens` frontmatter there is not a built-PHARN lens.
 const EXCLUDE_SEGMENTS = [`${sep}.claude${sep}commands${sep}`, `${sep}.dev${sep}`, `${sep}node_modules${sep}`, `${sep}.git${sep}`];
 
@@ -42,7 +42,7 @@ if (!existsSync(TARGET) || !statSync(TARGET).isDirectory()) {
   fail(`target dir not found (or not a directory): ${TARGET}`);
 }
 
-// Recursive *.md collector — mirrors .dev/floor/validate.mjs `walk`.
+// Recursive *.md collector — mirrors pharn/floor/validate.mjs `walk`.
 function walk(dir, acc = []) {
   let entries;
   try {
@@ -64,14 +64,14 @@ function walk(dir, acc = []) {
   return acc;
 }
 
-// Mirrors .dev/floor/validate.mjs `isExcluded` — the same EXCLUDE_SEGMENTS surface.
+// Mirrors pharn/floor/validate.mjs `isExcluded` — the same EXCLUDE_SEGMENTS surface.
 function isExcluded(file) {
   const norm = sep + relative(TARGET, file);
   return EXCLUDE_SEGMENTS.some((seg) => norm.includes(seg));
 }
 
 // The `role:` value declared INSIDE a file's `---`-fenced YAML frontmatter, or null if there is none.
-// MIRRORS .dev/floor/validate.mjs `parseFrontmatter` EXACTLY (restricted to the `role` key): the same
+// MIRRORS pharn/floor/validate.mjs `parseFrontmatter` EXACTLY (restricted to the `role` key): the same
 // opening fence (`startsWith("---")`), the same close (`indexOf("\n---", 3)`), the same `slice(3, end).trim()`
 // block, the same `^([A-Za-z0-9_]+):\s*(.*)$` line parse, and the same `^["']|["']$` quote-strip. That
 // byte-for-byte sameness is what makes membership agree with the AUTHORITY on EVERY input. A `role:` line

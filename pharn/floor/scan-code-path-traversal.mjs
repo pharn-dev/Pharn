@@ -1,8 +1,8 @@
 #!/usr/bin/env node
-// .dev/floor/scan-code-path-traversal.mjs — deterministic REQUEST-SOURCE-INTO-FILESYSTEM-PATH-SINK scanner
+// pharn/floor/scan-code-path-traversal.mjs — deterministic REQUEST-SOURCE-INTO-FILESYSTEM-PATH-SINK scanner
 // over a CODE file (CONSTITUTION P0/P5).
 //
-// The path-traversal sibling of .dev/floor/scan-code-injection.mjs and .dev/floor/scan-code-deserialization.mjs.
+// The path-traversal sibling of pharn/floor/scan-code-injection.mjs and pharn/floor/scan-code-deserialization.mjs.
 // It backs the `path-traversal` LENS's FLOOR sub-check (pharn-review/path-traversal/): does a line pass a
 // recognized HTTP-request source token DIRECTLY into a recognized filesystem-path sink —
 //   • fs-path:   fs.<m>( | fs.promises.<m>( | fsPromises.<m>(   (any Node filesystem call: readFile, writeFile,
@@ -56,7 +56,7 @@
 // Non-LLM, stdlib-only, fail-closed. MIRRORS the fail-closed contract of scan-code-injection.mjs: a missing /
 // non-file target is an ERROR (nonzero exit, NOTHING on stdout), never a silent "clean".
 //
-// Usage:  node .dev/floor/scan-code-path-traversal.mjs <code-file>
+// Usage:  node pharn/floor/scan-code-path-traversal.mjs <code-file>
 // Output: {"found":<bool>,"hits":[{"line":<int>,"kind":"<pattern-kind>"},...]} on stdout; exit 0 on a
 //         successful scan (whatever the result). `found` === (hits.length > 0); hits sorted by line, then kind.
 //         Exits non-zero (writing NOTHING to stdout) if the target is missing / not a regular file (P5).

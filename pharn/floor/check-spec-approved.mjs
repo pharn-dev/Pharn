@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// .dev/floor/check-spec-approved.mjs — the deterministic APPROVED-INPUT GATE for /pharn-plan.
+// pharn/floor/check-spec-approved.mjs — the deterministic APPROVED-INPUT GATE for /pharn-plan.
 //
 // Floor primitives (ARCHITECTURE §2): #3 (enum) for `state === "Approved"`, and — REUSED, not
 // re-implemented — #3 (presence/enum) + #2 (content-hash) via check-spec.mjs for shape, the state
@@ -30,7 +30,7 @@
 // (mirrors fix #1; the ★ test proves an instruction-looking needle in the intent does not move it).
 //
 // Usage:
-//   node .dev/floor/check-spec-approved.mjs <SPEC.md>   exit 0 iff Approved + un-drifted + well-shaped
+//   node pharn/floor/check-spec-approved.mjs <SPEC.md>   exit 0 iff Approved + un-drifted + well-shaped
 //                                                        (GREEN); exit 1 otherwise (Draft / drift /
 //                                                        malformed / unreadable), printing a clear RED.
 //
@@ -116,7 +116,7 @@ function gate(specPath) {
 function main() {
   const specPath = process.argv[2];
   if (!specPath) {
-    console.log("RED — usage: node .dev/floor/check-spec-approved.mjs <SPEC.md>");
+    console.log("RED — usage: node pharn/floor/check-spec-approved.mjs <SPEC.md>");
     return 1;
   }
   return gate(specPath);

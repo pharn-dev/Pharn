@@ -1,4 +1,4 @@
-// .dev/floor/merge-findings.test.mjs — hermetic tests for the deterministic lens-findings merge.
+// pharn/floor/merge-findings.test.mjs — hermetic tests for the deterministic lens-findings merge.
 //
 // NO network, NO git, NO claude -p. We compose findings.json arrays in an os.tmpdir() scratch dir and
 // assert the public surface (exit code + stdout JSON + the written out.json bytes) by subprocess,

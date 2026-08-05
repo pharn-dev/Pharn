@@ -1,4 +1,4 @@
-// .dev/floor/scan-code-resource-leak.test.mjs — hermetic tests for the deterministic UNCLOSED-RESOURCE scanner.
+// pharn/floor/scan-code-resource-leak.test.mjs — hermetic tests for the deterministic UNCLOSED-RESOURCE scanner.
 //
 // NO `claude -p`, NO git, NO network. Each test writes a small code file in an os.tmpdir() scratch dir and
 // asserts the public surface (exit code + stdout JSON) by subprocess — mirroring scan-code-null-deref.test.mjs.

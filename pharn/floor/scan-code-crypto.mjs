@@ -1,7 +1,7 @@
 #!/usr/bin/env node
-// .dev/floor/scan-code-crypto.mjs — deterministic WEAK-CRYPTO-PRIMITIVE scanner over a CODE file (CONSTITUTION P0/P5).
+// pharn/floor/scan-code-crypto.mjs — deterministic WEAK-CRYPTO-PRIMITIVE scanner over a CODE file (CONSTITUTION P0/P5).
 //
-// The crypto twin of .dev/floor/scan-code-secrets.mjs / scan-code-injection.mjs. Where those scanners back
+// The crypto twin of pharn/floor/scan-code-secrets.mjs / scan-code-injection.mjs. Where those scanners back
 // the `secrets-in-code` / `injection` LENSes' FLOOR sub-checks, this one backs the `insecure-crypto` LENS's
 // FLOOR sub-check (pharn-review/insecure-crypto/): does a line NAME a known-weak crypto primitive — a broken
 // hash (MD5 / SHA-1) in a hashing API, a broken cipher (DES/3DES/RC4, or Node's deprecated no-IV createCipher)
@@ -33,10 +33,10 @@
 // A multi-file / directory sweep is a FUTURE increment (P7 — not built speculatively); the lens applies this
 // scanner per file today.
 //
-// Non-LLM, stdlib-only, fail-closed. MIRRORS the fail-closed contract of .dev/floor/scan-code-secrets.mjs:
+// Non-LLM, stdlib-only, fail-closed. MIRRORS the fail-closed contract of pharn/floor/scan-code-secrets.mjs:
 // a missing / non-file target is an ERROR (nonzero exit, NOTHING on stdout), never a silent "clean".
 //
-// Usage:  node .dev/floor/scan-code-crypto.mjs <code-file>
+// Usage:  node pharn/floor/scan-code-crypto.mjs <code-file>
 // Output: {"found":<bool>,"hits":[{"line":<int>,"kind":"<pattern-kind>"},...]} on stdout; exit 0 on a
 //         successful scan (whatever the result). `found` === (hits.length > 0); hits sorted by line, then kind.
 //         Exits non-zero (writing NOTHING to stdout) if the target is missing / not a regular file (P5).

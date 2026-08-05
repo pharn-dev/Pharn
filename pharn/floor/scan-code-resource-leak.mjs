@@ -1,7 +1,7 @@
 #!/usr/bin/env node
-// .dev/floor/scan-code-resource-leak.mjs — deterministic UNCLOSED-RESOURCE scanner over a CODE file (CONSTITUTION P0/P5).
+// pharn/floor/scan-code-resource-leak.mjs — deterministic UNCLOSED-RESOURCE scanner over a CODE file (CONSTITUTION P0/P5).
 //
-// A sibling of .dev/floor/scan-code-null-deref.mjs / scan-code-swallowed-exception.mjs in the scan-code-* family.
+// A sibling of pharn/floor/scan-code-null-deref.mjs / scan-code-swallowed-exception.mjs in the scan-code-* family.
 // Where those back the null-deref / swallowed-exception LENSes' FLOOR sub-checks, this one backs the
 // `resource-leak` LENS's FLOOR sub-check (pharn-review/resource-leak/): a resource BOUND from a known
 // open/connect/stream acquisition API whose binding is never cleaned up — no close call on the binding, not a
@@ -79,7 +79,7 @@
 // Non-LLM, stdlib-only, fail-closed. MIRRORS the fail-closed contract of the sibling scanners: a missing /
 // non-file target is an ERROR (nonzero exit, NOTHING on stdout), never a silent "clean".
 //
-// Usage:  node .dev/floor/scan-code-resource-leak.mjs <code-file>
+// Usage:  node pharn/floor/scan-code-resource-leak.mjs <code-file>
 // Output: {"found":<bool>,"hits":[{"line":<int>,"kind":"unclosed-resource"},...]} on stdout; exit 0 on a
 //         successful scan (whatever the result). `found` === (hits.length > 0); hits sorted by line. `line` is the
 //         BINDING (acquisition) line — the fix site where a close / finally / using belongs — never a comment line.
