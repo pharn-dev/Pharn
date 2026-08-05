@@ -12,13 +12,14 @@ reads:
     "pharn/ARCHITECTURE.md",
     "THREAT-MODEL.md",
     "LIMITS.md",
+    "docs/lessons-index.md",
     ".dev/memory-bank/lessons-learned.md",
     "pharn/floor/check-plan-lessons.mjs",
     "<target repo>",
   ]
 writes: [".dev/features/<name>/PLAN.md"]
 constitution_refs: ["P0", "P1", "P3", "P5", "P6", "P7"]
-version: "0.2.0"
+version: "0.3.0"
 ---
 
 # /pharn-dev-plan — plan one increment of PHARN
@@ -53,13 +54,37 @@ chosen by a model. If a later write is blocked with the `writes-scope guard` mes
    nothing has been read this run, you may not claim anything about its state.
 3. Compute and record the **content-hash of `pharn/ARCHITECTURE.md`** (the spec this plan is built
    against): `node -e "console.log(require('crypto').createHash('sha256').update(require('fs').readFileSync('pharn/ARCHITECTURE.md')).digest('hex'))"`. This pins the spec by content, not by name (fix #4). `/pharn-dev-build` will refuse if the hash has drifted.
-4. **Lessons sweep (mandatory — the `applied_lessons` input).** Read
-   `.dev/memory-bank/lessons-learned.md` **in full** (it is small by design). For each lesson, decide
-   whether it bears on **this** increment. Carry the applicable ids into the plan's `applied_lessons`
-   field (Step 3) and give each cited id **one line in the plan body saying HOW it was applied**. If
-   none apply, the field is the explicit value `none` plus a one-line note saying why — **omission is
-   not the escape** (the floor rejects an absent field; see Step 4). Reading the lessons and judging
-   relevance is **model work and advisory**; only the DECLARATION's shape is floor-checked.
+4. **Lessons sweep (mandatory — the `applied_lessons` input). Two steps: SELECT from the index, then
+   READ the full entries from canon.**
+   1. **Select candidates** from `docs/lessons-index.md` — the generated one-line-per-lesson index
+      (`id | type | concepts | title | promoted | ~tokens`). Scan it and pick every lesson that might
+      bear on **this** increment. Selecting generously here is cheap and correct; the cost lands in
+      step (ii).
+   2. **Read the FULL `## L<n>` entry from `.dev/memory-bank/lessons-learned.md` for every candidate**
+      — canon, not the index — **before** deciding anything. This is not optional and not
+      substitutable: the declaration owes **one line per cited id saying HOW it was applied**, which a
+      title cannot support. A lesson you did not read in full is a lesson you may not cite.
+
+   Then — this applies to the sweep as a WHOLE, not to step (ii) alone — carry the applicable ids into
+   the plan's `applied_lessons` field (Step 3), one body line each. If none apply, the field is the
+   explicit value `none` plus a one-line note saying why — **omission is not the escape** (the floor
+   rejects an absent field; see Step 4). Reading the lessons and judging relevance is **model work and
+   advisory**; only the DECLARATION's shape is floor-checked.
+
+   > **What the index does and does not buy (P0).** It is an **addressability** layer, not a
+   > substitute for canon and not a load-reduction guarantee. **"The index was consulted" NEVER means
+   > "the relevant lessons were read"** — that conflation is the disease. The index is a **derived**
+   > artifact: `npm run check` guarantees only that its bytes match canon
+   > (`.dev/floor/check-lessons-index.mjs` — byte-equality, i.e. consistency, **not** correctness), and
+   > `type` / `concepts` are model-drafted values a human ratified at the promote gate, so **"typed
+   > `floor`" never means "about the floor"** — selecting on them is advisory context selection. The
+   > floor still verifies your declaration against **canon itself**
+   > (`pharn/floor/check-plan-lessons.mjs`, Step 4), never against this index. If the index is stale or
+   > absent, fall back to reading canon in full and say so — never plan from the index alone.
+   > A `?` in the `type`/`concepts` column means a canon tag line **failed its gate** — read that
+   > entry in canon and flag it for a human; it is not a normal state. A `-` is the pre-#114 legacy
+   > shape: expected, benign, and says nothing about the lesson's relevance.
+
 5. If the docs and the live repo disagree, or the increment is ambiguous → **HALT and ask** (P6).
    Do not guess. When you ask, present the open questions as an **interactive multiple-choice form**
    (use the `AskQuestion` tool, one entry per question, each with the candidate answers as selectable
@@ -159,6 +184,21 @@ through an **interactive form**, then end your turn:
 2. **Final approval question.** End by asking one explicit `AskQuestion` form: **"Do you accept this
    plan?"** with selectable options (e.g. _Approve as written_ / _Approve with changes_ / _Reject_).
    Wait for the answer.
+
+### Format this stage's own artifact (ADVISORY — `.dev/memory-bank/lessons-learned.md` L13)
+
+Immediately after writing it, and **before** ending the turn:
+
+```bash
+npx prettier --ignore-unknown --write .dev/features/<name>/PLAN.md
+npx markdownlint-cli2 --fix .dev/features/<name>/PLAN.md
+```
+
+Scoped to **this stage's own artifact** — never a repo-wide formatter, whose writes escape the fix #7
+scope through Bash (`.dev/memory-bank/lessons-learned.md` **L19**, cited not restated — P4).
+`--ignore-unknown` keeps a non-prettier path from erroring the step. **ADVISORY** (P0): running a formatter is orchestration, not a
+floor op; it never blocks, and the deterministic style gate remains `/pharn-dev-verify`'s
+`check-verify.mjs` gate map (L9).
 
 Surface the open questions and wait for the human to approve or correct. Building is `/pharn-dev-build`'s job,
 and only after this plan is approved.

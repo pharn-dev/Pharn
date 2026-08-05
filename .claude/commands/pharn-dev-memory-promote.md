@@ -229,6 +229,26 @@ floor checked `type` / `concepts` at Step 3, on the CANDIDATE; nothing re-checks
 re-typing it by hand here would drop the entry outside everything the floor verified. Copy the values
 through verbatim.
 
+### Format this stage's own artifact (ADVISORY — `.dev/memory-bank/lessons-learned.md` L13)
+
+Immediately after writing it, and **before** ending the turn:
+
+```bash
+npx prettier --ignore-unknown --check <canon-file>
+npx markdownlint-cli2 <canon-file>
+```
+
+Scoped to **this stage's own artifact** — `<canon-file>` is the one path Step 0 pinned. **Check-only**
+(never `--write` / `--fix`): on a failure, fix **by hand** only the lines Step 6 just appended — through
+the Write tool, which the fix #7 hook gates and Step 0 pinned to exactly this file — and re-run the check;
+**never** re-run with `--write`/`--fix`. Every other stage's L13 step targets a **fresh per-feature file**;
+promote's target is the **shared, historical, provenance-carrying canon** — an auto-fixer invoked through
+Bash over it is the `.dev/memory-bank/lessons-learned.md` **L19** class aimed at the fail-closed zone,
+with a within-file blast radius on entries this run never touched (cited, not restated — P4).
+`--ignore-unknown` keeps a non-prettier path from erroring the step. **ADVISORY** (P0): running a
+formatter check is orchestration, not a floor op; it never blocks, and the deterministic style gate remains
+`/pharn-dev-verify`'s `check-verify.mjs` gate map (L9).
+
 Then **end your turn.** `/pharn-dev-memory-promote` does one thing: it lands **one** vetted, provenance-carrying entry.
 It does not chain to another stage.
 

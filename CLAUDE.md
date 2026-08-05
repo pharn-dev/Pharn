@@ -119,6 +119,13 @@ node .dev/floor/check-provenance.mjs <candidate.json> <canon-file.md>
 # ran under that model (the platform applies model/effort; that binding is advisory). Exits non-zero on RED.
 node .dev/floor/check-config.mjs [validate | resolve <stage> | agreement]
 
+# Regenerate / drift-check the derived one-line index over .dev/memory-bank/lessons-learned.md.
+# Both are folded into `npm run docs:generate` / `npm run docs:check` (the latter inside `npm run check`),
+# so promoting a lesson without regenerating is a loud RED. FLOOR: byte-equality (committed == recomputed)
+# — consistency, NOT that the index is true, and NEVER that anyone read a lesson. Exits non-zero on RED.
+node .dev/floor/gen-lessons-index.mjs [target-dir]
+node .dev/floor/check-lessons-index.mjs [target-dir]
+
 # Self-test the write-guard hook:
 echo '{"tool_name":"Edit","tool_input":{"file_path":"pharn/CONSTITUTION.md"}}' | node .claude/hooks/protect-trusted-paths.cjs   # → exit 2, denied
 echo '{"tool_name":"Write","tool_input":{"file_path":"pharn/pharn-core/rules/x.md"}}' | node .claude/hooks/protect-trusted-paths.cjs  # → exit 0, allowed
@@ -243,15 +250,41 @@ framework-specific`), via the first-match-wins procedure in `pharn/ARCHITECTURE.
   any resolution chain is **ask the human**, never a guess.
 - `seal: "PHARN ✓ reviewed"` only on `kind: pharn-owned`. Community capabilities are markdown-only and
   cannot declare trusted-write or off-allowlist egress.
-- **Two doc regions are GENERATED — never hand-edit them.** `docs/capabilities/**`, and the root
+- **Three doc regions are GENERATED — never hand-edit them.** (1) `docs/capabilities/**`, (2) the root
   `README.md` `## Current state` inventory between its `<!-- CURRENT-STATE:BEGIN -->` /
   `<!-- CURRENT-STATE:END -->` markers (the marker lines are themselves inside the guarded region, so
-  editing one is drift). Both are rendered by `.dev/floor/capability-catalog-core.mjs` and regenerated
-  with **`npm run docs:generate`**; `npm run docs:check` (in `npm run check` and as its own CI step)
-  RED-fails on any byte difference. Change a capability, contract, command, hook, or floor checker →
-  **regenerate and commit** rather than editing the rendered text. The guarantee is byte-equality
-  (committed == recomputed), **not** truth: a wrong enumerator regenerates cleanly and stays GREEN, and
-  README prose **outside** the markers is hand-written, advisory, and entirely unguarded.
+  editing one is drift), and (3) `docs/lessons-index.md`, the derived one-line index over
+  `.dev/memory-bank/lessons-learned.md`. The first two are rendered by
+  `.dev/floor/capability-catalog-core.mjs`, the third by `.dev/floor/lessons-index-core.mjs`; **all three**
+  are regenerated with **`npm run docs:generate`** and guarded by **`npm run docs:check`** (in
+  `npm run check`, and in CI — where a ✧ test in `.dev/floor/lessons-index-core.test.mjs` pins **that
+  `ci.yml` invokes `npm run docs:check` and that the step is not disabled by its `if:`**, so the guard
+  cannot be removed or switched off unnoticed; the step's NAME is deliberately not cited here, because
+  the test does not pin it), which RED-fails on any byte difference. Change a capability, contract, command, hook, or floor checker —
+  **or promote a lesson to canon** — → **regenerate and commit** rather than editing the rendered text.
+  The guarantee is byte-equality (committed == recomputed), **not** truth: a wrong enumerator regenerates
+  cleanly and stays GREEN, and README prose **outside** the markers is hand-written, advisory, and
+  entirely unguarded. All three generated regions are excluded from prettier + markdownlint so a
+  formatter can never induce false drift.
+  - **Both `docs:*` scripts are `&&`-chained, so a first RED short-circuits the rest.** One run reports
+    the first failing region only; re-run after fixing. This is deliberate — the portable alternative
+    would be the repo's first `sh`-only script (`.dev/memory-bank/lessons-learned.md` L16: a remedy can
+    itself be a portability trap) — and it costs little, because `npm run docs:generate` regenerates
+    **all** regions, so the remedy is the same command either way.
+  - **The one exception where regenerating does NOT help:** an `ENUM_ERROR` (a duplicate lesson id, an
+    unsafe title, unreadable canon). The generator refuses on the same invalid input, so the checker says
+    so explicitly and names the canon file instead of prescribing a regenerate that cannot succeed.
+- **The lessons index is an ADDRESS BOOK, never a substitute for canon.** `/pharn-dev-plan`'s mandatory
+  lessons sweep now runs in two steps: **select** candidates from `docs/lessons-index.md`, then **read
+  each candidate's full `## L<n>` entry from `.dev/memory-bank/lessons-learned.md`** before declaring
+  `applied_lessons`. **"The index was consulted" NEVER means "the relevant lessons were read."**
+  `pharn/floor/check-plan-lessons.mjs` is unchanged and still verifies the declaration against **canon**,
+  never against the index. The index's `type` / `concepts` columns are model-drafted values a human
+  ratified at the promote gate, so **"typed `floor`" never means "about the floor"** — selecting on them
+  is advisory context selection. A `-` means no tag line (the pre-#114 legacy shape — expected, benign);
+  a `?` means a tag line is present but **failed its gate** — read that entry in canon and flag it. The
+  **product** `/pharn-plan` is deliberately unchanged (it reads the target repo's own memory-bank, and a
+  user's repo has no index generator) — follow-up: `product-lessons-index`.
 
 ## Why it's shaped this way: the experiment agenda
 

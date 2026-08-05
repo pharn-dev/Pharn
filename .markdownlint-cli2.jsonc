@@ -19,6 +19,11 @@
     // .dev/floor/check-capability-catalog.mjs). Excluded so linting can never rewrite committed bytes
     // and make the drift checker see false drift.
     "docs/capabilities",
+    // Generated lessons index (byte-for-byte output of `npm run docs:generate`, guarded by
+    // .dev/floor/check-lessons-index.mjs). Excluded for the same reason as the catalog: linting must never
+    // rewrite committed bytes and make the drift checker see false drift. L11 sharpens it — these gates are
+    // whole-repo, so one stale byte here would block EVERY later feature's /pharn-dev-verify.
+    "docs/lessons-index.md",
   ],
   "config": {
     "default": true,

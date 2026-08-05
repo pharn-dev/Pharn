@@ -70,10 +70,43 @@ After writing the plan's `## Files`, make them style-conformant **before** the f
 a **build** step rather than a `/pharn-dev-verify` surprise (`.dev/memory-bank/lessons-learned.md` L9 —
 cite, don't restate, P4):
 
-- Run the project formatter over the just-written files — `npm run format` (prettier `--write`) — and
-  `npx markdownlint-cli2 --fix` on any written `.md`.
+**Format EXACTLY the paths this build was scoped to — never the whole repo** (`lessons-learned.md` L19):
+
+```bash
+SCOPE=.pharn/writes-scope.json
+if [ ! -r "$SCOPE" ]; then
+  echo "Step 2b: $SCOPE not readable — skipping the format pass (ADVISORY step; it never blocks)"
+else
+  # ALL scoped paths -> prettier. `--ignore-unknown` is REQUIRED, not decorative: without it prettier
+  # exits 1 on an extension-less path (e.g. a plan that declares `SKILLS_VERSION`). `.prettierignore`
+  # IS honored for explicitly-named paths, so generated artifacts stay protected.
+  node -p "require('./$SCOPE').scope.join('\n')" | xargs npx prettier --ignore-unknown --write
+  # The .md SUBSET -> markdownlint. The explicit non-empty test is LOAD-BEARING (L16): with an empty
+  # list, GNU xargs runs the command ONCE WITH NO ARGUMENTS — and a bare `markdownlint-cli2 --fix`
+  # lints and FIXES the whole repo, re-creating the exact defect this step exists to remove. BSD xargs
+  # does not run it. Depend on neither dialect.
+  MD=$(node -p "require('./$SCOPE').scope.filter(p=>p.endsWith('.md')).join('\n')")
+  [ -n "$MD" ] && printf '%s\n' "$MD" | xargs npx markdownlint-cli2 --fix
+fi
+```
+
+- The path list is read from `.pharn/writes-scope.json` — the list Step 0's setter already parsed
+  **deterministically** (P5) — never a fresh model reading of the plan. **Say how many paths you
+  formatted**: `.pharn/` is gitignored runtime state that other stages re-set, so a surprising count is
+  how a stale scope becomes visible instead of silent.
 - Confirm `npm run format:check`, `npm run lint:md`, and `npm run lint` are clean. Resolve any residual
   prettier↔markdownlint conflict (e.g. an indented fenced code block inside a list item) **by hand**.
+
+<!-- COMMAND-HYGIENE:SKIP-BEGIN — historical note. The commands quoted below are the REJECTED form, recorded so the reason survives; they are not prescribed. .dev/floor/command-hygiene.test.mjs skips this region. -->
+
+> **Why not `npm run format`, which this step prescribed until now.** That script is `prettier --write .`
+> — the **whole repo** — so the step's own "just-written files" wording was false, and every build
+> silently rewrote files no plan had declared. Those writes escape the fix #7 writes-scope entirely,
+> because the pre-write hook gates `Write|Edit|MultiEdit` and a formatter runs through **Bash**. Observed
+> live (it reformatted `.dev/floor/check-lessons-index.mjs` during an unrelated increment) and promoted
+> as `.dev/memory-bank/lessons-learned.md` **L19**.
+
+<!-- COMMAND-HYGIENE:SKIP-END -->
 
 This step is **ADVISORY** (P0): running a formatter is orchestration, **not** a floor guarantee — the
 floor gate remains `validate.mjs` (Step 3), and the deterministic style gate remains `/pharn-dev-verify`'s

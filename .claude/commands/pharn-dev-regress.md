@@ -170,6 +170,21 @@ breakage outside the feature` or `REGRESSIONS: N outside the feature — stage F
    honest residual line (catches what the suite catches, nothing more). **Never** write "regress passed"
    as if it certified the feature whole — it certifies only the comparison (P0).
 
+### Format this stage's own artifact (ADVISORY — `.dev/memory-bank/lessons-learned.md` L13)
+
+Immediately after writing it, and **before** ending the turn:
+
+```bash
+npx prettier --ignore-unknown --write .dev/features/<name>/REGRESSION.md
+npx markdownlint-cli2 --fix .dev/features/<name>/REGRESSION.md
+```
+
+Scoped to **this stage's own artifact** — never a repo-wide formatter, whose writes escape the fix #7
+scope through Bash (`.dev/memory-bank/lessons-learned.md` **L19**, cited not restated — P4).
+`--ignore-unknown` keeps a non-prettier path from erroring the step. **ADVISORY** (P0): running a formatter is orchestration, not a
+floor op; it never blocks, and the deterministic style gate remains `/pharn-dev-verify`'s
+`check-verify.mjs` gate map (L9) — and the machine report `regression-report.json` is deliberately **NOT** formatted, because Step 4 requires it to stay the helper's `verdict` JSON **verbatim**.
+
 Then **end your turn.** `/pharn-dev-regress` does **not** invoke `/pharn-dev-verify` and does not gate it — the human reads
 the report and the verdict's exit code decides the stage.
 
