@@ -7,15 +7,15 @@ Chain: `/pharn-dev-plan → [GATE 1 approved] → /pharn-dev-grill → /pharn-de
 
 ## Stages run, in order
 
-| stage                | outcome                                        |
-| -------------------- | ---------------------------------------------- |
-| `/pharn-dev-plan`    | `PLAN.md` written; halted at GATE 1            |
-| GATE 1 (human)       | **approved as written**                        |
+| stage                | outcome                                          |
+| -------------------- | ------------------------------------------------ |
+| `/pharn-dev-plan`    | `PLAN.md` written; halted at GATE 1              |
+| GATE 1 (human)       | **approved as written**                          |
 | `/pharn-dev-grill`   | `GRILL.md` — 5 concerns, advisory, gates nothing |
-| `/pharn-dev-build`   | 8 files written; floor GREEN                   |
-| `/pharn-dev-regress` | `no-regressions`                               |
-| `/pharn-dev-verify`  | `PASS`                                         |
-| `/pharn-dev-review`  | `REVIEW.md` — 0 blocking, 3 advisory           |
+| `/pharn-dev-build`   | 8 files written; floor GREEN                     |
+| `/pharn-dev-regress` | `no-regressions`                                 |
+| `/pharn-dev-verify`  | `PASS`                                           |
+| `/pharn-dev-review`  | `REVIEW.md` — 0 blocking, 3 advisory             |
 
 ## Structural verdicts read, verbatim
 

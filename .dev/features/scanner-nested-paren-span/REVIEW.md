@@ -36,7 +36,7 @@ review with a green floor, as required. Everything below is **advisory**.
 
 ## Advisory findings (inform — never the sole basis for blocking)
 
-### A-1 — the increment measurably enlarged the false-positive surface *inside this repo*
+### A-1 — the increment measurably enlarged the false-positive surface _inside this repo_
 
 ```yaml
 - type: FINDING
@@ -49,11 +49,11 @@ review with a green floor, as required. Everything below is **advisory**.
 
 **Measured this run**, self-scan hit counts before → after:
 
-| scanner          | before   | after       |
-| ---------------- | -------- | ----------- |
-| `injection`      | clean    | **2 hits**  |
-| `path-traversal` | 3 hits   | **10 hits** |
-| `ssrf`           | 2 hits   | **6 hits**  |
+| scanner          | before | after       |
+| ---------------- | ------ | ----------- |
+| `injection`      | clean  | **2 hits**  |
+| `path-traversal` | 3 hits | **10 hits** |
+| `ssrf`           | 2 hits | **6 hits**  |
 
 Two causes compound: the widened span reaches sources after a nested call **in comment text too**, and
 the new headers deliberately contain more worked examples than the old ones. This is the
