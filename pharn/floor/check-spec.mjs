@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// .dev/floor/check-spec.mjs — the deterministic SPEC.md SHAPE + STATE + APPROVED-PIN checker for /pharn-spec.
+// pharn/floor/check-spec.mjs — the deterministic SPEC.md SHAPE + STATE + APPROVED-PIN checker for /pharn-spec.
 //
 // Floor primitives (ARCHITECTURE §2): #3 (enum / presence) for required-section presence, the state enum, and
 // spec_id presence; #2 (content-hash) for the approved-intent pin. It is the floor reduction of ARCHITECTURE
@@ -22,8 +22,8 @@
 // NEVER over the intent's meaning. No guaranteed decision rests on the free-text intent (mirrors fix #1).
 //
 // Usage:
-//   node .dev/floor/check-spec.mjs <SPEC.md>           validate → exit 1 on any RED (prints each), else 0 + GREEN
-//   node .dev/floor/check-spec.mjs --hash <SPEC.md>    print sha256(body) to stdout — the value /pharn-spec pins
+//   node pharn/floor/check-spec.mjs <SPEC.md>           validate → exit 1 on any RED (prints each), else 0 + GREEN
+//   node pharn/floor/check-spec.mjs --hash <SPEC.md>    print sha256(body) to stdout — the value /pharn-spec pins
 //                                                      into spec_content_hash on approval. SINGLE source of
 //                                                      body-extraction, so the pin and the validate-time
 //                                                      recompute can never disagree.
@@ -165,13 +165,13 @@ function main() {
   const args = process.argv.slice(2);
   if (args[0] === "--hash") {
     if (!args[1]) {
-      console.error("check-spec: usage: node .dev/floor/check-spec.mjs --hash <SPEC.md>");
+      console.error("check-spec: usage: node pharn/floor/check-spec.mjs --hash <SPEC.md>");
       return 1;
     }
     return emitHash(args[1]);
   }
   if (!args[0]) {
-    console.log("RED — usage: node .dev/floor/check-spec.mjs <SPEC.md>  (or --hash <SPEC.md>)");
+    console.log("RED — usage: node pharn/floor/check-spec.mjs <SPEC.md>  (or --hash <SPEC.md>)");
     return 1;
   }
   return validate(args[0]);

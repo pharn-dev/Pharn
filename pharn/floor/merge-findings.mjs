@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// .dev/floor/merge-findings.mjs — deterministic merge + dedup of per-lens findings.json (CONSTITUTION P0/P2/P5).
+// pharn/floor/merge-findings.mjs — deterministic merge + dedup of per-lens findings.json (CONSTITUTION P0/P2/P5).
 //
 // PURPOSE. A parallel /pharn-review spawns one subagent per lens; each emits its own findings.json
 // (the JSON array defined by pharn-contracts/finding-shape.md §Emission). This helper ASSEMBLES those
@@ -39,7 +39,7 @@
 // from sources[0] after sort, and the emitted rule_id is the lexicographic-min trimmed original in the
 // group. Merged severity = MAX over {blocking>important>minor} (an ordered-enum reduce, not judgment).
 //
-// Usage:   node .dev/floor/merge-findings.mjs <out.json> [<in1.json> <in2.json> ...]
+// Usage:   node pharn/floor/merge-findings.mjs <out.json> [<in1.json> <in2.json> ...]
 //   - <out.json> required; zero inputs is legal → writes the empty array [].
 //   - Each input is read as a finding-shape findings.json (a JSON ARRAY). The input's SOURCE lens id is
 //     derived deterministically from its path (parent dir name — the emission convention

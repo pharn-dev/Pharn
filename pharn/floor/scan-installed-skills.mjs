@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// .dev/floor/scan-installed-skills.mjs — deterministic enumerator of USER-installed Claude Code skills.
+// pharn/floor/scan-installed-skills.mjs — deterministic enumerator of USER-installed Claude Code skills.
 //
 // Answers ONE structural question for the product stages /pharn-build, /pharn-grill, /pharn-review:
 // which skills has the user installed into THIS repo? A Claude Code project skill lives at
@@ -36,7 +36,7 @@
 //
 // Non-LLM, stdlib-only, deterministic (sorted output).
 //
-// Usage:  node .dev/floor/scan-installed-skills.mjs [targetDir]      (default: cwd)
+// Usage:  node pharn/floor/scan-installed-skills.mjs [targetDir]      (default: cwd)
 // Output: {"count":<int>,"skills":[{"name":"<dir>","path":".claude/skills/<dir>/SKILL.md"},...]} on
 //         stdout, sorted by name; exit 0. Exits 1 (writing NOTHING to stdout) only if targetDir itself is
 //         missing / not a directory.

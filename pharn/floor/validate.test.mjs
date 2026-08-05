@@ -1,4 +1,4 @@
-// .dev/floor/validate.test.mjs — black-box tests for the deterministic floor validator.
+// pharn/floor/validate.test.mjs — black-box tests for the deterministic floor validator.
 //
 // Run as a subprocess so validate.mjs keeps its dependency-free, top-level-exec contract:
 // we only assert on its public surface (exit code + canonical stdout report).

@@ -1,4 +1,4 @@
-// .dev/floor/check-plan-spec-agree.test.mjs — black-box tests for the deterministic spec→plan HASH-CHAIN
+// pharn/floor/check-plan-spec-agree.test.mjs — black-box tests for the deterministic spec→plan HASH-CHAIN
 // re-verification (the floor half of /pharn-grill).
 //
 // Run as a subprocess (mirrors check-spec-approved.test.mjs / check-spec.test.mjs) so the checker keeps its

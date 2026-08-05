@@ -1,7 +1,7 @@
 #!/usr/bin/env node
-// .dev/floor/scan-code-missing-timeout.mjs — deterministic NO-TIMEOUT network/db-call scanner over a CODE file (CONSTITUTION P0/P5).
+// pharn/floor/scan-code-missing-timeout.mjs — deterministic NO-TIMEOUT network/db-call scanner over a CODE file (CONSTITUTION P0/P5).
 //
-// A sibling of .dev/floor/scan-code-resource-leak.mjs / scan-code-off-by-one.mjs in the scan-code-* family. Where
+// A sibling of pharn/floor/scan-code-resource-leak.mjs / scan-code-off-by-one.mjs in the scan-code-* family. Where
 // resource-leak backs the resource-leak LENS's FLOOR sub-check, this one backs the `missing-timeout` LENS's FLOOR
 // sub-check (pharn-review/missing-timeout/): a call to a KNOWN network/db API whose OWN argument span carries no
 // timeout indicator. Detection is a FIXED, non-LLM procedure: a comment/string MASK, a call-head regex over a FIXED
@@ -74,7 +74,7 @@
 // Non-LLM, stdlib-only, fail-closed. MIRRORS the fail-closed contract of the sibling scanners: a missing / non-file
 // target is an ERROR (nonzero exit, NOTHING on stdout), never a silent "clean".
 //
-// Usage:  node .dev/floor/scan-code-missing-timeout.mjs <code-file>
+// Usage:  node pharn/floor/scan-code-missing-timeout.mjs <code-file>
 // Output: {"found":<bool>,"hits":[{"line":<int>,"kind":"missing-timeout"},...]} on stdout; exit 0 on a successful
 //         scan (whatever the result). `found` === (hits.length > 0); hits sorted by line. `line` is the CALL line —
 //         the fix site where a timeout / signal / abort belongs — never a comment line. Exits non-zero (writing

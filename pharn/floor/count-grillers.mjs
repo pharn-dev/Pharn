@@ -1,14 +1,14 @@
 #!/usr/bin/env node
-// .dev/floor/count-grillers.mjs — deterministic griller-MEMBERSHIP counter (CONSTITUTION P0/P5).
+// pharn/floor/count-grillers.mjs — deterministic griller-MEMBERSHIP counter (CONSTITUTION P0/P5).
 //
 // Answers ONE structural question for the grill stage's griller slot: which capabilities DECLARE
 // `role: griller`? Membership is read ONLY from the `---`-fenced YAML frontmatter — never a substring
 // grep over file contents. A `role: griller` string in PROSE or a fenced code block is DATA *about*
 // grillers, not a declaration *of* one (the enum-gated / free-text split of ARCHITECTURE §8 / fix #1,
-// applied to membership detection). This is the griller parallel of `.dev/floor/count-verifiers.mjs`
+// applied to membership detection). This is the griller parallel of `pharn/floor/count-verifiers.mjs`
 // at the grill stage, exactly as verifiers are to /verify.
 //
-// It MIRRORS .dev/floor/count-verifiers.mjs (the established membership-counter precedent,
+// It MIRRORS pharn/floor/count-verifiers.mjs (the established membership-counter precedent,
 // verifier-membership-frontmatter) — the same `walk` + EXCLUDE_SEGMENTS capability surface AND the same
 // `frontmatterRole` fence/line algorithm (itself mirroring validate.mjs `parseFrontmatter`) — so it
 // counts EXACTLY the files validate.mjs treats as role-bearing capabilities, differing ONLY in the enum
@@ -22,7 +22,7 @@
 //
 // Non-LLM, stdlib-only, fail-closed.
 //
-// Usage:  node .dev/floor/count-grillers.mjs [targetDir]      (default: cwd)
+// Usage:  node pharn/floor/count-grillers.mjs [targetDir]      (default: cwd)
 // Output: {"registered":<int>,"grillers":[<repo-rel path>,...]} on stdout; exit 0 on success.
 //         Exits non-zero (writing NOTHING to stdout) if targetDir is missing / not a directory — never a
 //         silent 0 from looking in the wrong place (P5, fail-closed).
@@ -31,7 +31,7 @@ import { readFileSync, readdirSync, statSync, existsSync } from "node:fs";
 import { join, relative, sep } from "node:path";
 
 const TARGET = process.argv[2] || ".";
-// Same exclusions as .dev/floor/count-verifiers.mjs / validate.mjs: tooling (.claude/commands, .dev/) and
+// Same exclusions as pharn/floor/count-verifiers.mjs / validate.mjs: tooling (.claude/commands, .dev/) and
 // noise are NOT the capability surface, so a `role: griller` frontmatter there is not a built-PHARN griller.
 const EXCLUDE_SEGMENTS = [`${sep}.claude${sep}commands${sep}`, `${sep}.dev${sep}`, `${sep}node_modules${sep}`, `${sep}.git${sep}`];
 
@@ -45,7 +45,7 @@ if (!existsSync(TARGET) || !statSync(TARGET).isDirectory()) {
   fail(`target dir not found (or not a directory): ${TARGET}`);
 }
 
-// Recursive *.md collector — mirrors .dev/floor/count-verifiers.mjs `walk`.
+// Recursive *.md collector — mirrors pharn/floor/count-verifiers.mjs `walk`.
 function walk(dir, acc = []) {
   let entries;
   try {
@@ -67,14 +67,14 @@ function walk(dir, acc = []) {
   return acc;
 }
 
-// Mirrors .dev/floor/count-verifiers.mjs `isExcluded` — the same EXCLUDE_SEGMENTS surface.
+// Mirrors pharn/floor/count-verifiers.mjs `isExcluded` — the same EXCLUDE_SEGMENTS surface.
 function isExcluded(file) {
   const norm = sep + relative(TARGET, file);
   return EXCLUDE_SEGMENTS.some((seg) => norm.includes(seg));
 }
 
 // The `role:` value declared INSIDE a file's `---`-fenced YAML frontmatter, or null if there is none.
-// MIRRORS .dev/floor/count-verifiers.mjs `frontmatterRole` EXACTLY (which mirrors validate.mjs
+// MIRRORS pharn/floor/count-verifiers.mjs `frontmatterRole` EXACTLY (which mirrors validate.mjs
 // `parseFrontmatter`): the same opening fence (`startsWith("---")`), the same close (`indexOf("\n---", 3)`),
 // the same `slice(3, end).trim()` block, the same `^([A-Za-z0-9_]+):\s*(.*)$` line parse, and the same
 // `^["']|["']$` quote-strip. That byte-for-byte sameness is what makes membership agree with validate.mjs

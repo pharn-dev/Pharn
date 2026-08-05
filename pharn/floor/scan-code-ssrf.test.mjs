@@ -1,4 +1,4 @@
-// .dev/floor/scan-code-ssrf.test.mjs — hermetic tests for the deterministic CODE
+// pharn/floor/scan-code-ssrf.test.mjs — hermetic tests for the deterministic CODE
 // request-source-into-outbound-request-URL-sink scanner.
 //
 // NO `claude -p`, NO git, NO network. Each test writes a small code file in an os.tmpdir() scratch dir and

@@ -1,4 +1,4 @@
-// .dev/floor/scan-code-deserialization.test.mjs — hermetic tests for the deterministic CODE
+// pharn/floor/scan-code-deserialization.test.mjs — hermetic tests for the deterministic CODE
 // dangerous-deserialization / dynamic-code-eval sink-call scanner.
 //
 // NO `claude -p`, NO git, NO network. Each test writes a small code file in an os.tmpdir() scratch dir and

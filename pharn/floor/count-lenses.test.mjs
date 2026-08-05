@@ -1,4 +1,4 @@
-// .dev/floor/count-lenses.test.mjs — hermetic tests for the deterministic lens-membership counter.
+// pharn/floor/count-lenses.test.mjs — hermetic tests for the deterministic lens-membership counter.
 //
 // NO `claude -p`, NO git, NO network. Each test builds a small repo in an os.tmpdir() scratch dir and
 // asserts the public surface (exit code + stdout JSON) by subprocess — mirroring count-verifiers.test.mjs.

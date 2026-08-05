@@ -1,7 +1,7 @@
 #!/usr/bin/env node
-// .dev/floor/scan-code-n-plus-one.mjs — deterministic N+1 QUERY-IN-LOOP shape scanner over a CODE file (CONSTITUTION P0/P5).
+// pharn/floor/scan-code-n-plus-one.mjs — deterministic N+1 QUERY-IN-LOOP shape scanner over a CODE file (CONSTITUTION P0/P5).
 //
-// A sibling of .dev/floor/scan-code-off-by-one.mjs / scan-code-copy-paste-drift.mjs / scan-code-duplicated-logic.mjs in
+// A sibling of pharn/floor/scan-code-off-by-one.mjs / scan-code-copy-paste-drift.mjs / scan-code-duplicated-logic.mjs in
 // the scan-code-* family. It backs the `n-plus-one` LENS's FLOOR sub-check (pharn-review/n-plus-one/): does the file
 // contain the classic N+1 SHAPE — a DB query-verb member call lexically inside a LOOP BODY (e.g.
 // `for (const u of users) { db.findMany({ where: { authorId: u.id } }) }`, or a braceless `users.map(u => db.query(u))`)?
@@ -55,7 +55,7 @@
 // target is an ERROR (nonzero exit, NOTHING on stdout), never a silent "clean". A readable file with no query-in-loop
 // shape (empty, prose, or clean code) is a SUCCESSFUL scan → {"found":false,"hits":[]} on stdout, exit 0.
 //
-// Usage:  node .dev/floor/scan-code-n-plus-one.mjs <code-file>
+// Usage:  node pharn/floor/scan-code-n-plus-one.mjs <code-file>
 // Output: {"found":<bool>,"hits":[{"line":<int>,"expr":"<receiver.verb>"}]} on stdout; exit 0 on a successful scan
 //         (whatever the result). `line` = the 1-based ORIGINAL line where the query call begins; `expr` = the matched
 //         `<receiver>.<verb>` (CODE text — untrusted; the LENS renders it only in free-text evidence, never an enum-gated

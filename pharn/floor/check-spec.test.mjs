@@ -1,4 +1,4 @@
-// .dev/floor/check-spec.test.mjs — black-box tests for the deterministic SPEC.md shape / state / pin checker.
+// pharn/floor/check-spec.test.mjs — black-box tests for the deterministic SPEC.md shape / state / pin checker.
 //
 // Run as a subprocess (mirrors check-provenance.test.mjs / validate.test.mjs) so check-spec.mjs keeps its
 // dependency-free, top-level-exec contract: we assert only on its public surface (exit code + RED/GREEN

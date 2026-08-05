@@ -1,16 +1,16 @@
-// .dev/floor/lens-scanner-map.test.mjs — consistency guard for the explicit lens->scanner map.
+// pharn/floor/lens-scanner-map.test.mjs — consistency guard for the explicit lens->scanner map.
 //
 // UNLIKE the other floor tests (which are hermetic over scratch fixtures), this one validates the
-// COMMITTED artifact against REALITY: the live .dev/floor/ scanners on disk and the live `role: lens`
+// COMMITTED artifact against REALITY: the live pharn/floor/ scanners on disk and the live `role: lens`
 // membership from count-lenses.mjs. Its whole job is to make prose/map DRIFT a build failure (P7 — a
 // real, already-observed drift: two lenses' Layer-1 prose name scan-code-*.mjs files that do not exist).
 // It is deterministic (existence checks + set membership — ARCHITECTURE §2 primitive #3), no LLM.
 //
 // It asserts four things:
-//   1. every NON-null scanner value resolves to an existing .dev/floor/<file>;
+//   1. every NON-null scanner value resolves to an existing pharn/floor/<file>;
 //   2. every counted lens (count-lenses.mjs) is a KEY in the map — no lens left unscoped;
 //   3. every map KEY is a real counted lens — no phantom entry;
-//   4. no ORPHAN scanner — every .dev/floor/scan-code-*.mjs is wired to some lens (a scanner added but
+//   4. no ORPHAN scanner — every pharn/floor/scan-code-*.mjs is wired to some lens (a scanner added but
 //      never mapped is a silent gap).
 
 import { test } from "node:test";
@@ -20,7 +20,7 @@ import { fileURLToPath } from "node:url";
 import { dirname, join, basename } from "node:path";
 import { readFileSync, readdirSync, existsSync } from "node:fs";
 
-const here = dirname(fileURLToPath(import.meta.url)); // .dev/floor
+const here = dirname(fileURLToPath(import.meta.url)); // pharn/floor
 const REPO = join(here, "..", ".."); // repo root
 const MAP = JSON.parse(readFileSync(join(here, "lens-scanner-map.json"), "utf8"));
 
@@ -41,7 +41,7 @@ test("map parses and has a { scanners: {...} } object", () => {
   assert.ok(MAP.scanners && !Array.isArray(MAP.scanners));
 });
 
-test("1. every non-null scanner value resolves to an existing .dev/floor/ file", () => {
+test("1. every non-null scanner value resolves to an existing pharn/floor/ file", () => {
   for (const [lens, scanner] of Object.entries(MAP.scanners)) {
     if (scanner === null) continue;
     assert.equal(typeof scanner, "string", `${lens}: scanner must be a string or null`);

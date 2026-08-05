@@ -1,8 +1,8 @@
 #!/usr/bin/env node
-// .dev/floor/scan-code-deserialization.mjs — deterministic DANGEROUS-DESERIALIZATION / DYNAMIC-CODE-EVAL
+// pharn/floor/scan-code-deserialization.mjs — deterministic DANGEROUS-DESERIALIZATION / DYNAMIC-CODE-EVAL
 // sink-CALL scanner over a CODE file (CONSTITUTION P0/P5).
 //
-// The deserialization sibling of .dev/floor/scan-code-injection.mjs and .dev/floor/scan-code-secrets.mjs.
+// The deserialization sibling of pharn/floor/scan-code-injection.mjs and pharn/floor/scan-code-secrets.mjs.
 // It backs the `unsafe-deserialization` LENS's FLOOR sub-check (pharn-review/unsafe-deserialization/): does a
 // line contain a recognized DANGEROUS deserialization / dynamic-code-eval sink CALL —
 //   • code-eval:          eval( | new Function( | vm.runIn{This,New,}Context(   (dynamic code execution)
@@ -43,7 +43,7 @@
 // Non-LLM, stdlib-only, fail-closed. MIRRORS the fail-closed contract of scan-code-injection.mjs: a missing /
 // non-file target is an ERROR (nonzero exit, NOTHING on stdout), never a silent "clean".
 //
-// Usage:  node .dev/floor/scan-code-deserialization.mjs <code-file>
+// Usage:  node pharn/floor/scan-code-deserialization.mjs <code-file>
 // Output: {"found":<bool>,"hits":[{"line":<int>,"kind":"<pattern-kind>"},...]} on stdout; exit 0 on a
 //         successful scan (whatever the result). `found` === (hits.length > 0); hits sorted by line, then kind.
 //         Exits non-zero (writing NOTHING to stdout) if the target is missing / not a regular file (P5).

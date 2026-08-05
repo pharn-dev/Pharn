@@ -1,7 +1,7 @@
 #!/usr/bin/env node
-// .dev/floor/scan-code-missing-error-handling.mjs — deterministic UNGUARDED-RISKY-OP scanner over a CODE file (CONSTITUTION P0/P5).
+// pharn/floor/scan-code-missing-error-handling.mjs — deterministic UNGUARDED-RISKY-OP scanner over a CODE file (CONSTITUTION P0/P5).
 //
-// A sibling of .dev/floor/scan-code-swallowed-exception.mjs / scan-code-missing-await.mjs in the scan-code-* family.
+// A sibling of pharn/floor/scan-code-swallowed-exception.mjs / scan-code-missing-await.mjs in the scan-code-* family.
 // Where swallowed-exception brace-matches a CATCH body (does it swallow?), this scanner brace-matches the TRY body to
 // ask the opposite question for the `missing-error-handling` LENS (pharn-review/missing-error-handling/): is a RISKY
 // operation — an `await` expression, or a `JSON.parse(` call — sitting with NO error handling around it, i.e. NOT
@@ -65,7 +65,7 @@
 // target is an ERROR (nonzero exit, NOTHING on stdout), never a silent "clean". A readable file with no unguarded-risky
 // shape (empty, prose, or fully-guarded code) is a SUCCESSFUL scan → {"found":false,"hits":[]} on stdout, exit 0.
 //
-// Usage:  node .dev/floor/scan-code-missing-error-handling.mjs <code-file>
+// Usage:  node pharn/floor/scan-code-missing-error-handling.mjs <code-file>
 // Output: {"found":<bool>,"hits":[{"line":<int>,"kind":"unguarded-await|unguarded-json-parse"}]} on stdout; exit 0 on a
 //         successful scan (whatever the result). `line` = the 1-based ORIGINAL line of the risky op. Hits are DEDUPED by
 //         (line, kind) and sorted by line then kind. `found` === hits.length > 0. Exits non-zero (writing NOTHING to

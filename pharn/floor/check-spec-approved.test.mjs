@@ -1,4 +1,4 @@
-// .dev/floor/check-spec-approved.test.mjs — black-box tests for the deterministic Approved-input GATE.
+// pharn/floor/check-spec-approved.test.mjs — black-box tests for the deterministic Approved-input GATE.
 //
 // Run as a subprocess (mirrors check-spec.test.mjs / check-provenance.test.mjs) so the checker keeps
 // its dependency-free, top-level-exec contract: we assert only on its public surface (exit code +

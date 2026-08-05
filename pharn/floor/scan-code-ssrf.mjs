@@ -1,8 +1,8 @@
 #!/usr/bin/env node
-// .dev/floor/scan-code-ssrf.mjs — deterministic REQUEST-SOURCE-INTO-OUTBOUND-REQUEST-URL-SINK scanner
+// pharn/floor/scan-code-ssrf.mjs — deterministic REQUEST-SOURCE-INTO-OUTBOUND-REQUEST-URL-SINK scanner
 // over a CODE file (CONSTITUTION P0/P5).
 //
-// The SSRF sibling of .dev/floor/scan-code-path-traversal.mjs (and scan-code-injection.mjs). It backs the
+// The SSRF sibling of pharn/floor/scan-code-path-traversal.mjs (and scan-code-injection.mjs). It backs the
 // `ssrf` LENS's FLOOR sub-check (pharn-review/ssrf/): does a line pass a recognized HTTP-request source token
 // DIRECTLY into a recognized OUTBOUND-REQUEST URL sink —
 //   • fetch:        fetch( | client.fetch(               (the Fetch API) with a request source in the args
@@ -63,7 +63,7 @@
 // Non-LLM, stdlib-only, fail-closed. MIRRORS the fail-closed contract of scan-code-path-traversal.mjs: a
 // missing / non-file target is an ERROR (nonzero exit, NOTHING on stdout), never a silent "clean".
 //
-// Usage:  node .dev/floor/scan-code-ssrf.mjs <code-file>
+// Usage:  node pharn/floor/scan-code-ssrf.mjs <code-file>
 // Output: {"found":<bool>,"hits":[{"line":<int>,"kind":"<pattern-kind>"},...]} on stdout; exit 0 on a
 //         successful scan (whatever the result). `found` === (hits.length > 0); hits sorted by line, then kind.
 //         Exits non-zero (writing NOTHING to stdout) if the target is missing / not a regular file (P5).

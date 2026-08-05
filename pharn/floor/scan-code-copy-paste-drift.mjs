@@ -1,7 +1,7 @@
 #!/usr/bin/env node
-// .dev/floor/scan-code-copy-paste-drift.mjs — deterministic COPY-PASTE-DRIFT (odd-one-out) scanner over a CODE file (CONSTITUTION P0/P5).
+// pharn/floor/scan-code-copy-paste-drift.mjs — deterministic COPY-PASTE-DRIFT (odd-one-out) scanner over a CODE file (CONSTITUTION P0/P5).
 //
-// A sibling of .dev/floor/scan-code-duplicated-logic.mjs / scan-code-swallowed-exception.mjs / scan-code-injection.mjs
+// A sibling of pharn/floor/scan-code-duplicated-logic.mjs / scan-code-swallowed-exception.mjs / scan-code-injection.mjs
 // in the scan-code-* family. It backs the `copy-paste-drift` LENS's FLOOR sub-check
 // (pharn-review/copy-paste-drift/): does the file contain a run of >=3 CONSECUTIVE, structurally-aligned
 // near-identical lines in which exactly ONE line diverges at a single token slot the others share — the classic
@@ -58,7 +58,7 @@
 // non-file target is an ERROR (nonzero exit, NOTHING on stdout), never a silent "clean". A readable file with no
 // drift (empty, prose, or clean code) is a SUCCESSFUL scan → {"found":false,"hits":[]} on stdout, exit 0 (GRILL G4).
 //
-// Usage:  node .dev/floor/scan-code-copy-paste-drift.mjs <code-file>
+// Usage:  node pharn/floor/scan-code-copy-paste-drift.mjs <code-file>
 // Output: {"found":<bool>,"hits":[{"lines":[<int>,...],"odd_line":<int>,"slot":<int>,"majority":"<tok>","outlier":"<tok>"}]}
 //         on stdout; exit 0 on a successful scan (whatever the result). Each hit is one odd-one-out: `lines` = the
 //         1-based ORIGINAL line numbers of the aligned group (ascending); `odd_line` = the divergent member's line;

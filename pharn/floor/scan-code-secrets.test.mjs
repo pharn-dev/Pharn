@@ -1,4 +1,4 @@
-// .dev/floor/scan-code-secrets.test.mjs — hermetic tests for the deterministic CODE secret-literal scanner.
+// pharn/floor/scan-code-secrets.test.mjs — hermetic tests for the deterministic CODE secret-literal scanner.
 //
 // NO `claude -p`, NO git, NO network. Each test writes a small code file in an os.tmpdir() scratch dir and
 // asserts the public surface (exit code + stdout JSON) by subprocess — mirroring scan-plan-secrets.test.mjs.

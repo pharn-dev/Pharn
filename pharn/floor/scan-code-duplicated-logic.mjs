@@ -1,7 +1,7 @@
 #!/usr/bin/env node
-// .dev/floor/scan-code-duplicated-logic.mjs — deterministic EXACT DUPLICATED-BLOCK scanner over a CODE file (CONSTITUTION P0/P5).
+// pharn/floor/scan-code-duplicated-logic.mjs — deterministic EXACT DUPLICATED-BLOCK scanner over a CODE file (CONSTITUTION P0/P5).
 //
-// A sibling of .dev/floor/scan-code-injection.mjs / scan-code-swallowed-exception.mjs in the scan-code-* family.
+// A sibling of pharn/floor/scan-code-injection.mjs / scan-code-swallowed-exception.mjs in the scan-code-* family.
 // Where those back a code-SHAPE lens, this one backs the `duplicated-logic` LENS's FLOOR sub-check
 // (pharn-review/duplicated-logic/): does the file contain a block of >=N consecutive SIGNIFICANT lines whose
 // NORMALIZED text appears BYTE-IDENTICALLY at >=2 non-overlapping locations — i.e. copy-pasted logic? Detection is
@@ -49,7 +49,7 @@
 // Non-LLM, stdlib-only, fail-closed. MIRRORS the fail-closed contract of the scan-code-* family: a missing /
 // non-file target is an ERROR (nonzero exit, NOTHING on stdout), never a silent "clean".
 //
-// Usage:  node .dev/floor/scan-code-duplicated-logic.mjs <code-file>
+// Usage:  node pharn/floor/scan-code-duplicated-logic.mjs <code-file>
 // Output: {"found":<bool>,"hits":[{"lines":[<int>,...],"span":<int>},...]} on stdout; exit 0 on a successful scan
 //         (whatever the result). Each hit is one duplicated block: `lines` = the 1-based ORIGINAL line number of the
 //         FIRST significant line of each non-overlapping occurrence (>=2, ascending); `span` = the block length in

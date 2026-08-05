@@ -1,4 +1,4 @@
-// .dev/floor/scan-code-off-by-one.test.mjs — hermetic tests for the deterministic OFF-BY-ONE boundary-shape scanner.
+// pharn/floor/scan-code-off-by-one.test.mjs — hermetic tests for the deterministic OFF-BY-ONE boundary-shape scanner.
 //
 // NO `claude -p`, NO git, NO network, and NO reading of the product eval fixtures (pharn-review/off-by-one/evals/**):
 // each test writes a small SELF-CONTAINED code file in an os.tmpdir() scratch dir and asserts the public surface

@@ -1,4 +1,4 @@
-// .dev/floor/scan-code-null-deref.test.mjs — hermetic tests for the deterministic UNCHECKED-DEREF scanner.
+// pharn/floor/scan-code-null-deref.test.mjs — hermetic tests for the deterministic UNCHECKED-DEREF scanner.
 //
 // NO `claude -p`, NO git, NO network. Each test writes a small code file in an os.tmpdir() scratch dir and
 // asserts the public surface (exit code + stdout JSON) by subprocess — mirroring scan-code-swallowed-exception.test.mjs.
