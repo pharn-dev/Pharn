@@ -73,3 +73,22 @@ it). Do not read "verify runs the style gates" as floor-locked.
 One thing this stage explicitly does **not** verify, restated so it is not lost between artifacts: the floor
 validates the promotion **candidate**, never the **rendered** canon entry — the tag line reaching canon in
 conforming shape is advisory (follow-up `lesson-tagline-render-check`).
+
+---
+
+## Re-verification after the post-review fixes
+
+Two `/pharn-dev-review` findings (F1, F2) were fixed at the human's direction **after** this verdict was
+computed, so the gates were re-run at the new HEAD. Recorded here rather than by editing the numbers above,
+which are the record of the original run.
+
+- `npm run check` → exit **0** · `node pharn/floor/validate.mjs .` → `FLOOR: GREEN — 36 capabilities`, exit
+  **0**.
+- **864 tests, 864 pass, 0 fail** — up from the 862 recorded above, the +2 being the regression witnesses
+  for F2 (`["a", 42]` must not report `unique`; `["a", "a", 42]` must still report it).
+- The gate map in `verify-report.json` is **unchanged in value** — all six gates were exit 0 before the
+  fixes and are exit 0 after — so the recorded `"verdict": "PASS"` stands without amendment.
+
+The same P0 bound applies to the re-run as to the original: the named gates passed, which is **not** "the
+feature is correct" — and F2 is the live proof of why, since it was a real defect that passed every gate in
+the original run.

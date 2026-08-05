@@ -233,8 +233,14 @@ function main() {
         red("concepts", `concept ${JSON.stringify(item)} must match ${CONCEPT_RE} (lowercase letters, digits, hyphens)`);
       }
     }
-    const seen = new Set(c.filter((v) => typeof v === "string"));
-    if (seen.size !== c.length) {
+    // Uniqueness is computed over the STRING items only, and compared against the count of STRING items —
+    // never against `c.length`. Comparing a string-filtered set to the full array length makes every
+    // non-string item look like a duplicate: `["a", 42]` holds no repeat, yet filtered-size 1 !== length 2
+    // would fire "must be unique". The verdict would still be RED (the input is invalid either way), but a
+    // floor tool that gives a FALSE REASON for a TRUE refusal misdirects whoever acts on it — precision at
+    // the granularity the message claims is the whole point of a deterministic checker.
+    const strings = c.filter((v) => typeof v === "string");
+    if (new Set(strings).size !== strings.length) {
       red("concepts", `concepts must be unique, got ${JSON.stringify(c)} — a repeated tag adds no address`);
     }
   }

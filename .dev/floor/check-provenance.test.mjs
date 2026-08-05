@@ -287,6 +287,24 @@ test("RED: a non-string concept exits 1 (fail-closed, no coercion)", () => {
   assert.match(r.stdout, /RED — concepts failed/);
 });
 
+test("a non-string concept is NOT reported as a duplicate — the reason must match the real defect", () => {
+  // Regression witness. Computing uniqueness as `new Set(c.filter(isString)).size !== c.length` made every
+  // non-string item read as a repeat: this input holds NO duplicate, yet filtered-size 1 !== length 2 fired
+  // "concepts must be unique". The verdict was RED either way, so status-only assertions could not catch
+  // it — a floor tool giving a FALSE REASON for a TRUE refusal sends the operator to delete tags that were
+  // never duplicated. Uniqueness now compares strings against the count of STRINGS.
+  const r = runWith({ ...VALID, concepts: ["a", 42] });
+  assert.equal(r.status, 1);
+  assert.match(r.stdout, /must be a control-char-free string/);
+  assert.doesNotMatch(r.stdout, /unique/);
+});
+
+test("a real duplicate is still RED even when a non-string sits alongside it", () => {
+  const r = runWith({ ...VALID, concepts: ["a", "a", 42] });
+  assert.equal(r.status, 1);
+  assert.match(r.stdout, /unique/);
+});
+
 test("RED: DUPLICATE concepts exit 1 — deliberately diverging from check-plan-lessons' de-dup", () => {
   // check-plan-lessons.mjs de-duplicates `[L1, L1]` because the ids resolve to the SAME lesson; here each
   // slot is a distinct index key, so a repeat silently degrades the entry and consumes the 6-slot budget.

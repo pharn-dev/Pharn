@@ -212,3 +212,53 @@ reason for a true refusal.
 
 **Nothing in this document is a guarantee.** The floor's verdicts are recorded above; this review's
 severities are model judgment and block nothing (P0).
+
+---
+
+## Postscript — fixes applied after the review, at the human's direction
+
+The findings above are left **as written**: they record the review as it happened, and rewriting a finding
+to match a later fix would destroy the audit trail this repo exists to produce. This section records what
+changed afterwards.
+
+**F1 (P0, blocking-severity — the frontmatter overclaim) → FIXED.**
+`.claude/commands/pharn-dev-memory-promote.md:2` now reads _"FLOOR: no **CANDIDATE** reaches the human gate
+without valid, well-shaped provenance, a unique id, an enum-member `type` and a well-SHAPED `concepts`
+list…"_, and the ADVISORY clause gained the render caveat explicitly: _"whether the **RENDERED** entry's tag
+line conforms (the floor checks the candidate at Step 3; the entry is rendered at Step 6, after the gate)"_.
+The description now states the same boundary as the other four surfaces. The claim it made before —
+"every written entry carries… an enum-member `type`" — is gone.
+
+**F2 (P0, important — the false duplicate reason) → FIXED.**
+`.dev/floor/check-provenance.mjs` now computes uniqueness over the **string items** compared against the
+**count of string items**, never against `c.length`:
+
+```js
+const strings = c.filter((v) => typeof v === "string");
+if (new Set(strings).size !== strings.length) { … }
+```
+
+Verified behaviorally before and after, not merely by test-suite green:
+
+| input        | before                                       | after                                      |
+| ------------ | -------------------------------------------- | ------------------------------------------ |
+| `["a", 42]`  | shape RED **+ a false `must be unique` RED** | shape RED only — no `unique` in the output |
+| `["a", "a"]` | `must be unique` RED                         | `must be unique` RED (unchanged)           |
+| `["a", "b"]` | GREEN                                        | GREEN (unchanged)                          |
+
+Two regression tests pin it: one asserting `["a", 42]` produces the shape message and
+`assert.doesNotMatch(stdout, /unique/)`, and one asserting `["a", "a", 42]` **still** reports `unique` — so
+the fix cannot be "corrected" later into simply dropping the check. The comment above the branch records
+why the old form was wrong, since the bug is invisible to a status-only assertion.
+
+**Re-run after the fixes** (live, this run): `npm run check` exit **0** · `pharn/floor/validate.mjs .` →
+`FLOOR: GREEN — 36 capabilities`, exit **0** · **864 tests, 864 pass, 0 fail** (862 → 864, the two new
+witnesses). `verify-report.json`'s recorded gate map is unchanged in value — all six gates were 0 before the
+fixes and are 0 after — so that artifact remains accurate as written.
+
+**Still open, deliberately not touched here** (the human scoped this pass to F1 and F2):
+
+- **F3 (P4, important)** — `.dev/floor/check-provenance.test.mjs:6`'s header still claims "no committed
+  fixtures", which the two agreement tests contradict. One line.
+- **F4 (P2, minor)** — the retrieval-control mechanism behind the misleading-tag residual is still unnamed.
+- **F5 (P3, important, standing)** — the taxonomy's home in `check-provenance.mjs`, decided by the brief.
