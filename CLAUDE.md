@@ -106,7 +106,11 @@ node pharn/floor/check-structural.mjs <expected.json> <actual.json> [repoDir]
 # Both /pharn-plan and /pharn-dev-plan self-run it before their halt. Exits non-zero on RED.
 node pharn/floor/check-plan-lessons.mjs <PLAN.md> <lessons-learned.md>
 
-# Validate a memory-bank promotion candidate: mandatory provenance shape + duplicate-id + target enum.
+# Validate a memory-bank promotion candidate: mandatory provenance shape + duplicate-id + target enum,
+# plus the entry tag fields — `type` (closed enum, exact membership) and `concepts` (1–6 unique tags, each
+# control-char-free lowercase/digit/hyphen, <=32 chars). Both are REQUIRED on new candidates; legacy canon
+# entries are never scanned. SHAPE only — that the values DESCRIBE the entry is advisory (human-ratified at
+# the Step-5 gate), so a `type`-keyed filter is context selection, never a guarantee.
 # Exits non-zero on any RED. /pharn-dev-memory-promote runs it before the human accept/deny gate (never writes on RED).
 node .dev/floor/check-provenance.mjs <candidate.json> <canon-file.md>
 

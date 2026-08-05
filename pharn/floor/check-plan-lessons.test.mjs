@@ -144,6 +144,43 @@ test("`## L1x` does not satisfy a citation of L1 (the heading's trailing space i
   assert.match(r.out, /cites L1/);
 });
 
+// ── Regression: the entry TAG LINE sits BELOW the heading and must not disturb id resolution ─────────
+//
+// `/pharn-dev-memory-promote` renders a `type: … · concepts: […]` tag line as the first non-empty line
+// after each `## L<n> — <title>` heading. HEADING_RE anchors on the heading line itself, so a line added
+// BELOW it cannot affect the match — this test is the witness for that, so a future change to either the
+// tag-line grammar or HEADING_RE cannot silently break `applied_lessons` id resolution. The heading format
+// is the untouchable half of the contract: a tightening must COMPOSE with the existing guard, never
+// replace it (`.dev/memory-bank/lessons-learned.md` L14 — cited, not restated, P4).
+
+const TAGGED_LESSONS = ["L1", "L2", "L3"]
+  .map(
+    (id, i) =>
+      `## ${id} — a promoted lesson\n\ntype: ${["floor", "process", "scoping"][i]} · concepts: [enum-gate, memory-bank]\n\n**Lesson.** filler.\n`
+  )
+  .join("\n");
+
+test("a TAGGED lessons canon still resolves cited ids → GREEN (the tag line is below the heading)", () => {
+  const r = run(devPlan("- applied_lessons: [L1, L3]"), TAGGED_LESSONS);
+  assert.equal(r.status, 0);
+  assert.match(r.out, /all 2 cited id\(s\) resolve/);
+});
+
+test("a TAGGED lessons canon still REDs a nonexistent id (the tag line adds no ids)", () => {
+  const r = run(devPlan("- applied_lessons: [L99]"), TAGGED_LESSONS);
+  assert.equal(r.status, 1);
+  assert.match(r.out, /L99/);
+  assert.match(r.out, /declares 3 lesson\(s\)/);
+});
+
+test("a `type:`/`concepts:` tag line is never itself mistaken for a lesson heading", () => {
+  // The tag line is a plain paragraph, not a `## ` heading — so the canon above declares exactly 3 lessons,
+  // not 6. The count in the RED message is the observable proof.
+  const r = run(devPlan("- applied_lessons: [L4]"), TAGGED_LESSONS);
+  assert.equal(r.status, 1);
+  assert.match(r.out, /declares 3 lesson\(s\)/);
+});
+
 // ── Both plan shapes, and the header's lexical quirks ────────────────────────────────────────────────
 
 test("acceptance: this increment's own shape — a dev PLAN citing [L1, L6]-style ids → GREEN", () => {
