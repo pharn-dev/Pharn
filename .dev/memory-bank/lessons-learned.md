@@ -443,3 +443,64 @@ post-fix), witnessed by a regression test over `toString`/`constructor`/`__proto
 - commit: `fefae018ab7fea913e8a1553ab9a104622cd3bbc`
 - source: `.dev/features/check-config-routing/REVIEW.md` (proposed lesson candidate)
 - promoted: 2026-07-09 via gated `/pharn-dev-memory-promote` (human-approved).
+
+## L16 — L5's own remedy is a portability trap: `xargs -a` is GNU-only and fabricates a false red
+
+**Lesson.** L5 prescribes `xargs` to expand a gate's file list safely, and L12 records re-hitting L5's zsh
+word-split and correcting it "with `xargs` per L5's remedy". This run hit a **third** variant — **inside the
+remedy itself**: `xargs -a <file>` is a **GNU extension** that macOS/BSD `xargs` rejects outright
+(`xargs: invalid option -- a`), so the **gate command** failed and its exit code was captured as the **gate
+result**. Expand a file list through **stdin** (`xargs node --test < list`), which is portable, and treat a
+**red baseline on a known-green repo as a signal to investigate the harness — never to accept**. The
+generalization beyond `xargs`: a remedy written for one shell/platform is **itself** an input-capture
+surface, so L5's "a floor verdict is only as trustworthy as the orchestration that captures its inputs"
+applies **recursively to the fix**, not only to the original bug.
+
+**Why it matters.** The failure is silent in the dangerous direction. The bad capture recorded
+`tests: 1` at the baseline of a provably green repo; being **equal at base and head** it would have been
+classified `pre-existing` rather than a regression — evading a false _regression_ while **masking a real
+tests-gate regression**, which is precisely L5's documented failure mode reached _through_ L5's own
+remedy. The floor core (`check-regress.mjs`) was correct throughout; only its inputs were wrong, so no
+gate could have caught it. It surfaced only because a human-implausible result (a red baseline on a repo
+whose full `npm run check` was green) was **investigated instead of recorded**. Complements L5 (the
+input-capture trust boundary) and L12 (which re-confirmed L5's zsh form and endorsed the `xargs` remedy
+this lesson now qualifies).
+
+**Provenance.**
+
+- feature: `applied-lessons`
+- commit: `de83cbbf4ff3ecf90584eae382bc06f49cdc5f46`
+- source: `.dev/features/applied-lessons/REVIEW.md` (proposed lesson Candidate A) +
+  `.dev/features/applied-lessons/REGRESSION.md` (defect 1), reproduced live before and after the fix
+- promoted: 2026-08-05 via gated `/pharn-dev-memory-promote` (human-approved).
+
+## L17 — `check-regress scope` tests changed-since-base, not written-by-the-build
+
+**Lesson.** `check-regress.mjs scope` computes `escaped = inside.filter((f) => !matchesAny(f, declared))`
+(`pharn/floor/check-regress.mjs:192`) over `git diff <base>`, with **no** exclusion for other pipeline
+stages' own artifacts or for human-authored trusted-doc edits. With `base = HEAD` on a working-tree
+dogfood, **every** sibling stage's output lands in `inside` and reads as "the build escaped its
+`## Files`". It is a **changed-since-base** test being reported as a **written-by-the-build** test — two
+different questions. Remedy: exclude the feature's own `.dev/features/<name>/**` pipeline artifacts and
+the hook-protected trusted docs from the escape set, or derive "written by the build" from the build's
+actual scope record (`.pharn/writes-scope.json`) rather than from the diff.
+
+**Why it matters.** A fail-closed **blocking** finding that fires on the **correct, designed** workflow is
+worse than a missing check: it trains the operator to wave through a `P0` fix#7 "the build escaped its
+scope" finding, which is exactly the finding that must never be waved through. This run it emitted two
+such findings, **both provably false** — `GRILL.md` (written by `/pharn-dev-grill` under its **own** Step-0
+writes-scope, by design) and `pharn/ARCHITECTURE.md` (human-authored; the agent **cannot** write it —
+`protect-trusted-paths.cjs` denies at exit 2, verified live this run, which is the disproof). The defect
+lives in the **advisory orchestration** layer, not the floor verdict core, which was correct throughout.
+Complements L3 / L7 / L8 (the `writes:`/scope subsystem — this concerns the scope check's **question**,
+where L3 and L7 concern a declaration's **content** and L8 the setter's **resolution**) and L5 (a verdict
+is only as trustworthy as the inputs the orchestration captures).
+
+**Provenance.**
+
+- feature: `applied-lessons`
+- commit: `de83cbbf4ff3ecf90584eae382bc06f49cdc5f46`
+- source: `.dev/features/applied-lessons/REVIEW.md` (proposed lesson Candidate B) +
+  `.dev/features/applied-lessons/REGRESSION.md` (defect 2), with the fix #2 hook denial verified live as
+  the disproof
+- promoted: 2026-08-05 via gated `/pharn-dev-memory-promote` (human-approved).
