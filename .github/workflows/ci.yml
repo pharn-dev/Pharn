@@ -33,9 +33,9 @@ jobs:
       - name: Validate floor
         if: ${{ always() && steps.install.outcome == 'success' }}
         run: node pharn/floor/validate.mjs .
-      - name: Docs catalog drift
+      - name: Docs drift check
         if: ${{ always() && steps.install.outcome == 'success' }}
-        run: node .dev/floor/check-capability-catalog.mjs .
+        run: npm run docs:check
       - name: Test
         if: ${{ always() && steps.install.outcome == 'success' }}
         run: npm test

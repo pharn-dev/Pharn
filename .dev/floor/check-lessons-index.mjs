@@ -27,7 +27,7 @@
 
 import { readFileSync, existsSync, statSync } from "node:fs";
 import { join } from "node:path";
-import { buildIndex, OUT_PATH } from "./lessons-index-core.mjs";
+import { buildIndex, CANON_PATH, OUT_PATH } from "./lessons-index-core.mjs";
 
 const FIX = "npm run docs:generate";
 
@@ -73,11 +73,24 @@ function main() {
     process.stdout.write(`LESSONS-INDEX: GREEN — ${OUT_PATH} matches the index recomputed from canon\n`);
     process.exit(0);
   }
-  process.stdout.write(`LESSONS-INDEX: RED — ${findings.length} finding(s); the generated index is out of date\n`);
+  const hasEnumError = findings.some((f) => f.type === "ENUM_ERROR");
+  if (hasEnumError) {
+    process.stdout.write(
+      `LESSONS-INDEX: RED — ${findings.length} finding(s); canonical input is invalid — the index cannot be rendered\n`
+    );
+  } else {
+    process.stdout.write(`LESSONS-INDEX: RED — ${findings.length} finding(s); the generated index is out of date\n`);
+  }
   for (const f of findings) {
     process.stdout.write(`- [${f.type}] ${f.file}\n    ${f.problem}\n`);
   }
-  process.stdout.write(`\nFIX: regenerate and commit — ${FIX}\n`);
+  if (hasEnumError) {
+    process.stdout.write(
+      `\nFIX: correct the canonical input in ${CANON_PATH} — ${FIX} cannot succeed until the input error is resolved\n`
+    );
+  } else {
+    process.stdout.write(`\nFIX: regenerate and commit — ${FIX}\n`);
+  }
   process.exit(1);
 }
 
