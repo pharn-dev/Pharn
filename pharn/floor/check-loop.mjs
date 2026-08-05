@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// floor/check-loop.mjs — the deterministic STOP-DECISION CORE for the product `/pharn-loop` command.
+// pharn/floor/check-loop.mjs — the deterministic STOP-DECISION CORE for the product `/pharn-loop` command.
 //
 // Floor/eval infrastructure — NOT a Capability (no `role:`; it lives in this floor-ignored dir, exactly
 // like check-ship.mjs / check-verify.mjs / check-regress.mjs). It owns the WHOLE deterministic
@@ -62,7 +62,7 @@
 // child process, no network. The decision is PROVABLY independent of any tainted field.
 //
 // Usage:
-//   node floor/check-loop.mjs <verify-report.json> <regression-report.json> --iter <N> --cap <M>
+//   node pharn/floor/check-loop.mjs <verify-report.json> <regression-report.json> --iter <N> --cap <M>
 //
 // Exit: 0 STOP_GREEN · 1 STOP_CAP · 2 INCONCLUSIVE (bad input, fail-closed) · 3 CONTINUE ·
 //       4 STOP_TERMINAL (a real red — stop immediately, not retried).

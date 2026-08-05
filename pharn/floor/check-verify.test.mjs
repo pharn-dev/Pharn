@@ -1,4 +1,4 @@
-// floor/check-verify.test.mjs — hermetic tests for the deterministic verify-verdict core.
+// pharn/floor/check-verify.test.mjs — hermetic tests for the deterministic verify-verdict core.
 //
 // NO `claude -p`, NO git, NO network. The verdict reads ONE small { gate-id: exit-code } results map we
 // compose in an os.tmpdir() scratch dir. We assert the public surface (exit code + stdout JSON) by

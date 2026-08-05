@@ -1,8 +1,8 @@
 #!/usr/bin/env node
-// floor/check-ship.mjs — the deterministic STOP-DECISION CORE for the `/ship --loop` mode.
+// pharn/floor/check-ship.mjs — the deterministic STOP-DECISION CORE for the `/ship --loop` mode.
 //
 // Floor/eval infrastructure — NOT a Capability (no `role:`; the floor capability count stays 1, exactly
-// like floor/check-verify.mjs / floor/check-regress.mjs / floor/check-variance.mjs / check-structural.mjs,
+// like pharn/floor/check-verify.mjs / pharn/floor/check-regress.mjs / floor/check-variance.mjs / check-structural.mjs,
 // which live in this floor-ignored dir). It owns the WHOLE deterministic stop/continue decision of the
 // loop so the maximum surface is in tested Node, not in the command's prose. The command
 // (.claude/commands/ship.md, `--loop` mode) owns only the I/O side-effects (running the stages, applying
@@ -43,7 +43,7 @@
 // child process, no network. The decision is PROVABLY independent of any tainted field.
 //
 // Usage:
-//   node floor/check-ship.mjs <verify-report.json> <regression-report.json> --iter <N> --cap <M>
+//   node pharn/floor/check-ship.mjs <verify-report.json> <regression-report.json> --iter <N> --cap <M>
 //
 // Exit: 0 STOP_GREEN · 1 STOP_CAP · 2 INCONCLUSIVE (bad input, fail-closed) · 3 CONTINUE.
 

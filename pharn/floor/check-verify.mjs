@@ -1,8 +1,8 @@
 #!/usr/bin/env node
-// floor/check-verify.mjs — the deterministic VERDICT CORE for the /verify stage.
+// pharn/floor/check-verify.mjs — the deterministic VERDICT CORE for the /verify stage.
 //
 // Floor/eval infrastructure — NOT a Capability (no `role:`; the floor capability count stays 1, exactly
-// like floor/check-regress.mjs / floor/check-variance.mjs / floor/check-structural.mjs, which live in
+// like pharn/floor/check-regress.mjs / floor/check-variance.mjs / pharn/floor/check-structural.mjs, which live in
 // this floor-ignored dir). It owns the WHOLE deterministic verdict of /verify so the maximum surface is
 // in tested Node, not in the command's Bash. The command (.claude/commands/verify.md) owns only the I/O
 // side-effects (running the gates, discovering verifiers, writing artifacts); this helper computes the
@@ -35,7 +35,7 @@
 //                 value) — FAIL-CLOSED (P5), never a silent pass.
 //
 // THE OPTIONAL `--complete <int>` INPUT (ship-completion-retry increment):
-//   /verify runs floor/check-build-complete.mjs over the PLAN's `## Files` and passes ITS exit code here
+//   /verify runs pharn/floor/check-build-complete.mjs over the PLAN's `## Files` and passes ITS exit code here
 //   (0 complete · 1 incomplete · 2 inconclusive). This helper reads ONLY that integer — never the
 //   missing-path list (the command merges that into the report's `.completeness` block). `--complete`
 //   is OPTIONAL: ABSENT ⇒ the legacy 3-valued behavior byte-for-byte ({feature, gates, verdict,
@@ -58,10 +58,10 @@
 // decision rests on a tainted field.
 //
 // Usage:
-//   node floor/check-verify.mjs <results.json> [--feature <name>] [--complete <int>]
+//   node pharn/floor/check-verify.mjs <results.json> [--feature <name>] [--complete <int>]
 //     results.json : a flat { "<gate-id>": <exit-code int>, ... } map written by the command, one entry
 //                    per FLOOR gate it ran (e.g. "test", "validate", "lint", "structural:<expected>").
-//     --complete   : OPTIONAL — the exit code of floor/check-build-complete.mjs (0/1/2). Omit for the
+//     --complete   : OPTIONAL — the exit code of pharn/floor/check-build-complete.mjs (0/1/2). Omit for the
 //                    legacy 3-valued behavior.
 //
 // Exit: 0 PASS · 1 FAIL (>=1 gate non-zero) · 2 INCONCLUSIVE / bad input — FAIL-CLOSED (P5) ·

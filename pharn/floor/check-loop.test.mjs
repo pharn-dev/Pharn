@@ -1,4 +1,4 @@
-// floor/check-loop.test.mjs — hermetic tests for the product `/pharn-loop` stop-decision core (Design B).
+// pharn/floor/check-loop.test.mjs — hermetic tests for the product `/pharn-loop` stop-decision core (Design B).
 //
 // NO `claude -p`, NO git, NO network. The decision reads two small report objects ({verdict, …}) we
 // compose in an os.tmpdir() scratch dir + two integer flags. We assert the public surface (exit code +

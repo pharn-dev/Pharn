@@ -1,4 +1,4 @@
-// floor/check-structural.test.mjs — black-box tests for the deterministic structural checker.
+// pharn/floor/check-structural.test.mjs — black-box tests for the deterministic structural checker.
 //
 // Run as a subprocess (mirrors validate.test.mjs) so check-structural.mjs keeps its dependency-free,
 // top-level-exec contract: we assert only on its public surface (exit code + RED/GREEN stdout).
