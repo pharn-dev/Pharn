@@ -1,0 +1,28 @@
+{
+  "base": "7af8dd867179a797d86be6b2fdef1358ba4f466c",
+  "inside": [
+    "CHANGELOG.md",
+    "SKILLS_VERSION",
+    "pharn/floor/scan-code-injection.mjs",
+    "pharn/floor/scan-code-injection.test.mjs",
+    "pharn/floor/scan-code-path-traversal.mjs",
+    "pharn/floor/scan-code-path-traversal.test.mjs",
+    "pharn/floor/scan-code-ssrf.mjs",
+    "pharn/floor/scan-code-ssrf.test.mjs",
+    ".dev/features/scanner-nested-paren-span/GRILL.md",
+    ".dev/features/scanner-nested-paren-span/PLAN.md"
+  ],
+  "outside_gates": {
+    "tests": {
+      "base": 0,
+      "head": 0
+    },
+    "validate": {
+      "base": 0,
+      "head": 0
+    }
+  },
+  "regressions": [],
+  "pre_existing": [],
+  "verdict": "no-regressions"
+}

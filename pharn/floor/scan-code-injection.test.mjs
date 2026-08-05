@@ -252,3 +252,84 @@ test("no argument → nonzero exit, no stdout (fail-closed)", () => {
   assert.notEqual(r.status, 0);
   assert.equal(r.stdout.trim(), "");
 });
+
+// ---------------------------------------------------------------------------
+// ONE-LEVEL NESTED-PAREN SPAN — taint AFTER a nested call is reached (the false-NEGATIVE fix)
+//
+// Before the fix the sink→taint span was `[^)]*?`, a negated class that stops at the FIRST inner `)`.
+// A nested call closed that paren before the span ever reached the taint operator, so a real
+// single-line concat/interp was silently MISSED. These tests pin the fix; the GUARD tests below pin
+// the two ways the fix must NOT overreach.
+
+test('nested-paren: db.query(tableFor(req.query.t) + " WHERE 1=1") → found (taint AFTER a nested call)', () => {
+  const body = `db.query(tableFor(req.query.t) + " WHERE 1=1");\n`;
+  withCode(body, (p) => {
+    const r = run(p);
+    assert.equal(r.status, 0);
+    assert.deepEqual(json(r), { found: true, hits: [{ line: 1, kind: "sql-injection" }] });
+  });
+});
+
+test('nested-paren: exec(cmdFor(req.body.action) + " --now") → found (taint AFTER a nested call)', () => {
+  const body = `exec(cmdFor(req.body.action) + " --now");\n`;
+  withCode(body, (p) => {
+    const r = run(p);
+    assert.equal(r.status, 0);
+    assert.deepEqual(json(r), { found: true, hits: [{ line: 1, kind: "command-injection" }] });
+  });
+});
+
+test("nested-paren INTERPOLATION variant: db.query(fmt(x) + `... ${y} ...`) → found", () => {
+  const body = "db.query(fmt(x) + `SELECT * FROM t WHERE id = ${y}`);\n";
+  withCode(body, (p) => {
+    const r = run(p);
+    assert.equal(r.status, 0);
+    assert.deepEqual(json(r), { found: true, hits: [{ line: 1, kind: "sql-injection" }] });
+  });
+});
+
+// ★ GUARD — the span must NOT be widened to `[^;]*?`. That class over-spans past the sink call's OWN
+// outer `)` and false-matches an unrelated `+`-concat later on the same line. A line with NO semicolon
+// is the sharpest form of that failure. This test FAILS if someone "simplifies" the span to `[^;]*?`.
+test("★ GUARD: a safe sink followed by an unrelated '+'-concat, no semicolon on the line → found:false", () => {
+  const body = `  return db.query(safeConst) || fallback("x" + y)\n`;
+  withCode(body, (p) => {
+    const r = run(p);
+    assert.equal(r.status, 0);
+    assert.deepEqual(json(r), { found: false, hits: [] });
+  });
+});
+
+test("★ GUARD: an exec() followed by an unrelated '+'-concat, no semicolon on the line → found:false", () => {
+  const body = `  return exec(SAFE_CMD) || note("a" + b)\n`;
+  withCode(body, (p) => {
+    const r = run(p);
+    assert.equal(r.status, 0);
+    assert.deepEqual(json(r), { found: false, hits: [] });
+  });
+});
+
+// ★ GUARD / DOCUMENTED TRUE-NEGATIVE (P7) — the span handles exactly ONE level of nesting. Taint sitting
+// after a nesting depth > 1 still slips. This is an HONEST LIMIT, asserted so it stays visible: if a
+// later change silently deepens the span, this test breaks and the header must be re-argued.
+test('★ DOCUMENTED LIMIT: nesting depth > 1 — db.query(f(g(h(x))) + " tail") → found:false (honest bound)', () => {
+  const body = `db.query(f(g(h(x))) + " tail");\n`;
+  withCode(body, (p) => {
+    const r = run(p);
+    assert.equal(r.status, 0);
+    assert.deepEqual(json(r), { found: false, hits: [] });
+  });
+});
+
+// ★ GUARD — taint sitting INSIDE a nested call must ALSO stay caught. This pins the property that ruled out
+// the disjoint-branch span `(?:[^)(]|\([^)]*\))*?`: that variant skips a nested group as an opaque unit and
+// LOSES this shape. The sibling scanners' canonical vulns (fs.readFile(path.join(…, req.params.x)),
+// fetch(new URL(req.query.url))) are the same shape — see their ARGUMENT SPAN headers.
+test('★ GUARD: taint INSIDE a nested call — db.query(wrap("WHERE id = " + id)) → found', () => {
+  const body = `db.query(wrap("WHERE id = " + id));\n`;
+  withCode(body, (p) => {
+    const r = run(p);
+    assert.equal(r.status, 0);
+    assert.deepEqual(json(r), { found: true, hits: [{ line: 1, kind: "sql-injection" }] });
+  });
+});

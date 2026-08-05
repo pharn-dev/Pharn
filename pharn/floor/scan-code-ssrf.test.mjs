@@ -291,3 +291,80 @@ test("no argument → nonzero exit, no stdout (fail-closed)", () => {
   assert.notEqual(r.status, 0);
   assert.equal(r.stdout.trim(), "");
 });
+
+// ---------------------------------------------------------------------------
+// ONE-LEVEL NESTED-PAREN SPAN — a request SOURCE AFTER a nested call is reached (the false-NEGATIVE fix)
+//
+// Before the fix the sink→source span was `[^)]*?`, a negated class that stops at the FIRST inner `)`.
+// A nested call (a helper that computes the base URL, the common real-world shape) closed that paren
+// before the span ever reached the request-source token, so a real SSRF was silently MISSED. These
+// tests pin the fix; the GUARD tests below pin the two ways the fix must NOT overreach.
+
+test("nested-paren: fetch(baseUrl() + req.query.next) → found (source AFTER a nested call)", () => {
+  const body = `fetch(baseUrl() + req.query.next);\n`;
+  withCode(body, (p) => {
+    const r = run(p);
+    assert.equal(r.status, 0);
+    assert.deepEqual(json(r), { found: true, hits: [{ line: 1, kind: "fetch" }] });
+  });
+});
+
+test("nested-paren: http.get(pick(a) + req.query.u) → found (source AFTER a nested call)", () => {
+  const body = `http.get(pick(a) + req.query.u);\n`;
+  withCode(body, (p) => {
+    const r = run(p);
+    assert.equal(r.status, 0);
+    assert.deepEqual(json(r), { found: true, hits: [{ line: 1, kind: "http-request" }] });
+  });
+});
+
+test("nested-paren: axios.get(hostFor(cfg) + req.query.u) → found (source AFTER a nested call)", () => {
+  const body = `axios.get(hostFor(cfg) + req.query.u);\n`;
+  withCode(body, (p) => {
+    const r = run(p);
+    assert.equal(r.status, 0);
+    assert.deepEqual(json(r), { found: true, hits: [{ line: 1, kind: "axios" }] });
+  });
+});
+
+test("nested-paren INTERPOLATION variant: fetch(baseUrl() + `/p/${req.query.id}`) → found", () => {
+  const body = "fetch(baseUrl() + `/p/${req.query.id}`);\n";
+  withCode(body, (p) => {
+    const r = run(p);
+    assert.equal(r.status, 0);
+    assert.deepEqual(json(r), { found: true, hits: [{ line: 1, kind: "fetch" }] });
+  });
+});
+
+// ★ GUARD — the span must NOT be widened to `[^;]*?`. That class over-spans past the sink call's OWN
+// outer `)` and false-matches an unrelated request source later on the same line. A line with NO
+// semicolon is the sharpest form of that failure. This test FAILS if the span is "simplified" to `[^;]*?`.
+test("★ GUARD: a safe fetch() followed by an unrelated req source, no semicolon on the line → found:false", () => {
+  const body = `  return fetch(SAFE_URL) || log(req.query.x)\n`;
+  withCode(body, (p) => {
+    const r = run(p);
+    assert.equal(r.status, 0);
+    assert.deepEqual(json(r), { found: false, hits: [] });
+  });
+});
+
+test("★ GUARD: a safe axios.get() followed by an unrelated req source, no semicolon on the line → found:false", () => {
+  const body = `  return axios.get(SAFE_URL) || log(req.query.x)\n`;
+  withCode(body, (p) => {
+    const r = run(p);
+    assert.equal(r.status, 0);
+    assert.deepEqual(json(r), { found: false, hits: [] });
+  });
+});
+
+// ★ GUARD / DOCUMENTED TRUE-NEGATIVE (P7) — the span handles exactly ONE level of nesting. A source
+// sitting after a nesting depth > 1 still slips. This is an HONEST LIMIT, asserted so it stays visible:
+// if a later change silently deepens the span, this test breaks and the header must be re-argued.
+test("★ DOCUMENTED LIMIT: nesting depth > 1 — fetch(a(b(c())) + req.query.u) → found:false (honest bound)", () => {
+  const body = `fetch(a(b(c())) + req.query.u);\n`;
+  withCode(body, (p) => {
+    const r = run(p);
+    assert.equal(r.status, 0);
+    assert.deepEqual(json(r), { found: false, hits: [] });
+  });
+});

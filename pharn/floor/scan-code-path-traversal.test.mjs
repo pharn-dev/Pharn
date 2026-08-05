@@ -264,3 +264,80 @@ test("no argument → nonzero exit, no stdout (fail-closed)", () => {
   assert.notEqual(r.status, 0);
   assert.equal(r.stdout.trim(), "");
 });
+
+// ---------------------------------------------------------------------------
+// ONE-LEVEL NESTED-PAREN SPAN — a request SOURCE AFTER a nested call is reached (the false-NEGATIVE fix)
+//
+// Before the fix the sink→source span was `[^)]*?`, a negated class that stops at the FIRST inner `)`.
+// A nested call (a helper that computes the base directory, the common real-world shape) closed that
+// paren before the span ever reached the request-source token, so a real traversal was silently MISSED.
+// These tests pin the fix; the GUARD tests below pin the two ways the fix must NOT overreach.
+
+test("nested-paren: path.join(rootDir(), req.query.f) → found (source AFTER a nested call)", () => {
+  const body = `path.join(rootDir(), req.query.f);\n`;
+  withCode(body, (p) => {
+    const r = run(p);
+    assert.equal(r.status, 0);
+    assert.deepEqual(json(r), { found: true, hits: [{ line: 1, kind: "path-join" }] });
+  });
+});
+
+test("nested-paren: fs.readFile(resolveRoot(base), req.query.f) → found (source AFTER a nested call)", () => {
+  const body = `fs.readFile(resolveRoot(base), req.query.f);\n`;
+  withCode(body, (p) => {
+    const r = run(p);
+    assert.equal(r.status, 0);
+    assert.deepEqual(json(r), { found: true, hits: [{ line: 1, kind: "fs-path" }] });
+  });
+});
+
+test("nested-paren: res.sendFile(dirFor(x), req.query.f) → found (source AFTER a nested call)", () => {
+  const body = `res.sendFile(dirFor(x), req.query.f);\n`;
+  withCode(body, (p) => {
+    const r = run(p);
+    assert.equal(r.status, 0);
+    assert.deepEqual(json(r), { found: true, hits: [{ line: 1, kind: "send-file" }] });
+  });
+});
+
+test("nested-paren INTERPOLATION variant: fs.readFile(baseDir(cfg), `uploads/${req.query.file}`) → found", () => {
+  const body = "fs.readFile(baseDir(cfg), `uploads/${req.query.file}`);\n";
+  withCode(body, (p) => {
+    const r = run(p);
+    assert.equal(r.status, 0);
+    assert.deepEqual(json(r), { found: true, hits: [{ line: 1, kind: "fs-path" }] });
+  });
+});
+
+// ★ GUARD — the span must NOT be widened to `[^;]*?`. That class over-spans past the sink call's OWN
+// outer `)` and false-matches an unrelated request source later on the same line. A line with NO
+// semicolon is the sharpest form of that failure. This test FAILS if the span is "simplified" to `[^;]*?`.
+test("★ GUARD: a safe path.join() followed by an unrelated req source, no semicolon on the line → found:false", () => {
+  const body = `  return path.join(A, B) || note(req.query.x)\n`;
+  withCode(body, (p) => {
+    const r = run(p);
+    assert.equal(r.status, 0);
+    assert.deepEqual(json(r), { found: false, hits: [] });
+  });
+});
+
+test("★ GUARD: a safe fs.readFile() followed by an unrelated req source, no semicolon on the line → found:false", () => {
+  const body = `  return fs.readFileSync(CONFIG) || note(req.query.x)\n`;
+  withCode(body, (p) => {
+    const r = run(p);
+    assert.equal(r.status, 0);
+    assert.deepEqual(json(r), { found: false, hits: [] });
+  });
+});
+
+// ★ GUARD / DOCUMENTED TRUE-NEGATIVE (P7) — the span handles exactly ONE level of nesting. A source
+// sitting after a nesting depth > 1 still slips. This is an HONEST LIMIT, asserted so it stays visible:
+// if a later change silently deepens the span, this test breaks and the header must be re-argued.
+test("★ DOCUMENTED LIMIT: nesting depth > 1 — path.join(f(g(h(x))), req.query.f) → found:false (honest bound)", () => {
+  const body = `path.join(f(g(h(x))), req.query.f);\n`;
+  withCode(body, (p) => {
+    const r = run(p);
+    assert.equal(r.status, 0);
+    assert.deepEqual(json(r), { found: false, hits: [] });
+  });
+});
