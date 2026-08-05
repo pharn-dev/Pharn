@@ -133,6 +133,46 @@ test("CLI GREEN: exit 0 and no FIX line when the committed index matches canon",
     assert.equal(r.status, 0);
     assert.match(r.stdout, /LESSONS-INDEX: GREEN/);
     assert.doesNotMatch(r.stdout, /FIX:/);
+    assert.doesNotMatch(r.stdout, /WARN/);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("CLI GREEN + WARN: exit 0 and a WARN line when canon carries one malformed tag line", () => {
+  const canon = [
+    "# Lessons learned",
+    "",
+    "## L1 — first",
+    "",
+    "type: floor · concepts: [enum-gate]",
+    "",
+    "**Lesson.** x",
+    "",
+    "## L2 — bad tag",
+    "",
+    "type: nonsense · concepts: [a]",
+    "",
+    "**Lesson.** y",
+  ].join("\n");
+  const dir = fixture(canon);
+  try {
+    generate(dir);
+    const r = runCli(dir);
+    assert.equal(r.status, 0);
+    assert.match(r.stdout, /WARN — 1 entry/);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("CLI GREEN: all-clean canon emits no WARN line", () => {
+  const dir = fixture();
+  try {
+    generate(dir);
+    const r = runCli(dir);
+    assert.equal(r.status, 0);
+    assert.doesNotMatch(r.stdout, /WARN/);
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }

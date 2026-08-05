@@ -27,7 +27,7 @@
 
 import { readFileSync, existsSync, statSync } from "node:fs";
 import { join } from "node:path";
-import { buildIndex, CANON_PATH, OUT_PATH } from "./lessons-index-core.mjs";
+import { buildIndex, CANON_PATH, OUT_PATH, MALFORMED } from "./lessons-index-core.mjs";
 
 const FIX = "npm run docs:generate";
 
@@ -37,11 +37,14 @@ const FIX = "npm run docs:generate";
  */
 export function checkLessonsIndex(targetDir) {
   let expected;
+  let malformedCount;
   try {
-    ({ content: expected } = buildIndex(targetDir));
+    const { content, entries } = buildIndex(targetDir);
+    expected = content;
+    malformedCount = entries.filter((e) => e.type === MALFORMED).length;
   } catch (e) {
     // A duplicate id / unsafe title / missing canon is a hard, deterministic RED — surface it.
-    return { ok: false, findings: [{ type: "ENUM_ERROR", file: OUT_PATH, problem: e.message }] };
+    return { ok: false, findings: [{ type: "ENUM_ERROR", file: OUT_PATH, problem: e.message }], malformedCount: 0 };
   }
 
   const abs = join(targetDir, OUT_PATH);
@@ -49,16 +52,21 @@ export function checkLessonsIndex(targetDir) {
   try {
     actual = readFileSync(abs, "utf8");
   } catch {
-    return { ok: false, findings: [{ type: "MISSING", file: OUT_PATH, problem: "expected index file is not committed or is unreadable" }] };
+    return {
+      ok: false,
+      findings: [{ type: "MISSING", file: OUT_PATH, problem: "expected index file is not committed or is unreadable" }],
+      malformedCount: 0,
+    };
   }
 
   if (actual !== expected) {
     return {
       ok: false,
       findings: [{ type: "DRIFT", file: OUT_PATH, problem: "committed bytes differ from the index recomputed from canon" }],
+      malformedCount: 0,
     };
   }
-  return { ok: true, findings: [] };
+  return { ok: true, findings: [], malformedCount };
 }
 
 function main() {
@@ -68,9 +76,14 @@ function main() {
     process.stderr.write(`check-lessons-index: target dir not found (or not a directory): ${target}\n`);
     process.exit(1);
   }
-  const { ok, findings } = checkLessonsIndex(target);
+  const { ok, findings, malformedCount } = checkLessonsIndex(target);
   if (ok) {
     process.stdout.write(`LESSONS-INDEX: GREEN — ${OUT_PATH} matches the index recomputed from canon\n`);
+    if (malformedCount > 0) {
+      process.stdout.write(
+        `LESSONS-INDEX: WARN — ${malformedCount} entry(ies) carry a malformed tag line (rendered "?") — read them in canon\n`
+      );
+    }
     process.exit(0);
   }
   const hasEnumError = findings.some((f) => f.type === "ENUM_ERROR");
