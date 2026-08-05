@@ -1,0 +1,108 @@
+// .dev/floor/gen-lessons-index.test.mjs — hermetic tests for the lessons-index generator.
+//
+// Every test runs against a THROWAWAY target dir under os.tmpdir(), never the live repo — the generator
+// writes, so a test that pointed at the repo would mutate committed bytes.
+
+import { test } from "node:test";
+import assert from "node:assert/strict";
+import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, rmSync, statSync, existsSync } from "node:fs";
+import { join, dirname } from "node:path";
+import { tmpdir } from "node:os";
+import { generate } from "./gen-lessons-index.mjs";
+import { CANON_PATH, OUT_PATH } from "./lessons-index-core.mjs";
+
+/** Build a throwaway repo whose canon holds `canonText`. Returns its path. */
+function fixture(canonText) {
+  const dir = mkdtempSync(join(tmpdir(), "pharn-lessons-index-"));
+  const canonAbs = join(dir, CANON_PATH);
+  mkdirSync(dirname(canonAbs), { recursive: true });
+  writeFileSync(canonAbs, canonText);
+  return dir;
+}
+
+const CANON = [
+  "# Lessons learned",
+  "",
+  "## L1 — first",
+  "",
+  "type: floor · concepts: [enum-gate]",
+  "",
+  "**Lesson.** x",
+  "",
+  "## L2 — second",
+  "",
+  "**Lesson.** y",
+].join("\n");
+
+test("writes the index to docs/lessons-index.md and reports the lesson count", () => {
+  const dir = fixture(CANON);
+  try {
+    const { entries, updated } = generate(dir);
+    assert.equal(entries.length, 2);
+    assert.equal(updated, true);
+    const out = readFileSync(join(dir, OUT_PATH), "utf8");
+    assert.match(out, /# Lessons index/);
+    assert.match(out, /2 lessons · 1 tagged · 0 malformed · 1 untagged/);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("a second run is a true filesystem NO-OP (idempotence, not merely byte-equality)", () => {
+  const dir = fixture(CANON);
+  try {
+    generate(dir);
+    const abs = join(dir, OUT_PATH);
+    const before = statSync(abs).mtimeMs;
+    const bytes = readFileSync(abs, "utf8");
+    const { updated } = generate(dir);
+    assert.equal(updated, false, "the second run must not report an update");
+    assert.equal(statSync(abs).mtimeMs, before, "the file must not be rewritten when unchanged");
+    assert.equal(readFileSync(abs, "utf8"), bytes);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("a canon edit is picked up on regeneration", () => {
+  const dir = fixture(CANON);
+  try {
+    generate(dir);
+    writeFileSync(join(dir, CANON_PATH), `${CANON}\n\n## L3 — third\n\n**Lesson.** z`);
+    const { entries, updated } = generate(dir);
+    assert.equal(updated, true);
+    assert.equal(entries.length, 3);
+    assert.match(readFileSync(join(dir, OUT_PATH), "utf8"), /3 lessons/);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("MISSING canon is a hard THROW — never a plausible-looking empty index (fail-closed, P5)", () => {
+  const dir = mkdtempSync(join(tmpdir(), "pharn-lessons-index-empty-"));
+  try {
+    assert.throws(() => generate(dir), /canon is missing or unreadable/);
+    assert.equal(existsSync(join(dir, OUT_PATH)), false, "nothing may be written when canon is unreadable");
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("a canon with NO `## L<n> ` headings is a hard THROW, not an empty index", () => {
+  const dir = fixture("# Lessons learned\n\nNothing promoted yet.\n");
+  try {
+    assert.throws(() => generate(dir), /refusing to render an empty index as fact/);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("a duplicate id in canon aborts the generator and writes nothing", () => {
+  const dir = fixture("## L1 — a\n\nx\n\n## L1 — b\n\ny");
+  try {
+    assert.throws(() => generate(dir), /duplicate lesson id/);
+    assert.equal(existsSync(join(dir, OUT_PATH)), false);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});

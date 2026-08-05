@@ -8,6 +8,12 @@ pharn/floor/test-fixtures
 # bytes and make the drift checker see false drift (committed must equal the generator's raw output).
 docs/capabilities/
 
+# Generated lessons index: byte-for-byte output of `npm run docs:generate`, guarded by
+# .dev/floor/check-lessons-index.mjs. Same reason as the catalog above — and a sharper one here: its rows
+# reproduce canon lesson TITLES verbatim, several of which carry back-ticks and `||` (lessons-learned.md
+# L15), so any reformatting pass would rewrite committed bytes and the drift checker would see false drift.
+docs/lessons-index.md
+
 # Tool-managed Claude/Cursor settings (not project source)
 .claude/settings.json
 .claude/settings.local.json
