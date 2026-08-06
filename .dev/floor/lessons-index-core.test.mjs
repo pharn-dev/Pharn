@@ -209,3 +209,98 @@ test("✧ CI actually INVOKES the drift check, and its step is not disabled by a
   // requires this check. Those are harness-layer facts — the same boundary LIMITS.md §1d draws for an
   // out-of-band approval signal. "The wiring is pinned" NEVER means "CI is guaranteed to run it".
 });
+
+// ── ✧ CROSS-SURFACE PINS — this core vs. pharn/floor/lessons-index-core.mjs ────────────────────────
+//
+// `product-lessons-index` shipped a DELIBERATE SECOND COPY of this core on the product surface, rather
+// than a shared core parameterized by paths — the same call pharn/floor/check-provenance.mjs made, whose
+// pins live in .dev/floor/check-provenance.test.mjs. These two tests are that precedent applied here:
+// the shared constants must AGREE, and the divergent ones must DIFFER **on purpose**, so neither an
+// accidental drift nor an over-eager "unification" can pass unnoticed.
+//
+// WHY THE PIN LIVES HERE AND NOT IN THE PRODUCT SUITE (direction and reach, stated — GRILL F4):
+// a user's install ships `pharn/floor/**` WITHOUT `.dev/`, so a product test may never depend on a dev
+// file existing. The dependency can only point `.dev/` -> `pharn/`. The honest consequence: this guard
+// does NOT travel with the code it pins — it protects the two copies while they live in THIS repo
+// together, which is the only place they can drift apart. The product suite carries the positive half
+// (its own constants hold the product values) so it is not left with nothing.
+
+/**
+ * Read a `const NAME = <rhs>;` declaration's right-hand side from a module's SOURCE.
+ *
+ * A trailing `// …` comment is tolerated and EXCLUDED from the compared value: several of these
+ * declarations carry an explanatory comment on the same line (`TAG_CLAIM_RE` does on both surfaces), and
+ * pinning prose alongside the value would make the two copies' COMMENTS load-bearing — a guard that fires
+ * on a reworded sentence is a guard operators learn to wave through.
+ */
+function constSource(src, name, file) {
+  const m = src.match(new RegExp(`^(?:export )?const ${name} = (.*?);(?:\\s*//.*)?$`, "m"));
+  assert.ok(m, `${file} must declare \`const ${name} = …;\` on one line`);
+  return m[1];
+}
+
+const PRODUCT_CORE_URL = new URL("../../pharn/floor/lessons-index-core.mjs", import.meta.url);
+
+test("✧ cross-surface: every SHARED constant is byte-identical between the dev and product cores", () => {
+  const dev = readFileSync(new URL("./lessons-index-core.mjs", import.meta.url), "utf8");
+  const prod = readFileSync(PRODUCT_CORE_URL, "utf8");
+
+  // The entry-contract parsers and the tag-line gate. If these ever diverge, the two surfaces disagree
+  // about what a lesson IS — the failure mode the second copy is otherwise blind to.
+  for (const name of [
+    "HEADING_RE",
+    "ANY_H2_RE",
+    "TAG_CLAIM_RE",
+    "TAG_RE",
+    "PROMOTED_RE",
+    "TYPE_ENUM",
+    "CONCEPTS_MIN",
+    "CONCEPTS_MAX",
+    "CONCEPT_MAX_LEN",
+    "CONCEPT_RE",
+    "CHARS_PER_TOKEN",
+    "ABSENT",
+    "MALFORMED",
+  ]) {
+    assert.equal(
+      constSource(prod, name, "pharn/floor/lessons-index-core.mjs"),
+      constSource(dev, name, ".dev/floor/lessons-index-core.mjs"),
+      `${name} drifted between the dev and product cores`
+    );
+  }
+
+  // The control-char precondition itself (L14: it must stay the guard BEFORE the shape regexes, on both
+  // surfaces). Compare the whole function body, not just its signature.
+  const body = (src) => {
+    const m = src.match(/function cleanScalar\(v, maxLen\) \{[\s\S]*?\n\}/);
+    assert.ok(m, "both cores must declare `function cleanScalar(v, maxLen)`");
+    return m[0];
+  };
+  assert.equal(body(prod), body(dev), "cleanScalar drifted — the L14 guard must be identical on both surfaces");
+});
+
+test("✧ cross-surface: the FOUR divergent constants DIFFER, and hold their surface's values", () => {
+  // Asserting the difference is as load-bearing as asserting the agreement: a future "let's unify these"
+  // edit that pointed the product core at `.dev/memory-bank/` or `docs/` would otherwise pass silently,
+  // and would re-introduce exactly the two rejections the product copy exists to encode — writing into
+  // the gated-canon zone, and claiming a directory that belongs to the user.
+  const dev = readFileSync(new URL("./lessons-index-core.mjs", import.meta.url), "utf8");
+  const prod = readFileSync(PRODUCT_CORE_URL, "utf8");
+
+  for (const name of ["CANON_PATH", "OUT_PATH", "GEN", "REGEN"]) {
+    assert.notEqual(
+      constSource(prod, name, "pharn/floor/lessons-index-core.mjs"),
+      constSource(dev, name, ".dev/floor/lessons-index-core.mjs"),
+      `${name} must DIFFER between the surfaces — it is one of the four deliberate divergences`
+    );
+  }
+
+  assert.equal(constSource(dev, "CANON_PATH", "dev"), '".dev/memory-bank/lessons-learned.md"');
+  assert.equal(constSource(dev, "OUT_PATH", "dev"), '"docs/lessons-index.md"');
+  assert.equal(constSource(prod, "CANON_PATH", "product"), '"memory-bank/lessons-learned.md"');
+  assert.equal(constSource(prod, "OUT_PATH", "product"), '".pharn/lessons-index.md"');
+
+  // L2 — a doc may cite only a LIVE op. The product regenerate hint must be a bare `node` invocation,
+  // because a user's project has no npm scripts and may not be a Node project at all.
+  assert.match(constSource(prod, "REGEN", "product"), /^"node pharn\/floor\/gen-lessons-index\.mjs \."$/);
+});
