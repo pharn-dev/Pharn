@@ -127,6 +127,20 @@ node pharn/floor/check-loop-record.mjs <LOOP.md>
 # differ deliberately. Exits non-zero on any RED.
 node pharn/floor/check-provenance.mjs <candidate.json> <canon-file.md>
 
+# PRODUCT twin of the lessons index (dev pair below): generate / drift-check a one-line-per-lesson address
+# book over a USER's memory-bank/lessons-learned.md, rendered to the GITIGNORED CACHE .pharn/lessons-index.md.
+# The checker prints one of five tokens — NO_CANON | COLD | GREEN | STALE | ENUM_ERROR — and `--verdict`
+# prints ONLY that token, so a caller branches on set MEMBERSHIP, never on prose and never on the exit code
+# alone (NO_CANON/COLD/GREEN all exit 0). FLOOR, NARROWED: a byte comparison over a DISPOSABLE CACHE — a
+# STALENESS check, NOT the dev pair's "committed == recomputed" byte-equality, and its coverage is
+# machine-local (a fresh clone is COLD). NO_CANON (no memory-bank yet) and COLD (no cache yet) are GREEN BY
+# DESIGN — the honest normal state of a fresh install; STALE is the only drift RED, because it is the only
+# state where the cache could MISLEAD a selection. Consistency, never correctness; and "the index was
+# consulted" NEVER means "the relevant lessons were read". Run by /pharn-plan's sweep (read) and
+# /pharn-memory-promote Step 6b (refresh, advisory, a Bash write outside fix #7 — L19).
+node pharn/floor/gen-lessons-index.mjs [target-dir]
+node pharn/floor/check-lessons-index.mjs [target-dir] [--verdict]
+
 # Validate a memory-bank promotion candidate: mandatory provenance shape + duplicate-id + target enum,
 # plus the entry tag fields — `type` (closed enum, exact membership) and `concepts` (1–6 unique tags, each
 # control-char-free lowercase/digit/hyphen, <=32 chars). Both are REQUIRED on new candidates; legacy canon
@@ -303,9 +317,28 @@ framework-specific`), via the first-match-wins procedure in `pharn/ARCHITECTURE.
   never against the index. The index's `type` / `concepts` columns are model-drafted values a human
   ratified at the promote gate, so **"typed `floor`" never means "about the floor"** — selecting on them
   is advisory context selection. A `-` means no tag line (the pre-#114 legacy shape — expected, benign);
-  a `?` means a tag line is present but **failed its gate** — read that entry in canon and flag it. The
-  **product** `/pharn-plan` is deliberately unchanged (it reads the target repo's own memory-bank, and a
-  user's repo has no index generator) — follow-up: `product-lessons-index`.
+  a `?` means a tag line is present but **failed its gate** — read that entry in canon and flag it.
+  - **The PRODUCT surface now has the same two-step sweep, with a deliberately WEAKER guarantee.**
+    `/pharn-plan` selects from `.pharn/lessons-index.md` and then reads the full entries from the user's
+    `memory-bank/lessons-learned.md`, branching on `pharn/floor/check-lessons-index.mjs --verdict`'s closed
+    token set `{NO_CANON, COLD, GREEN, STALE, ENUM_ERROR}` — **membership, never prose, and never the exit
+    code alone** (three tokens share exit 0 and each prescribes a different sweep). A stale, absent or
+    invalid index **degrades to "read canon in full and say so"; it never blocks a plan.** The product
+    index is a **gitignored, disposable CACHE** under `.pharn/`, not a committed page, so its check is a
+    **staleness** comparison whose coverage is machine-local — **not** the dev surface's
+    "committed == recomputed" byte-equality. `NO_CANON` (no memory-bank yet) and `COLD` (no cache yet) are
+    **GREEN by design**: both are the honest normal state of a fresh install, and REDding there would make
+    every first run a false alarm. `/pharn-memory-promote` Step 6b refreshes the cache after an accepted
+    promotion — a Bash write, therefore **outside** the fix #7 scope and declared as such (L19), and
+    advisory: skipping it just yields a `STALE` the next plan degrades on.
+  - **The two cores are deliberate SEPARATE COPIES** (`pharn/floor/lessons-index-core.mjs` vs
+    `.dev/floor/lessons-index-core.mjs`), the `check-provenance.mjs` precedent. Four constants diverge on
+    purpose — `CANON_PATH`, `OUT_PATH`, `REGEN`, and the **absent/empty-canon semantics** (the product
+    copy treats no-canon as a benign no-op where the dev copy throws). ✧ tests in
+    `.dev/floor/lessons-index-core.test.mjs` pin **both** halves: every shared constant must AGREE and
+    those four must DIFFER. The pin lives on the dev side because a user's install ships `pharn/floor/`
+    **without** `.dev/`, so the dependency may only point `.dev/` → `pharn/`; the honest consequence is
+    that it guards the two copies **in this repo**, and does not travel with the shipped code.
 
 ## Why it's shaped this way: the experiment agenda
 

@@ -16,7 +16,7 @@ reads:
   ]
 writes: ["memory-bank/<canon-file>"]
 constitution_refs: ["P0", "P2", "P4", "P5", "P6", "P7"]
-version: "0.1.0"
+version: "0.2.0"
 ---
 
 # /pharn-memory-promote — prepare and GATE a promotion to your memory-bank
@@ -391,6 +391,30 @@ auto-fixer here has a within-file blast radius over entries this run never touch
 `vendor/bin/prettier` or `vendor/bin/markdownlint-cli2` is absent, skip that advisory check — it never
 blocks.
 
+### Step 6b — Refresh the lessons index (ADVISORY; only when the target was `lessons-learned.md`)
+
+The one derived artifact this write invalidates is the lessons address book `/pharn-plan` selects from. A
+promotion that does not refresh it leaves a **stale cache**, which `/pharn-plan` will then read as `STALE`
+and correctly degrade on — safe, but noisier than it needs to be. So refresh it here:
+
+```bash
+node pharn/floor/gen-lessons-index.mjs .
+```
+
+- **ADVISORY (P0).** Running a generator is orchestration, never a floor op. It **never blocks**: if it
+  fails or you skip it, the next `/pharn-plan` reads `STALE` and falls back to reading canon in full,
+  which is the safe direction.
+- **This write ESCAPES the fix #7 writes-scope — declared, not pretended**
+  (`.dev/memory-bank/lessons-learned.md` **L19**, cited not restated — P4). The pre-write hook gates
+  `Write|Edit|MultiEdit`, and this runs through **Bash** as a subprocess, so Step 0's scope does not
+  cover it. It is benign for **this** target — `.pharn/**` is always-writable runtime scratch, so nothing
+  is reached that the scope withheld — but the mechanism is the one L19 documents, and it is named here
+  rather than left for a reader to discover in a diff.
+- **Skip it entirely when the target was `pattern-library.md`** — the index derives from
+  `lessons-learned.md` only, so there is nothing to refresh.
+- If the project has no lessons yet the generator prints `no canon … nothing to index` and writes
+  nothing, at exit 0. That is the expected first-run output, not a failure.
+
 Then **end your turn.** `/pharn-memory-promote` does one thing: it lands **one** vetted,
 provenance-carrying entry. It does not chain to another stage.
 
@@ -411,6 +435,12 @@ provenance-carrying entry. It does not chain to another stage.
   _act_ of running it at Step 3 is **advisory orchestration** — nothing on the floor forces the run. The
   unconditional claim is the narrow one: _when `check-provenance.mjs` runs, a candidate with a non-member
   `type` or a misshapen `concepts` cannot pass it._
+- **"Step 6b keeps the lessons index current"** → **ADVISORY**, twice over. Running a generator is
+  orchestration, not a floor op; and the write goes through **Bash**, so it is **outside** the fix #7
+  writes-scope entirely (L19 — declared, not pretended). The claim is deliberately weak, and the design
+  leans on the safe direction rather than on this step: a skipped or failed refresh leaves a stale cache,
+  which `/pharn-plan` reads as `STALE` and degrades on by reading canon in full. **"The promotion
+  refreshed the index" is never a precondition of anything.**
 - **"The type/concepts VALUES actually describe the entry"** → **ADVISORY / human.** They are model-drafted
   and ratified only by the Step-5 accept/deny. **"The entry is typed `floor`" NEVER means "the entry is
   about the floor"** — so any downstream selection keyed on `type` is **advisory-grade context selection,
