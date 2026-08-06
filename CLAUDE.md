@@ -106,6 +106,15 @@ node pharn/floor/check-structural.mjs <expected.json> <actual.json> [repoDir]
 # Both /pharn-plan and /pharn-dev-plan self-run it before their halt. Exits non-zero on RED.
 node pharn/floor/check-plan-lessons.mjs <PLAN.md> <lessons-learned.md>
 
+# Check the SHAPE of a loop-record — the features/<name>/LOOP.md that /pharn-loop writes at every stop.
+# Floor: the frontmatter envelope (`decision` in {STOP_GREEN, STOP_CAP, STOP_TERMINAL, INCONCLUSIVE};
+# `iterations` a positive integer; `commit` a git SHA or the literal `unknown`; `date` ISO YYYY-MM-DD)
+# plus an unambiguous `## Handoff` — exactly `### investigated`, `### learned`, `### next_steps`, in that
+# order, no extras/duplicates, each with a non-blank body. ADVISORY (never checked): whether the Handoff
+# is TRUE, whether `decision` AGREES with what check-loop.mjs emitted, or whether any run reads it.
+# NOT an input to check-loop.mjs — the record can never influence the stop. Exits non-zero on RED.
+node pharn/floor/check-loop-record.mjs <LOOP.md>
+
 # Validate a memory-bank promotion candidate: mandatory provenance shape + duplicate-id + target enum,
 # plus the entry tag fields — `type` (closed enum, exact membership) and `concepts` (1–6 unique tags, each
 # control-char-free lowercase/digit/hyphen, <=32 chars). Both are REQUIRED on new candidates; legacy canon
@@ -135,7 +144,7 @@ echo '{"tool_name":"Write","tool_input":{"file_path":"pharn/pharn-core/rules/x.m
 - **Dev tooling is real; the methodology stays stdlib-only.** The floor, the hook, and the commands
   have **zero runtime dependencies** (Node stdlib; Node 24). The repo carries **dev-only**
   devDependencies (ESLint, Prettier, markdownlint) wired as npm scripts: `npm run check`
-  (`format:check` + `lint` + `lint:md` + `test`) is the aggregate gate, and `npm test` runs
+  (`format:check` + `lint` + `lint:md` + `docs:check` + `test`) is the aggregate gate, and `npm test` runs
   `node --test` over the hook, product-floor, and dev-floor suites (`.claude/hooks/*.test.cjs` +
   `pharn/floor/*.test.mjs` + `.dev/floor/*.test.mjs`) — **green** at this writing; read the count live
   (`npm test`), never assert it from this doc (P6).
