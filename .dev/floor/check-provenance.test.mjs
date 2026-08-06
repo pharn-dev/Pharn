@@ -26,7 +26,7 @@ import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
-import { mkdtempSync, writeFileSync, rmSync, readFileSync } from "node:fs";
+import { mkdtempSync, writeFileSync, rmSync, readFileSync, readdirSync } from "node:fs";
 import { tmpdir } from "node:os";
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -328,4 +328,129 @@ test("the GREEN line labels the P0 bound: the VALUES being apt is advisory, only
   assert.equal(r.status, 0);
   assert.match(r.stdout, /ADVISORY/);
   assert.match(r.stdout, /never aboutness/);
+});
+
+// ── ✧ CROSS-COPY AGREEMENT GUARD (product-memory-promote) ────────────────────────────────────────────
+//
+// WHY THIS EXISTS. `pharn/floor/check-provenance.mjs` is a deliberate SECOND COPY of this checker for the
+// PRODUCT surface (a user's `memory-bank/`), chosen over a shared core at the plan gate. Two copies drift;
+// that is the whole cost of the choice, and this guard is the mitigation that made the choice acceptable.
+// It converts "drifts silently" into "drifts loudly".
+//
+// WHY IT LIVES HERE, on the dev side. The product suite must stay runnable inside a user's install, where
+// `.dev/**` does not exist (it is stripped at packaging). A test comparing the two copies can therefore
+// only live in the copy that never ships. Same reasoning as check-loop-record.mjs re-implementing its
+// regexes rather than importing from `.dev/floor/`.
+//
+// ── Honest scope (P0) — what a green run does and does NOT buy ───────────────────────────────────────
+// FLOOR, and only within the `npm test` gate: the named CONSTANTS are byte-equal across the two files,
+//   and the two TARGET_ENUMs are the intended, DIFFERENT values. `node --test` is not a fourth floor
+//   primitive; what makes this binding is its membership in `/pharn-dev-verify`'s check-verify.mjs gate
+//   map (the `test` gate) — the same standing every other *.test.mjs here has. Its VERDICT is
+//   floor-grade there; its EXISTENCE and the act of running it are advisory orchestration (two clocks).
+// NOT guaranteed: that the two files BEHAVE identically. This compares declarations, not logic — a
+//   divergence in the validation BODY passes untouched. It pins the constants most likely to be tightened
+//   in one copy and forgotten in the other, nothing more.
+//
+// MEASURED REJECTING A MUTANT before being trusted (L4 — an authored assertion passes by construction):
+// a seventh member appended to one TYPE_ENUM was confirmed to FAIL this test, and the change reverted.
+// If that measurement is ever repeated and the guard stays green, the guard is inert and this comment
+// is a lie — treat it as such.
+
+const PRODUCT_CHECK = join(here, "..", "..", "pharn", "floor", "check-provenance.mjs");
+const COMMANDS_DIR = join(here, "..", "..", ".claude", "commands");
+const MEMORY_BANK_WRITES_ALLOWLIST = new Set(["pharn-memory-promote.md", "pharn-dev-memory-promote.md"]);
+
+// Extract a top-level `const <NAME> = <value>;` declaration's raw right-hand side from a source file.
+// Deliberately textual and derived from BOTH sources — neither side is restated as a literal here, so a
+// tightening applied to one copy and not the other fails, rather than a stale literal in this file failing.
+function constSource(file, name) {
+  const src = readFileSync(file, "utf8");
+  const m = src.match(new RegExp(`^const ${name} = (.+?);\\s*(?://.*)?$`, "m"));
+  assert.ok(m, `${file} must declare a top-level \`const ${name} = …;\``);
+  return m[1].trim();
+}
+
+test("✧ the dev and product provenance checkers agree on every shared constant", () => {
+  for (const name of ["REQUIRED_PROVENANCE", "DATE_RE", "TYPE_ENUM", "CONCEPTS_MIN", "CONCEPTS_MAX", "CONCEPT_MAX_LEN", "CONCEPT_RE"]) {
+    assert.equal(
+      constSource(PRODUCT_CHECK, name),
+      constSource(CHECK, name),
+      `${name} has drifted between .dev/floor/check-provenance.mjs and pharn/floor/check-provenance.mjs — ` +
+        `tighten both copies or split them deliberately and update this guard`
+    );
+  }
+});
+
+test("✧ the two TARGET_ENUMs are DELIBERATELY different — dev canon vs a user's canon", () => {
+  const dev = constSource(CHECK, "TARGET_ENUM");
+  const prod = constSource(PRODUCT_CHECK, "TARGET_ENUM");
+  assert.notEqual(prod, dev, "the product checker must not gate the apparatus's own .dev/memory-bank paths");
+  assert.match(dev, /\.dev\/memory-bank\/lessons-learned\.md/);
+  assert.match(dev, /\.dev\/memory-bank\/pattern-library\.md/);
+  assert.match(prod, /"memory-bank\/lessons-learned\.md"/);
+  assert.match(prod, /"memory-bank\/pattern-library\.md"/);
+  assert.doesNotMatch(prod, /\.dev\//, "a .dev path in the product enum would gate a path no install has");
+});
+
+test("✧ COMMIT_RE differs deliberately: only the PRODUCT copy admits the literal `unknown`", () => {
+  // The one shape constant that is intentionally NOT shared. A user's project may not be a git repo;
+  // the apparatus always is, so widening the dev copy would buy nothing and weaken its provenance.
+  // Asserted rather than omitted, so "they differ" stays a recorded decision instead of looking like drift.
+  assert.match(constSource(PRODUCT_CHECK, "COMMIT_RE"), /unknown/);
+  assert.doesNotMatch(constSource(CHECK, "COMMIT_RE"), /unknown/);
+});
+
+test("✧ L7: no command outside the two *memory-promote ones declares a memory-bank path in `writes:`", () => {
+  // L7's own prescribed remedy, applied at the moment a canon path first becomes reachable from the
+  // PRODUCT surface: pin the declaration so a future re-widening fails closed. Over-declaring a canon
+  // path in some other stage's `writes:` would hand that stage a direct, ungated canon write — exactly
+  // the power the accept/deny gate exists to withhold.
+  //
+  // HONEST BOUND, and it is a big one: this pins a DECLARATION, not a behavior. `/pharn-build` derives
+  // its scope from a PLAN's `## Files` via `set-writes-scope.cjs --from-plan` and never reads a `writes:`
+  // declaration at all, so a plan naming a canon path bypasses this guard entirely. Recorded follow-up:
+  // `canon-write-denylist` (a deny that does not depend on any declaration being honest). Do not read a
+  // green run here as "canon is unreachable" — it is not.
+  const offenders = [];
+  for (const file of readdirSync(COMMANDS_DIR)
+    .filter((f) => f.endsWith(".md"))
+    .sort()) {
+    if (MEMORY_BANK_WRITES_ALLOWLIST.has(file)) continue; // only the two shipped promote commands
+    const src = readFileSync(join(COMMANDS_DIR, file), "utf8");
+    const fm = src.match(/^---\r?\n([\s\S]*?)\r?\n---/); // the STRUCTURED location only, never prose (L6)
+    if (!fm) continue;
+    const writes = fm[1].match(/^writes:[\s\S]*?\]/m);
+    if (writes && /memory-bank/.test(writes[0])) offenders.push(`${file} — ${writes[0].replace(/\s+/g, " ")}`);
+  }
+  assert.deepEqual(offenders, [], `command(s) declaring a canon path in writes:\n    ${offenders.join("\n    ")}`);
+});
+
+test("✧ the L7 allowlist exempts ONLY the two shipped promote commands — not every *-memory-promote.md", () => {
+  assert.ok(MEMORY_BANK_WRITES_ALLOWLIST.has("pharn-memory-promote.md"));
+  assert.ok(MEMORY_BANK_WRITES_ALLOWLIST.has("pharn-dev-memory-promote.md"));
+  assert.equal(MEMORY_BANK_WRITES_ALLOWLIST.size, 2);
+  assert.ok(!MEMORY_BANK_WRITES_ALLOWLIST.has("pharn-team-memory-promote.md"));
+});
+
+test("✧ the L7 guard DISCRIMINATES — it would flag a canon path in a non-promote command's writes:", () => {
+  // L4 again: pin the matcher's behavior directly, so a future loosening fails here instead of silently
+  // permitting the defect. Both the real (multi-line) and inline frontmatter spellings are exercised.
+  const flags = (src) => {
+    const fm = src.match(/^---\r?\n([\s\S]*?)\r?\n---/);
+    if (!fm) return false;
+    const writes = fm[1].match(/^writes:[\s\S]*?\]/m);
+    return !!(writes && /memory-bank/.test(writes[0]));
+  };
+  assert.ok(flags('---\nwrites: ["memory-bank/lessons-learned.md"]\n---\nbody'), "inline form must be flagged");
+  assert.ok(
+    flags('---\nwrites:\n  [\n    "features/x.md",\n    "memory-bank/pattern-library.md",\n  ]\n---\nbody'),
+    "multi-line form must be flagged"
+  );
+  assert.ok(!flags('---\nwrites: ["features/<name>/PLAN.md"]\n---\nbody'), "a normal declaration must not be flagged");
+  assert.ok(
+    !flags('---\nreads: ["memory-bank/lessons-learned.md"]\nwrites: ["features/<name>/PLAN.md"]\n---\nbody'),
+    "a READ of canon must not be flagged"
+  );
+  assert.ok(!flags("no frontmatter, but the words memory-bank and writes: appear in prose"), "prose must not be flagged (L6)");
 });

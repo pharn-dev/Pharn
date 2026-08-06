@@ -115,6 +115,18 @@ node pharn/floor/check-plan-lessons.mjs <PLAN.md> <lessons-learned.md>
 # NOT an input to check-loop.mjs — the record can never influence the stop. Exits non-zero on RED.
 node pharn/floor/check-loop-record.mjs <LOOP.md>
 
+# PRODUCT twin of check-provenance (below): validate a promotion candidate for a USER's memory-bank.
+# Same primitive #3 checks; TARGET_ENUM is `memory-bank/{lessons-learned,pattern-library}.md` (the two
+# PRESCRIPTION files, deliberately NOT ARCHITECTURE §5's four state files), and COMMIT_RE additionally
+# admits the literal `unknown` — a user's project need not be a git repo, so an honest absence is a
+# member and a fabricated SHA is not. FLOOR, NARROWED and stated: "well-shaped provenance" therefore
+# does NOT imply a diff pointer. Run by /pharn-memory-promote before its human accept/deny gate.
+# A DELIBERATE second copy of .dev/floor/check-provenance.mjs, not a shared core (the alternative made
+# the gate's membership set a CLI argument); the two are pinned to agree on every shared constant by
+# ✧ tests in .dev/floor/check-provenance.test.mjs, which also assert the two TARGET_ENUMs/COMMIT_REs
+# differ deliberately. Exits non-zero on any RED.
+node pharn/floor/check-provenance.mjs <candidate.json> <canon-file.md>
+
 # Validate a memory-bank promotion candidate: mandatory provenance shape + duplicate-id + target enum,
 # plus the entry tag fields — `type` (closed enum, exact membership) and `concepts` (1–6 unique tags, each
 # control-char-free lowercase/digit/hyphen, <=32 chars). Both are REQUIRED on new candidates; legacy canon
@@ -140,7 +152,7 @@ echo '{"tool_name":"Edit","tool_input":{"file_path":"pharn/CONSTITUTION.md"}}' |
 echo '{"tool_name":"Write","tool_input":{"file_path":"pharn/pharn-core/rules/x.md"}}' | node .claude/hooks/protect-trusted-paths.cjs  # → exit 0, allowed
 ```
 
-- **Slash commands `/pharn-dev-plan`, `/pharn-dev-build`, `/pharn-dev-review`** (`.claude/commands/*.md`) are the core workflow. **Command-naming convention (dev/product boundary):** build-apparatus commands carry the **`pharn-dev-`** prefix (contributor tooling — `pharn-dev-plan` / `-build` / `-grill` / `-regress` / `-verify` / `-review` / `-ship` / `-memory-promote` / `-eval`); **product** commands carry **`pharn-`** without `-dev-` (what a PHARN user runs — `/pharn-spec` / `-plan` / `-grill` / `-build` / `-regress` / `-verify` / `-ship` / `-review` / `-loop`, now built). The split is by **name (prefix)**, since `.claude/commands/` cannot move. The prefix is naming/menu UX only — **not** an access gate (Apache-2.0; a user who wants a dev command can still type it).
+- **Slash commands `/pharn-dev-plan`, `/pharn-dev-build`, `/pharn-dev-review`** (`.claude/commands/*.md`) are the core workflow. **Command-naming convention (dev/product boundary):** build-apparatus commands carry the **`pharn-dev-`** prefix (contributor tooling — `pharn-dev-plan` / `-build` / `-grill` / `-regress` / `-verify` / `-review` / `-ship` / `-memory-promote` / `-eval`); **product** commands carry **`pharn-`** without `-dev-` (what a PHARN user runs — `/pharn-spec` / `-plan` / `-grill` / `-build` / `-regress` / `-verify` / `-ship` / `-review` / `-loop` / `-memory-promote`, now built). The split is by **name (prefix)**, since `.claude/commands/` cannot move. The prefix is naming/menu UX only — **not** an access gate (Apache-2.0; a user who wants a dev command can still type it).
 - **Dev tooling is real; the methodology stays stdlib-only.** The floor, the hook, and the commands
   have **zero runtime dependencies** (Node stdlib; Node 24). The repo carries **dev-only**
   devDependencies (ESLint, Prettier, markdownlint) wired as npm scripts: `npm run check`
