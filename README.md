@@ -2,27 +2,31 @@
 
 # PHARN
 
-**Ship at agent speed. Keep the record a craftsman would demand.**
+**Code got cheap. Understanding got scarce.**
 
-PHARN is an agent-orchestrated intent layer for Claude Code that keeps comprehension debt legible instead of silent. This
-repository, **PHARN-OSS**, is its open-source edition.
+PHARN is an open, audit-grade system of record for AI-written code — the intent, the constraints, and
+the checks behind a change, written as plain markdown that lives in your own repo and diffs in git. It
+runs on Claude Code today, and the discipline itself ships as readable markdown — skills, commands,
+lenses, rules — that you read, diff, and version yourself. PHARN does not make anyone understand the
+code; it keeps a deterministic floor under it and the record available the moment someone needs it.
 
 [![Version](https://img.shields.io/badge/version-1.0.0-blue)](./CHANGELOG.md)
 [![License: Apache 2.0](https://img.shields.io/badge/license-Apache%202.0-green)](./LICENSE)
-[![CI](https://github.com/pharn-dev/pharn/actions/workflows/ci.yml/badge.svg)](https://github.com/pharn-dev/pharn/actions/workflows/ci.yml)
-[![CodeQL](https://github.com/pharn-dev/pharn/actions/workflows/codeql.yml/badge.svg)](https://github.com/pharn-dev/pharn/actions/workflows/codeql.yml)
-[![Floor](https://github.com/pharn-dev/pharn/actions/workflows/floor.yml/badge.svg)](https://github.com/pharn-dev/pharn/actions/workflows/floor.yml)
-[![Secrets](https://github.com/pharn-dev/pharn/actions/workflows/gitleaks.yml/badge.svg)](https://github.com/pharn-dev/pharn/actions/workflows/gitleaks.yml)
+[![CI](https://github.com/pharn-dev/pharn-oss/actions/workflows/ci.yml/badge.svg)](https://github.com/pharn-dev/pharn-oss/actions/workflows/ci.yml)
+[![CodeQL](https://github.com/pharn-dev/pharn-oss/actions/workflows/codeql.yml/badge.svg)](https://github.com/pharn-dev/pharn-oss/actions/workflows/codeql.yml)
+[![Floor](https://github.com/pharn-dev/pharn-oss/actions/workflows/floor.yml/badge.svg)](https://github.com/pharn-dev/pharn-oss/actions/workflows/floor.yml)
+[![Secrets](https://github.com/pharn-dev/pharn-oss/actions/workflows/gitleaks.yml/badge.svg)](https://github.com/pharn-dev/pharn-oss/actions/workflows/gitleaks.yml)
 [![Built for Claude Code](https://img.shields.io/badge/built%20for-Claude%20Code-555)](https://claude.com/claude-code)
 
 </div>
 
-> **Status: early, active development.** The architecture is specified and the methodology is being
-> built incrementally, in the open, using its own tooling (PHARN builds PHARN). The `1.0.0` version
-> tags that foundation — the spec, the build tooling, and the pipeline commands — **not** an adoptable
-> release. It is **not yet ready to adopt**: the pipeline runs here (self-hosting), but there is no
-> installer or packaged release you can drop into your own repo yet. Star or watch to follow along;
-> see [Current state](#current-state) for exactly what exists today.
+> **Status: early, active development.** This repository, **PHARN-OSS**, is PHARN's open-source
+> edition: the architecture is specified and the methodology is being built incrementally, in the
+> open, using its own tooling (PHARN builds PHARN). The `1.0.0` tag marks that foundation — the spec,
+> the build tooling, and the pipeline commands — **not** an adoptable release. It is **not yet ready
+> to adopt**: the pipeline runs here (self-hosting), but there is no installer or packaged release you
+> can drop into your own repo yet. Star or watch to follow along; see
+> [Current state](#current-state) for exactly what exists today.
 
 ---
 
@@ -149,10 +153,10 @@ around it is hand-written and carries no such guarantee.
 
 - **Capabilities — 36 built**, counted by the `role:` frontmatter test (mirrors `pharn/floor/validate.mjs`): **13** grillers, **22** lenses, **1** skill (`pharn/pharn-core/seam-resolver/`), **0** validators, **0** verifiers, **0** auditors. Full list: [`docs/capabilities/README.md`](./docs/capabilities/README.md).
 - **Contracts — 5** (`pharn/pharn-contracts/`): `eval-format`, `finding-shape`, `loop-record`, `seam-config`, `ship-record`.
-- **Product commands — 9** (`.claude/commands/`): `/pharn-build`, `/pharn-grill`, `/pharn-loop`, `/pharn-plan`, `/pharn-regress`, `/pharn-review`, `/pharn-ship`, `/pharn-spec`, `/pharn-verify`.
+- **Product commands — 10** (`.claude/commands/`): `/pharn-build`, `/pharn-grill`, `/pharn-loop`, `/pharn-memory-promote`, `/pharn-plan`, `/pharn-regress`, `/pharn-review`, `/pharn-ship`, `/pharn-spec`, `/pharn-verify`.
 - **Dev-apparatus commands — 9** (`.claude/commands/`): `/pharn-dev-build`, `/pharn-dev-eval`, `/pharn-dev-grill`, `/pharn-dev-memory-promote`, `/pharn-dev-plan`, `/pharn-dev-regress`, `/pharn-dev-review`, `/pharn-dev-ship`, `/pharn-dev-verify`.
 - **Hook scripts — 3** (`.claude/hooks/`): `enforce-writes-scope.cjs`, `protect-trusted-paths.cjs`, `set-writes-scope.cjs`.
-- **Floor checkers — 37** `.mjs` files under `pharn/floor/` (tests excluded).
+- **Floor checkers — 38** `.mjs` files under `pharn/floor/` (tests excluded).
 
 <!-- CURRENT-STATE:END -->
 
