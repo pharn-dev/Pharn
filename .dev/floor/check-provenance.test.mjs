@@ -359,6 +359,7 @@ test("the GREEN line labels the P0 bound: the VALUES being apt is advisory, only
 
 const PRODUCT_CHECK = join(here, "..", "..", "pharn", "floor", "check-provenance.mjs");
 const COMMANDS_DIR = join(here, "..", "..", ".claude", "commands");
+const MEMORY_BANK_WRITES_ALLOWLIST = new Set(["pharn-memory-promote.md", "pharn-dev-memory-promote.md"]);
 
 // Extract a top-level `const <NAME> = <value>;` declaration's raw right-hand side from a source file.
 // Deliberately textual and derived from BOTH sources — neither side is restated as a literal here, so a
@@ -415,7 +416,7 @@ test("✧ L7: no command outside the two *memory-promote ones declares a memory-
   for (const file of readdirSync(COMMANDS_DIR)
     .filter((f) => f.endsWith(".md"))
     .sort()) {
-    if (/memory-promote\.md$/.test(file)) continue; // the two commands that legitimately declare canon
+    if (MEMORY_BANK_WRITES_ALLOWLIST.has(file)) continue; // only the two shipped promote commands
     const src = readFileSync(join(COMMANDS_DIR, file), "utf8");
     const fm = src.match(/^---\r?\n([\s\S]*?)\r?\n---/); // the STRUCTURED location only, never prose (L6)
     if (!fm) continue;
@@ -423,6 +424,13 @@ test("✧ L7: no command outside the two *memory-promote ones declares a memory-
     if (writes && /memory-bank/.test(writes[0])) offenders.push(`${file} — ${writes[0].replace(/\s+/g, " ")}`);
   }
   assert.deepEqual(offenders, [], `command(s) declaring a canon path in writes:\n    ${offenders.join("\n    ")}`);
+});
+
+test("✧ the L7 allowlist exempts ONLY the two shipped promote commands — not every *-memory-promote.md", () => {
+  assert.ok(MEMORY_BANK_WRITES_ALLOWLIST.has("pharn-memory-promote.md"));
+  assert.ok(MEMORY_BANK_WRITES_ALLOWLIST.has("pharn-dev-memory-promote.md"));
+  assert.equal(MEMORY_BANK_WRITES_ALLOWLIST.size, 2);
+  assert.ok(!MEMORY_BANK_WRITES_ALLOWLIST.has("pharn-team-memory-promote.md"));
 });
 
 test("✧ the L7 guard DISCRIMINATES — it would flag a canon path in a non-promote command's writes:", () => {

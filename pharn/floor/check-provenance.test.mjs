@@ -117,10 +117,34 @@ test("RED: a malformed date (not YYYY-MM-DD) exits 1", () => {
   assert.match(r.stdout, /RED — provenance failed/);
 });
 
+test("RED: an impossible Gregorian date (2026-02-30) exits 1 and is not accepted into canon", () => {
+  const r = runWith(withProv({ date: "2026-02-30" }));
+  assert.equal(r.status, 1);
+  assert.match(r.stdout, /RED — provenance failed/);
+  assert.match(r.stdout, /not a valid Gregorian calendar date/);
+  assert.doesNotMatch(r.stdout, /GREEN/);
+});
+
 test("RED: a duplicate id (already a `## <id>` heading in canon) exits 1", () => {
   const r = runWith({ ...VALID, id: "L1" }); // L1 already exists in CANON
   assert.equal(r.status, 1);
   assert.match(r.stdout, /RED — id failed/);
+});
+
+test("RED: an id containing a space exits 1 before duplicate lookup", () => {
+  const r = runWith({ ...VALID, id: "L5 extra" });
+  assert.equal(r.status, 1);
+  assert.match(r.stdout, /RED — id failed/);
+  assert.match(r.stdout, /whitespace-free single token/);
+  assert.doesNotMatch(r.stdout, /duplicate/);
+});
+
+test("RED: an id containing a newline exits 1 before duplicate lookup", () => {
+  const r = runWith({ ...VALID, id: "L5\n" });
+  assert.equal(r.status, 1);
+  assert.match(r.stdout, /RED — id failed/);
+  assert.match(r.stdout, /whitespace-free single token/);
+  assert.doesNotMatch(r.stdout, /duplicate/);
 });
 
 test("RED: a target outside the canon enum exits 1", () => {

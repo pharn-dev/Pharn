@@ -89,6 +89,18 @@ const REQUIRED_PROVENANCE = ["feature", "commit", "source", "date"]; // the mand
 const COMMIT_RE = /^([0-9a-f]{7,40}|unknown)$/;
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/; // ISO calendar date
 
+// Shape match is necessary but not sufficient: DATE_RE admits 2026-02-30. Round-trip through the
+// local-date constructor — no timezone offset — so an impossible month/day rolls forward and fails.
+function isGregorianDate(s) {
+  const m = DATE_RE.exec(s);
+  if (!m) return false;
+  const y = Number(s.slice(0, 4));
+  const mo = Number(s.slice(5, 7));
+  const d = Number(s.slice(8, 10));
+  const dt = new Date(y, mo - 1, d);
+  return dt.getFullYear() === y && dt.getMonth() === mo - 1 && dt.getDate() === d;
+}
+
 // The entry TAXONOMY. This array is the SINGLE SOURCE OF TRUTH for the `type` enum (P4): the
 // `/pharn-memory-promote` doc restates the member list once, for a human drafting a candidate, and
 // check-provenance.test.mjs asserts the two agree — so the restatement cannot drift silently.
@@ -233,8 +245,12 @@ function main() {
           `got ${JSON.stringify(p.commit)}`
       );
     }
-    if ("date" in p && !(typeof p.date === "string" && DATE_RE.test(p.date))) {
-      red("provenance", `date must match ${DATE_RE} (YYYY-MM-DD), got ${JSON.stringify(p.date)}`);
+    if ("date" in p) {
+      if (!(typeof p.date === "string" && DATE_RE.test(p.date))) {
+        red("provenance", `date must match ${DATE_RE} (YYYY-MM-DD), got ${JSON.stringify(p.date)}`);
+      } else if (!isGregorianDate(p.date)) {
+        red("provenance", `date ${JSON.stringify(p.date)} is not a valid Gregorian calendar date`);
+      }
     }
   }
 
@@ -243,8 +259,11 @@ function main() {
   if (!nonEmptyString(cand.id)) {
     red("id", `id must be a non-empty string, got ${JSON.stringify(cand.id)}`);
   } else {
-    const id = String(cand.id).trim();
-    if (existingIds(canonPath).includes(id)) {
+    const raw = String(cand.id);
+    const id = raw.trim();
+    if (/\s/.test(raw)) {
+      red("id", `id must be a whitespace-free single token, got ${JSON.stringify(raw)}`);
+    } else if (existingIds(canonPath).includes(id)) {
       red("id", `id ${JSON.stringify(id)} already exists as a "## ${id}" heading in ${canonPath} — duplicate`);
     }
   }
