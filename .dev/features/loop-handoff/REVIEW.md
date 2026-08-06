@@ -177,3 +177,17 @@ a false guarantee written inside the floor is the highest-leverage place for the
 **This verdict is advisory** (`/pharn-dev-review` has no structural verdict and gates nothing — its
 severities are LLM assignments, fix #3). The floor-grade facts of this increment are the three verdicts
 named above. The merge / fix / abandon decision is the human's.
+
+---
+
+**Post-verdict remediation (human-directed, after the BLOCKED verdict above — the verdict itself is
+history and stands unedited):**
+
+- **F1 (P0, blocking — the false forgery-proofing comment) → FIXED** at
+  `pharn/floor/check-loop-record.mjs:291`, with the exact wording this review prescribed: "buys
+  UNAMBIGUITY, NOT forgery-proofing (see the header)".
+- **F2 (P0, blocking — the unqualified `iterations` trust row) → FIXED** at
+  `pharn/pharn-contracts/loop-record.md:79`: "**value** shape-gated; that it equals the loop's real
+  iteration count is advisory".
+- F3 / F4 (advisory) remain open by the human's scoping, consistent with fix #3: advisory findings
+  inform and never gate.
