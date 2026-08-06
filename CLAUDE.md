@@ -144,7 +144,7 @@ echo '{"tool_name":"Write","tool_input":{"file_path":"pharn/pharn-core/rules/x.m
 - **Dev tooling is real; the methodology stays stdlib-only.** The floor, the hook, and the commands
   have **zero runtime dependencies** (Node stdlib; Node 24). The repo carries **dev-only**
   devDependencies (ESLint, Prettier, markdownlint) wired as npm scripts: `npm run check`
-  (`format:check` + `lint` + `lint:md` + `test`) is the aggregate gate, and `npm test` runs
+  (`format:check` + `lint` + `lint:md` + `docs:check` + `test`) is the aggregate gate, and `npm test` runs
   `node --test` over the hook, product-floor, and dev-floor suites (`.claude/hooks/*.test.cjs` +
   `pharn/floor/*.test.mjs` + `.dev/floor/*.test.mjs`) — **green** at this writing; read the count live
   (`npm test`), never assert it from this doc (P6).

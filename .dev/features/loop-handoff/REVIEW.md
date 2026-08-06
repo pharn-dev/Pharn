@@ -82,7 +82,7 @@ operators to avoid a safe construct.
 - type: FINDING
   rule_id: P5
   severity: minor
-  file: ".claude/commands/pharn-loop.md:243"
+  file: ".claude/commands/pharn-loop.md:272"
   problem: "Step 4b's 'fix and re-run — AT MOST ONCE' is labeled advisory and cannot be enforced, because the checker keeps no cross-invocation state — the identical shape as the --iter bound that LIMITS.md §1d already names, now present twice in one command."
   evidence: "`**The `≤1` repair bound is ADVISORY (`LIMITS.md §1d`)** — it is command prose, not a floor counter; the checker keeps no state across invocations and cannot know how many times it has run.`"
 ```

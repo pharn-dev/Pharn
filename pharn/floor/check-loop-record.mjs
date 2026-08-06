@@ -90,12 +90,22 @@ const COMMIT_RE = /^([0-9a-f]{7,40}|unknown)$/; // `unknown` = an honest absence
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
 // Structure regexes. `HANDOFF_RE` matches the section heading exactly; `SUB_RE` matches a level-3
-// heading (`####` does not match — `#` is not the required whitespace). `HEADING_RE` ends the section at
+// heading (`####` does not match — `#` is not the required whitespace); `HEADING_RE` ends the section at
 // the next `#`/`##` heading.
-const HANDOFF_RE = /^##[ \t]+Handoff[ \t]*$/;
-const SUB_RE = /^###[ \t]+(.*)$/;
-const HEADING_RE = /^#{1,2}[ \t]+\S/;
-const FENCE_RE = /^\s*(```|~~~)/;
+//
+// All three allow the 0-3 leading spaces CommonMark allows on an ATX heading, and `{0,3}` rather than
+// `\s*` is deliberate: at 4+ spaces the line is an indented code block, not a heading. Anchoring these
+// at column 0 while the fence scan tolerated indentation was a real fail-OPEN — a 3-space-indented
+// `### smuggled` inside the Handoff is a heading to every CommonMark parser, and the checker would
+// return GREEN while asserting the three were the ONLY level-3 headings there.
+const HANDOFF_RE = /^ {0,3}##[ \t]+Handoff[ \t]*$/;
+const SUB_RE = /^ {0,3}###[ \t]+(.*)$/;
+const HEADING_RE = /^ {0,3}#{1,2}[ \t]+\S/;
+
+// A fence delimiter line: 0-3 spaces, then a run of 3+ backticks or 3+ tildes, then anything (the info
+// string on an opener; whitespace only on a closer). `fenceOpens` / `fenceCloses` below implement the
+// CommonMark 4.5 pairing rule — see `handoff()`.
+const FENCE_RE = /^ {0,3}((?:`{3,}|~{3,}))(.*)$/;
 
 function red(msg) {
   console.log(`RED — ${msg}`);
@@ -142,7 +152,7 @@ function envelope(text) {
 // many `## Handoff` headings exist so a duplicate section is RED rather than silently first-wins.
 function handoff(body) {
   const lines = body.split(/\r?\n/);
-  let inFence = false;
+  let openFence = null; // { char, len } while a fenced block is open; null otherwise
   let count = 0;
   let inSection = false;
   const subs = [];
@@ -158,12 +168,27 @@ function handoff(body) {
     // Fenced blocks: their CONTENT counts as body content (a subsection whose body is a code block is
     // not empty), but they are NEVER structural — a fenced `### learned` is DATA about the shape, never
     // a declaration of it (lessons-learned.md L6).
-    if (FENCE_RE.test(line)) {
-      inFence = !inFence;
+    //
+    // The pairing follows CommonMark 4.5 rather than toggling on any fence-looking line: a block closes
+    // ONLY on a delimiter of the SAME character whose run is at least as long as the opener's, with
+    // nothing but whitespace after it. A blind toggle desynchronized from real Markdown in both
+    // directions and both were reproduced against micromark and markdown-it: it fail-OPENED (a `~~~`
+    // block "closed" by ``` left two subsections inside a code block yet still reported all three
+    // present) and it fail-CLOSED on the escape hatch this very file prescribes (quoting the record's
+    // own outline needs a nested fence, and the four-backtick idiom broke the toggle).
+    const fence = line.match(FENCE_RE);
+    if (fence) {
+      const marker = fence[1];
+      if (openFence === null) {
+        openFence = { char: marker[0], len: marker.length };
+      } else if (marker[0] === openFence.char && marker.length >= openFence.len && fence[2].trim() === "") {
+        openFence = null;
+      }
+      // a non-matching delimiter while a block is open is ordinary content, not a close
       markContent();
       continue;
     }
-    if (inFence) {
+    if (openFence !== null) {
       if (line.trim().length > 0) markContent();
       continue;
     }
@@ -263,14 +288,18 @@ function gate(recordPath) {
     );
   }
 
-  // EXACT LIST EQUALITY, in order — this is what keeps untrusted body text from forging a heading.
+  // EXACT LIST EQUALITY, in order — this buys UNAMBIGUITY, NOT forgery-proofing (see the header): a
+  // line-initial `### <name>` in a body IS that heading, and no checker can rule otherwise. What the
+  // equality refuses is the consequence — an extra, duplicated, or reordered heading, which a
+  // set-membership or first-wins check would have passed.
   const ok = subs.length === HANDOFF_SECTIONS.length && subs.every((s, i) => s === HANDOFF_SECTIONS[i]);
   if (!ok) {
     return red(
       `loop-record's \`## Handoff\` contains the level-3 headings [${subs.join(", ")}] (${recordPath}) — ` +
         `expected EXACTLY [${HANDOFF_SECTIONS.join(", ")}], in that order, with no extras and no ` +
-        `duplicates. A body line that reads as \`### <name>\` IS a heading, so an accidental quote of ` +
-        `the record's own shape trips this; the record is REFUSED, never sanitized. Fence such a quote.`
+        `duplicates. A LINE-INITIAL \`### <name>\` in a body IS a heading (an inline, back-ticked ` +
+        `mention is not), so quoting the record's own outline as an outline trips this; the record is ` +
+        `REFUSED, never sanitized. Put such a quote inside a fenced block.`
     );
   }
 

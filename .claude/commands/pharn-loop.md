@@ -34,7 +34,9 @@ You are the **orchestrator**. `/pharn-loop` is the **bounded auto-iteration** va
 runs the **same product pipeline**, but where gated `/pharn-ship` stops after the first `/pharn-verify` and
 hands to the human, `/pharn-loop` **iterates the `build → regress → verify` middle** until a **deterministic
 floor-grade stop** — never on your judgment. You **reuse** the existing product stage commands and
-**reimplement none of them**; the only new floor primitive is the tested stop core `pharn/floor/check-loop.mjs`.
+**reimplement none of them**. Two floor primitives are its own: the tested stop core
+`pharn/floor/check-loop.mjs`, and the tested record shape check `pharn/floor/check-loop-record.mjs` — the
+second **cannot** feed the first (see the guarantee audit).
 
 > **This is a PRODUCT command (`pharn-`, not `pharn-dev-`).** It is the UX a PHARN **user** runs to
 > auto-iterate their own feature to a floor-grade stop, distinct from the dev loop's `/pharn-dev-ship --loop`
@@ -260,7 +262,7 @@ node pharn/floor/check-loop-record.mjs features/<name>/LOOP.md
 
 Branch **only** on its exit code (a membership test, P5):
 
-- **exit 0 (GREEN)** → the record is well-shaped. Proceed to the format step and the halt.
+- **exit 0 (GREEN)** → the record is well-shaped. Proceed to the halt.
 - **exit 1 (RED)** → the message names the refusal (a malformed envelope field, a missing or ambiguous
   Handoff). **Fix the record and re-run the checker — AT MOST ONCE.** If the second run is still RED,
   **stop**: present the checker's output verbatim alongside the loop's own stop decision, and hand to the
@@ -274,7 +276,7 @@ the class of autonomy `check-loop.mjs` was built to bound. Labeled, not sold as 
 
 Then **end your turn** at the human gate. `/pharn-loop` does not merge, push, or seal.
 
-## Guarantee audit (P0) — `/pharn-loop` adds exactly ONE new floor primitive (the tested stop core)
+## Guarantee audit (P0) — `/pharn-loop` owns TWO floor primitives: the stop core and the record shape check
 
 - **"`/pharn-loop` runs the six stages in order and iterates the middle"** → **ADVISORY.** Nothing on the
   floor forces the sequence or the iteration; the agent invokes each stage.
@@ -394,8 +396,10 @@ iter < cap`; `STOP_TERMINAL` on any real red) — enum membership, `pharn/ARCHIT
   writing `LOOP.md` and **never emits a `ship-record.json` or runs attestation**. A human runs
   `/pharn-ship` **after** the GATE-2 decision to attest and ship, so `ship.requireAttestation: true`
   gates only that human-run stage — it **cannot stall the loop**, which never reaches it.
-- **No unbounded iteration.** `check-loop.mjs` bounds the loop at `cap` (`STOP_CAP`); an infinite loop is
-  impossible.
+- **No unbounded iteration.** `check-loop.mjs` bounds the **decision** at `cap` (`STOP_CAP`). Scoped as
+  the guarantee audit scopes it, not more strongly: the bound is a FLOOR compare over an **agent-supplied
+  `--iter`**, so "no infinite loop" is **conditional / advisory** (`LIMITS.md §1d`) — the cap bounds the
+  decision, not the agent.
 - **No retry of a terminal failure.** A real `FAIL` / `INCONCLUSIVE` / regression is `STOP_TERMINAL` —
   stopped immediately, never blindly rebuilt (the `/pharn-ship` Step 2b rule generalized).
 - **No guarantee that a fix converges.** `/pharn-loop` guarantees only the **stop**; whether a rebuild

@@ -6,19 +6,25 @@
 //
 // The marked test groups pin the things that would otherwise be silent forks:
 //   ✧ AGREEMENT — the canonical template is extracted from pharn/pharn-contracts/loop-record.md and must
-//     pass the checker. The contract, the checker, and /pharn-loop (which CITES the contract rather than
-//     restating it) therefore cannot drift apart (P4). Without this, an edit to either side is invisible.
+//     pass the checker, so THE CONTRACT AND THE CHECKER cannot drift apart (P4); without it, an edit to
+//     either side is invisible. Scoped honestly (P0): the binding is TWO-way. Nothing here reads
+//     .claude/commands/pharn-loop.md, so the command's agreement rests on its CITING the contract rather
+//     than restating the shape — discipline, not a floor guarantee.
 //   ★ COLLISION — a LINE-INITIAL `### <name>` in a Handoff body IS that heading; markdown has no notion
 //     of "intended as prose". So exact list equality does NOT buy forgery-proofing (nothing can) — it
 //     buys UNAMBIGUITY: the collision necessarily yields an extra/duplicate/reordered heading, which a
 //     set-membership or first-wins check would have passed. The inline back-ticked form is prose and
 //     stays GREEN; both boundaries are pinned below (P2).
 //   ✦ L14 — the control-char guard composes BEFORE each anchored shape regex, never replaces it. See the
-//     honest note above those tests: today the guard is redundant with the shape regexes, and they say so.
+//     split note above those tests: the char-code SCAN is redundant today, the LENGTH BOUND is not — it
+//     is the sole rejecter of an over-long `iterations`, and has its own test.
 //   ✦ L6 — the envelope is read ONLY from `---`-fenced frontmatter; a `decision:` line in prose or inside
 //     a fenced block is DATA ABOUT the record, never a declaration of it.
-//   ✦ L15 — a key named after an inherited prototype member (`toString`, `__proto__`) never leaks a
-//     truthy non-nullish value past the field lookup.
+//   ✦ L15 — prototype-named keys are inert. Honestly scoped: the envelope-Map half is UNREACHABLE (only
+//     four literal key names are ever looked up), so that test pins an outcome, not the Map; the
+//     REACHABLE surface is the enum lookup, which has its own test.
+//   ⌇ MARKDOWN FIDELITY — the structure scan must agree with a real CommonMark parser on fence pairing
+//     and on the 0-3 leading spaces an ATX heading may carry. Both were live fail-OPEN defects.
 
 import { test } from "node:test";
 import assert from "node:assert/strict";
@@ -162,12 +168,15 @@ test("iterations 1 → GREEN (the lower bound is inclusive)", () => {
 
 // ── commit / date: anchored shape, plus ✦ L14 (the control-char guard composed before the shape regex)
 //
-// Stated HONESTLY (P0): for all four envelope fields the char-code guard is, TODAY, redundant with the
-// shape regex — the record is parsed line-by-line and values are trimmed, so L14's documented
-// trailing-newline vector cannot reach a value, and each anchored regex has a character class narrow
-// enough to reject an interior control char on its own. The ✦ tests below therefore pin the OUTCOME (a
-// control-char-bearing value is refused); they do NOT claim the guard is what caught it. The composition
-// is kept per L14 precisely so a future parser change cannot silently reopen the hole.
+// Stated HONESTLY (P0), and split, because a blanket "the guard is redundant" would be FALSE:
+//   - the CHAR-CODE SCAN is redundant today for all four fields — values are trimmed and parsed
+//     line-by-line, so L14's trailing-newline vector cannot reach one, and each anchored regex has a
+//     character class narrow enough to reject an interior control char on its own. The two ✦ tests just
+//     below therefore pin the OUTCOME (such a value is refused), not the mechanism that caught it.
+//   - the LENGTH BOUND is NOT redundant for `iterations`: ITER_RE (`^\d+$`) is the only unbounded value
+//     grammar in the file, so cleanScalar's 16-char cap is the SOLE rejecter of an over-long numeric
+//     value, and it is pinned by its own test below. Deleting it would widen the field silently.
+// The composition is kept per L14 so a future parser change cannot reopen the closed half either.
 
 for (const bad of ["ABC1234", "abc123", "ggggggg", "", "59def15!"]) {
   test(`commit ${JSON.stringify(bad)} → RED`, () => {
@@ -190,18 +199,38 @@ test("✦ L14: a commit carrying an interior control character is REJECTED", () 
 });
 
 test("✦ L14: a date carrying a control character is REJECTED", () => {
-  assert.equal(run(record({ fm: { date: "2026-08-06" } })).status, 1);
+  assert.equal(run(record({ fm: { date: `2026-08${String.fromCharCode(7)}06` } })).status, 1);
 });
 
-test("✦ L15: a frontmatter key named `toString` does not leak an inherited member into the envelope", () => {
-  // With plain-object indexing, `fields['toString']` would be a truthy, non-nullish inherited function and
-  // could pass a `||`/`??` fallback; the Map-based lookup has no prototype chain to leak.
+test("✦ L15: frontmatter keys named after prototype members are inert (the OUTCOME, not the Map)", () => {
+  // Stated HONESTLY (P0), because the obvious claim is false: this does NOT prove the envelope must be a
+  // Map. `gate()` looks up only the four LITERAL key names, none an Object.prototype member, so the
+  // plain-object leak is UNREACHABLE on this path — a faithful plain-object port of `envelope()` passes
+  // this whole suite. The Map is kept as L14-style composition (do not re-derive, per call site, whether
+  // today's code happens to make the hole reachable). What this pins is the outcome; the REACHABLE L15
+  // surface is the enum lookup, pinned by the next test.
   // Written RAW: `__proto__:` in an object literal sets the PROTOTYPE rather than an own property, so the
   // record() builder would never emit that line at all and the test would silently prove nothing.
   const raw = `---\ndecision: STOP_GREEN\niterations: 2\ncommit: ${SHA}\ndate: 2026-08-06\ntoString: STOP_TERMINAL\n__proto__: 99\nhasOwnProperty: x\n---\n\n# LOOP — a feature\n\n${HANDOFF}`;
   const r = run(null, { raw });
   assert.equal(r.status, 0, r.out); // the four real fields are read; the prototype-named keys are inert
   assert.match(r.out, /decision STOP_GREEN/); // NOT STOP_TERMINAL — no inherited member displaced it
+});
+
+test("✦ L15 (the REACHABLE surface): `decision: toString` → RED, never a prototype-member hit", () => {
+  // This is where an arbitrary record-supplied string is actually indexed against a container. A plain
+  // object with a `key in obj` presence test would ACCEPT `toString` here; DECISION_ENUM.has() does not.
+  const r = run(record({ fm: { decision: "toString" } }));
+  assert.equal(r.status, 1);
+  assert.match(r.out, /expected one of/);
+});
+
+test("✦ L14 (the LOAD-BEARING half): an over-long `iterations` is rejected by the LENGTH bound alone", () => {
+  // ITER_RE is the file's only unbounded value grammar, so for this field cleanScalar's 16-char cap is
+  // the sole rejecter — it is NOT redundant with the shape regex, unlike the other three fields.
+  const r = run(record({ fm: { iterations: "99999999999999999" } }));
+  assert.equal(r.status, 1);
+  assert.match(r.out, /positive integer/);
 });
 
 // ── ★ FORGERY: untrusted body text must not be able to satisfy the structural assertion ───────────────
@@ -393,9 +422,202 @@ test("✦ L6: a record with NO frontmatter → RED, even when the body carries `
   assert.match(r.out, /no `---`-fenced YAML frontmatter/);
 });
 
-test("✦ L6: a `decision:` line inside a fenced block in the BODY does not supply the field", () => {
-  const r = run(null, { raw: `# LOOP — a feature\n\n\`\`\`text\ndecision: STOP_GREEN\n\`\`\`\n\n${HANDOFF}` });
+test("✦ L6: a fenced `decision:` in the BODY never displaces the real frontmatter value", () => {
+  // The fixture must carry VALID frontmatter that CONFLICTS with the fenced body value — otherwise the
+  // record is refused by the no-frontmatter gate before the body is ever reached, and the test measures
+  // nothing. Here the frontmatter says STOP_CAP and a fenced body block says STOP_GREEN: GREEN, and the
+  // reported value must be the frontmatter's. This fails under a whole-file-scan mutant; the earlier
+  // no-frontmatter form did not.
+  const raw = `---\ndecision: STOP_CAP\niterations: 2\ncommit: ${SHA}\ndate: 2026-08-06\n---\n\n# LOOP — a feature\n\n\`\`\`text\ndecision: STOP_GREEN\n\`\`\`\n\n${HANDOFF}`;
+  const r = run(null, { raw });
+  assert.equal(r.status, 0, r.out);
+  assert.match(r.out, /decision STOP_CAP/);
+});
+
+// ── ⌇ MARKDOWN FIDELITY: fence pairing (CommonMark 4.5) and indented ATX headings ─────────────────────
+//
+// Both of these were live fail-OPEN defects found by running the checker against micromark and
+// markdown-it as oracles. A blind fence toggle and column-0-anchored heading regexes let the checker
+// report a Handoff structure that is NOT the one a Markdown reader sees.
+
+test("⌇ a `~~~` block whose body contains a lone ``` line stays OPEN → GREEN", () => {
+  // The realistic case: Step 4 asks the roll-up to quote standing reds as DATA, and such a quote may
+  // itself contain a ``` line. A blind toggle treated that as a close, desynchronized, and produced the
+  // factually false "loop-record has no `## Handoff` section" on a record that plainly has one.
+  const body = ["", "~~~text", "failing_gates:", "```", "~~~", ""].join("\n");
+  const r = run(record({ body }));
+  assert.equal(r.status, 0, r.out);
+});
+
+test("⌇ a `~~~` block 'closed' by ``` is NOT closed — its headings stay content → RED", () => {
+  // The fail-OPEN direction: the checker used to report all three subsections present for a record whose
+  // rendered Handoff contains only `### investigated`, the other two being code-block content.
+  const handoff = [
+    "## Handoff",
+    "",
+    "### investigated",
+    "",
+    "~~~text",
+    "not a close:",
+    "```",
+    "",
+    "### learned",
+    "",
+    "a.",
+    "",
+    "### next_steps",
+    "",
+    "b.",
+    "",
+  ].join("\n");
+  const r = run(record({ handoff }));
   assert.equal(r.status, 1);
+  assert.match(r.out, /EXACTLY \[investigated, learned, next_steps\]/);
+});
+
+test("⌇ a four-backtick fence may nest a ```-fenced quote of the record's own outline → GREEN", () => {
+  // The escape hatch the checker's own RED message prescribes REQUIRES a nested fence, and the standard
+  // four-backtick idiom broke the blind toggle — so the prescribed remedy used to fail.
+  const handoff = [
+    "## Handoff",
+    "",
+    "### investigated",
+    "",
+    "the record's outline is:",
+    "",
+    "````text",
+    "```text",
+    "### next_steps",
+    "```",
+    "````",
+    "",
+    "### learned",
+    "",
+    "a.",
+    "",
+    "### next_steps",
+    "",
+    "b.",
+    "",
+  ].join("\n");
+  const r = run(record({ handoff }));
+  assert.equal(r.status, 0, r.out);
+});
+
+test("⌇ an indented `### smuggled` inside the Handoff IS a heading → RED (was a silent GREEN)", () => {
+  // CommonMark allows 0-3 leading spaces on an ATX heading. Anchoring at column 0 while FENCE_RE
+  // tolerated indentation meant a 3-space-indented heading was invisible, and the checker returned GREEN
+  // while asserting the three were the ONLY level-3 headings there.
+  const handoff = [
+    "## Handoff",
+    "",
+    "### investigated",
+    "",
+    "a.",
+    "",
+    "   ### smuggled",
+    "",
+    "b.",
+    "",
+    "### learned",
+    "",
+    "c.",
+    "",
+    "### next_steps",
+    "",
+    "d.",
+    "",
+  ].join("\n");
+  const r = run(record({ handoff }));
+  assert.equal(r.status, 1);
+  assert.match(r.out, /smuggled/);
+});
+
+test("⌇ an indented `  ## Pointers` still terminates the Handoff → GREEN", () => {
+  // The same asymmetry produced false REDs: an indented h2 is a real terminator, so the section must end
+  // there and the following `### VERIFY` must not be collected.
+  const r = run(record({ handoff: `${HANDOFF}\n  ## Pointers\n\n### VERIFY\n\nsee it.\n` }));
+  assert.equal(r.status, 0, r.out);
+});
+
+test("⌇ a 4-space-indented `### x` is an indented code block, NOT a heading → GREEN", () => {
+  // `{0,3}` rather than `\s*` is the point: at 4+ spaces the line stops being structural.
+  const handoff = [
+    "## Handoff",
+    "",
+    "### investigated",
+    "",
+    "a code sample:",
+    "",
+    "    ### not a heading",
+    "",
+    "### learned",
+    "",
+    "b.",
+    "",
+    "### next_steps",
+    "",
+    "c.",
+    "",
+  ].join("\n");
+  assert.equal(run(record({ handoff })).status, 0);
+});
+
+// ── Branches that were documented but unpinned (each verified by a mutant the suite missed) ───────────
+
+test("double-quoted envelope scalars are accepted, and the UNQUOTED value is what is read", () => {
+  // Quote-stripping is load-bearing and was documented only in a code comment: /pharn-loop's frontmatter
+  // is model-written, so quoted YAML scalars are a realistic emission, and the contract's canonical
+  // template uses only unquoted values — so the ✧ agreement test never reaches this path.
+  const raw = `---\ndecision: "STOP_GREEN"\niterations: "2"\ncommit: "${SHA}"\ndate: "2026-08-06"\n---\n\n# LOOP — a feature\n\n${HANDOFF}`;
+  const r = run(null, { raw });
+  assert.equal(r.status, 0, r.out);
+  assert.match(r.out, /decision STOP_GREEN/);
+});
+
+test("a line-initial `#### deeper note` in a subsection body is content, not a fourth subsection", () => {
+  const handoff = [
+    "## Handoff",
+    "",
+    "### investigated",
+    "",
+    "#### deeper note",
+    "",
+    "a.",
+    "",
+    "### learned",
+    "",
+    "b.",
+    "",
+    "### next_steps",
+    "",
+    "c.",
+    "",
+  ].join("\n");
+  assert.equal(run(record({ handoff })).status, 0);
+});
+
+test("a `## Handoff notes` section does NOT count as the Handoff → RED", () => {
+  // HANDOFF_RE's trailing anchor is what keeps a prefix match from hijacking the section.
+  const handoff = [
+    "## Handoff notes",
+    "",
+    "### investigated",
+    "",
+    "a.",
+    "",
+    "### learned",
+    "",
+    "b.",
+    "",
+    "### next_steps",
+    "",
+    "c.",
+    "",
+  ].join("\n");
+  const r = run(record({ handoff }));
+  assert.equal(r.status, 1);
+  assert.match(r.out, /no `## Handoff` section/);
 });
 
 // ── Fail-closed I/O and argv ──────────────────────────────────────────────────────────────────────────

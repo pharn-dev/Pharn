@@ -36,7 +36,7 @@ by this contract). It carries two cleanly separated halves:
 
 ## The object
 
-<!-- LOOP-RECORD-TEMPLATE:BEGIN — the canonical, VALID template. `pharn/floor/check-loop-record.test.mjs` extracts the fenced block below verbatim and asserts the checker returns GREEN on it, so this contract, the checker, and /pharn-loop cannot drift apart (P4). Edit it only together with the checker. -->
+<!-- LOOP-RECORD-TEMPLATE:BEGIN — the canonical, VALID template. `pharn/floor/check-loop-record.test.mjs` extracts the fenced block below verbatim and asserts the checker returns GREEN on it, so THIS CONTRACT AND THE CHECKER cannot drift apart (P4). Scoped honestly (P0): that binding is two-way only. No test reads `.claude/commands/pharn-loop.md`, so the command's agreement rests on its CITING this contract instead of restating the shape — discipline, not a floor guarantee. Edit this template only together with the checker. -->
 
 ```text
 ---
@@ -73,12 +73,12 @@ The next concrete step, stated as one — free text, untrusted DATA. Informs; ne
 
 ## Field shape + trust classes — the envelope (FLOOR)
 
-| field        | shape (FLOOR — exact membership / anchored regex)                         | trust                                                                   |
-| ------------ | ------------------------------------------------------------------------- | ----------------------------------------------------------------------- |
-| `decision`   | exact membership in `{STOP_GREEN, STOP_CAP, STOP_TERMINAL, INCONCLUSIVE}` | trusted (enum); that it **agrees** with the run is advisory — see below |
-| `iterations` | `^\d+$` **and** `>= 1`                                                    | trusted (regex + integer compare)                                       |
-| `commit`     | `^([0-9a-f]{7,40}\|unknown)$`                                             | **value** shape-gated; that it names the real `HEAD` is advisory        |
-| `date`       | `^\d{4}-\d{2}-\d{2}$`                                                     | **value** shape-gated; that it is the real date is advisory             |
+| field        | shape (FLOOR — exact membership / anchored regex)                         | trust                                                                             |
+| ------------ | ------------------------------------------------------------------------- | --------------------------------------------------------------------------------- |
+| `decision`   | exact membership in `{STOP_GREEN, STOP_CAP, STOP_TERMINAL, INCONCLUSIVE}` | trusted (enum); that it **agrees** with the run is advisory — see below           |
+| `iterations` | `^\d+$` **and** `>= 1`                                                    | **value** shape-gated; that it equals the loop's real iteration count is advisory |
+| `commit`     | `^([0-9a-f]{7,40}\|unknown)$`                                             | **value** shape-gated; that it names the real `HEAD` is advisory                  |
+| `date`       | `^\d{4}-\d{2}-\d{2}$`                                                     | **value** shape-gated; that it is the real date is advisory                       |
 
 Every anchored regex above is applied **only after** a control-char + length guard on the raw value —
 composed, never replaced (`.dev/memory-bank/lessons-learned.md` L14, cited not restated — P4). The
@@ -103,12 +103,12 @@ omission would let "written" masquerade as "verified" (P0).
 
 The Handoff is one `## Handoff` section containing exactly three `###` subsections:
 
-| requirement                                                                 | why it is structural, not stylistic                                            |
-| --------------------------------------------------------------------------- | ------------------------------------------------------------------------------ |
-| `### investigated`, `### learned`, `### next_steps` — **in that order**     | order makes the membership test total; a permutation is a malformed record     |
-| they are the **ONLY** `###` headings inside `## Handoff`; **no duplicates** | see "why exact equality" below — this is what keeps free text from forging one |
-| each carries **≥1 non-blank body line**                                     | a heading with an empty body is presence without content                       |
-| exactly one `## Handoff` section                                            | two sections would make "the Handoff" ambiguous                                |
+| requirement                                                                 | why it is structural, not stylistic                                          |
+| --------------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
+| `### investigated`, `### learned`, `### next_steps` — **in that order**     | order makes the membership test total; a permutation is a malformed record   |
+| they are the **ONLY** `###` headings inside `## Handoff`; **no duplicates** | see "why exact equality" below — this buys unambiguity, NOT forgery-proofing |
+| each carries **≥1 non-blank body line**                                     | a heading with an empty body is presence without content                     |
+| exactly one `## Handoff` section                                            | two sections would make "the Handoff" ambiguous                              |
 
 **Why exact equality, and not merely "the three are present" — stated precisely, because the tempting
 overstatement here is the disease (P0, P2).** The subsection bodies are **untrusted free text**, and they
@@ -129,6 +129,16 @@ classes.
 Headings inside fenced code blocks are skipped, so a quoted example is DATA about the shape and never a
 declaration of it (`lessons-learned.md` L6) — which is also the escape hatch: a Handoff body that needs
 to show the record's own outline **fences** it.
+
+**The structure scan follows CommonMark where it must, and that is load-bearing rather than cosmetic.**
+A heading may carry the **0–3 leading spaces** CommonMark allows (at 4+ it is an indented code block,
+not a heading), and a fenced block **closes only** on a delimiter of the **same character** whose run is
+**at least as long** as the opener's, with nothing but whitespace after it (CommonMark 4.5). Both rules
+were added after a naive scan was measured against real parsers and found to disagree in **both**
+directions: it reported a Handoff structure that was not the one a reader sees (fail-open), and it
+refused the nested-fence quoting this contract itself prescribes (fail-closed). A record's structure
+must mean the same thing to the checker and to whoever reads the record, or the whole section-shape
+guarantee is about a document nobody sees.
 
 **Body trust.** The three bodies are `trust: untrusted` free text. They summarize model output over
 untrusted inputs, so they inherit that tag exactly as `problem` / `evidence` do in `finding-shape.md`
