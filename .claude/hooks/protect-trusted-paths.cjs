@@ -16,10 +16,12 @@
 // Those entries are `.claude/`-QUALIFIED PATH FRAGMENTS, deliberately not bare basenames: isProtected()
 // also compares the last path segment, so a bare "settings.json" would deny a user's own settings.json or
 // .vscode/settings.json, and a bare "enforce-writes-scope.cjs" would deny src/enforce-writes-scope.cjs.
-// The slashed form matches only via the === / endsWith / includes branches, which the symlink-resolved
-// absolute target satisfies. `.claude/commands/**` and `.claude/hooks/*.test.cjs` are deliberately NOT
-// protected: the commands are the methodology this repo edits every increment, and a guard that froze its
-// own tests would be unmaintainable.
+// The slashed form matches only via the === / fragment branches in matchesFragment(), which require a
+// path boundary after the fragment (end-of-string or `/`), so a suffixed name like
+// `.claude/settings.json.bak` does not match `.claude/settings.json`. Residual: matching is still
+// case-sensitive, and the basename branch still fires on an exact last-segment match. `.claude/commands/**`
+// and `.claude/hooks/*.test.cjs` are deliberately NOT protected: the commands are the methodology this
+// repo edits every increment, and a guard that froze its own tests would be unmaintainable.
 // Extend further with the PHARN_PROTECTED env var (comma-separated basenames or path fragments).
 //
 // Symlink-safe: the write target is canonicalized with fs.realpathSync (a nearest-existing-ancestor
@@ -111,12 +113,19 @@ function extractPaths(toolInput) {
   return paths;
 }
 
+function matchesFragment(norm, x) {
+  if (norm === x || norm.split("/").pop() === x) return true;
+  const needle = "/" + x;
+  for (let idx = norm.indexOf(needle); idx !== -1; idx = norm.indexOf(needle, idx + 1)) {
+    const after = idx + needle.length;
+    if (after === norm.length || norm[after] === "/") return true;
+  }
+  return false;
+}
+
 function isProtected(p) {
   const norm = String(p).replace(/\\/g, "/");
-  return PROTECTED.some((prot) => {
-    const x = prot.replace(/\\/g, "/");
-    return norm === x || norm.endsWith("/" + x) || norm.includes("/" + x) || norm.split("/").pop() === x;
-  });
+  return PROTECTED.some((prot) => matchesFragment(norm, prot.replace(/\\/g, "/")));
 }
 
 const raw = readStdin();

@@ -146,6 +146,21 @@ test("allows writes to .claude/commands/* (not part of the guarded control surfa
   assert.equal(r.status, 0);
 });
 
+// --- F4: path-fragment matching must not over-block suffixed names (e.g. `.bak` backups). ---
+
+for (const p of [
+  ".claude/settings.json.bak",
+  ".claude/hooks/set-writes-scope.cjs.example",
+  "backup/.claude/settings.json.bak",
+  "features/CONSTITUTION.md.bak",
+  ".claude/hooks/protect-trusted-paths.cjs.bak",
+]) {
+  test(`allows a suffixed path that only shares a protected fragment prefix: ${p}`, () => {
+    const r = run({ tool_name: "Write", tool_input: { file_path: p } });
+    assert.equal(r.status, 0);
+  });
+}
+
 // --- Regression: the pre-existing protected set is untouched by the widening ---
 
 for (const p of ["CONSTITUTION.md", "pharn/ARCHITECTURE.md", "THREAT-MODEL.md", "LIMITS.md", ".github/CODEOWNERS"]) {
