@@ -571,3 +571,42 @@ the gate covered it.
   `.dev/features/guard-coverage/REGRESSION.md` (the scope-escape investigation), with the format-RED
   baseline reproduced live in a `git worktree`
 - promoted: 2026-08-05 via gated `/pharn-dev-memory-promote` (human-approved).
+
+## L20 — A promoted lesson whose only remedy is discipline WILL recur — the second occurrence is the trigger to give it a floor check
+
+type: process · concepts: [writes-scope, plan-shape, lesson-recurrence, floor-escalation]
+
+**Lesson.** L18 was promoted with a **discipline-only** remedy — "use the heading form" and "treat the
+setter's printed count as a checkable number, not decoration." It recurred on the very next plan that
+wrote an exclusion block: `product-capability-catalog`'s block opened with a bold prose intro, and
+`set-writes-scope.cjs --from-plan` reported **6 paths against the 2 the human approved**. Canon captured
+the failure's **shape** but nothing **enforces** it, and `check-plan-lessons.mjs` structurally cannot —
+it verifies that lessons were **declared**, never that a plan's own structure obeys them. When a lesson's
+remedy reduces to "the agent should remember," a second occurrence is evidence the remedy is the wrong
+kind, not that the reminder was too quiet. Remedy: at `/pharn-dev-plan` Step 4, alongside the existing
+`check-plan-lessons.mjs` self-check, re-run `set-writes-scope.cjs --from-plan` and **deterministically
+compare the parsed scope set against the plan's own `## Files` bullets**, RED on disagreement — set
+membership, `pharn/ARCHITECTURE.md §2` primitive #3, no new floor primitive.
+
+**Why it matters.** It is the P0 disease aimed at the memory-bank itself: "the lesson is in canon" read
+as "therefore the failure will not recur." Promotion is a **record**, not an enforcer — and this is the
+first live evidence of the gap, which bears directly on what `.dev/memory-bank/` is _for_. The recurrence
+also failed in the **dangerous** direction: the over-grant reached `pharn/floor/capability-catalog-core.mjs`
+(the file that increment existed to **not** create), `SKILLS_VERSION` (which had to stay unbumped), and
+`.dev/memory-bank/lessons-learned.md` itself — a direct canon write, the exact power **L7** says a stage
+must never hold. It was caught **only** because the setter prints its count and the count was read; had
+that read lapsed, every gate downstream would have been GREEN. Note the sharpest detail: the plan
+**cited L18 only after violating it**, and `check-plan-lessons.mjs` returned GREEN both before and after
+— which is precisely the declaration-vs-application split that checker already labels advisory.
+Complements L3 / L7 / L8 / L17 / L18 (the `writes:`/scope family) and stands apart from all of them: they
+each name a defect, this one names a **failure of the correction mechanism**.
+
+**Provenance.**
+
+- feature: `product-capability-catalog`
+- commit: `123559e8f22d28f8e0e52ad74f805218f09eddb0`
+- source: `.dev/features/product-capability-catalog/REVIEW.md` F1 (proposed lesson Candidate A) +
+  `.dev/features/product-capability-catalog/PLAN.md:83` (the corrected exclusion block and its L18 body
+  line) + `.dev/features/product-capability-catalog/SHIP.md` (the build HALT), with the 6-vs-2 over-grant
+  reproduced live at build Step 0
+- promoted: 2026-08-07 via gated `/pharn-dev-memory-promote` (human-approved).

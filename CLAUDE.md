@@ -309,6 +309,24 @@ framework-specific`), via the first-match-wins procedure in `pharn/ARCHITECTURE.
   - **The one exception where regenerating does NOT help:** an `ENUM_ERROR` (a duplicate lesson id, an
     unsafe title, unreadable canon). The generator refuses on the same invalid input, so the checker says
     so explicitly and names the canon file instead of prescribing a regenerate that cannot succeed.
+  - **The capability catalog is DEV-SURFACE ONLY, and that is a recorded decision — not an oversight
+    (follow-up `product-capability-catalog`, DEFERRED 2026-08-07).** A PHARN **user** gets no generated
+    capability catalog: `capability-catalog-core.mjs` and its generator + drift checker stay in
+    `.dev/floor/`, and nothing under `pharn/floor/` renders one. **Why deferred (P7 — an addition is
+    triggered by a real failure, never a hypothetical):** no user reported it, no dogfood run failed on
+    it, and no trusted doc promises it — and the packaging that would create such a user does not exist
+    yet (`README.md`: _"no installer, no versioned release you can drop into your own repo"_). The
+    product surface already takes this posture for the adjacent case — `/pharn-verify` ships the
+    verifier plug-in slot with **zero verifiers authored** and defers its live runner until the first
+    one lands — so cataloguing capabilities a user cannot yet author would be the speculative half of
+    that same pair. Two design questions would also have to be answered first, and neither has a good
+    answer today: the `product-lessons-index` precedent puts derived product output in the **gitignored
+    `.pharn/` cache**, which leaves a human-readable catalog with **no reader** (the index is different
+    — `/pharn-plan` machine-reads it); and a user repo has no `npm run docs:check`, so a ported drift
+    guard would have **no invoker** and its byte-equality guarantee would be unreachable. **Reopens
+    when** the first `role:`-bearing capability is authored **outside** PHARN's own shipped surface —
+    the same trigger `/pharn-verify` names for its verifier runner. Full reasoning and evidence:
+    `.dev/features/product-capability-catalog/PLAN.md`.
 - **The lessons index is an ADDRESS BOOK, never a substitute for canon.** `/pharn-dev-plan`'s mandatory
   lessons sweep now runs in two steps: **select** candidates from `docs/lessons-index.md`, then **read
   each candidate's full `## L<n>` entry from `.dev/memory-bank/lessons-learned.md`** before declaring
