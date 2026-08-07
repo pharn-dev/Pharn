@@ -68,14 +68,25 @@ never evaluates a `judge` string (no LLM).
 ## Wire the write-guard hook
 
 The write-guard is wired in `.claude/settings.json` (committed): a `PreToolUse` hook on
-`Write|Edit|MultiEdit` that blocks any write to a trusted file (`CONSTITUTION.md`, `ARCHITECTURE.md`,
-`THREAT-MODEL.md`, `LIMITS.md`). Extend the protected set with the `PHARN_PROTECTED` env var
-(comma-separated). Confirm it works:
+`Write|Edit|MultiEdit` that blocks any write to a protected path. The default set is the four trusted
+spec docs (`CONSTITUTION.md`, `ARCHITECTURE.md`, `THREAT-MODEL.md`, `LIMITS.md`), `CODEOWNERS` — the
+GitHub-layer write-guard itself — and **the two pre-write guards' own control surface**:
+`.claude/settings.json` (which wires both hooks) plus the three hook scripts
+(`protect-trusted-paths.cjs`, `enforce-writes-scope.cjs`, `set-writes-scope.cjs`). Each hook is re-read
+fresh on every tool call, so a write to one would disarm that guard on the very next write. Extend the
+set further with the `PHARN_PROTECTED` env var (comma-separated). Confirm it works:
 
 ```bash
 echo '{"tool_name":"Edit","tool_input":{"file_path":"CONSTITUTION.md"}}' | node .claude/hooks/protect-trusted-paths.cjs   # → exit 2, denied
+echo '{"tool_name":"Write","tool_input":{"file_path":".claude/settings.json"}}' | node .claude/hooks/protect-trusted-paths.cjs  # → exit 2, denied
 echo '{"tool_name":"Write","tool_input":{"file_path":"pharn-core/rules/x.md"}}' | node .claude/hooks/protect-trusted-paths.cjs  # → exit 0, allowed
 ```
+
+The companion setter refuses to _authorize_ those same four control paths: `set-writes-scope.cjs` exits
+non-zero and writes nothing if the parsed scope names one, unless the operator passes
+`--allow-claude-dir`. `.claude/commands/**` and the hooks' own `*.test.cjs` are deliberately in neither
+set. **Bounded, and stated (P0):** both guards cover the `Write|Edit|MultiEdit` surface only — Bash-tool
+writes bypass `PreToolUse` hooks entirely, for these paths exactly as for the trusted docs.
 
 ## Honest scope (P0, P7)
 

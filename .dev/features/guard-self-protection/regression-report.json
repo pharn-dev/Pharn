@@ -1,0 +1,32 @@
+{
+  "base": "11c51a9b4bcb5753596496b173b98871d6690297",
+  "inside": [
+    ".claude/hooks/enforce-writes-scope.test.cjs",
+    ".claude/hooks/protect-trusted-paths.cjs",
+    ".claude/hooks/protect-trusted-paths.test.cjs",
+    ".claude/hooks/set-writes-scope.cjs",
+    ".claude/hooks/set-writes-scope.test.cjs",
+    ".claude/settings.json",
+    "CHANGELOG.md",
+    "CLAUDE.md",
+    "SKILLS_VERSION",
+    "pharn/floor/README.md"
+  ],
+  "outside_gates": {
+    "structural:pharn/pharn-review/trust-fence/evals/expected/expected-injection-comment.json": {
+      "base": 0,
+      "head": 0
+    },
+    "tests": {
+      "base": 0,
+      "head": 0
+    },
+    "validate": {
+      "base": 0,
+      "head": 0
+    }
+  },
+  "regressions": [],
+  "pre_existing": [],
+  "verdict": "no-regressions"
+}

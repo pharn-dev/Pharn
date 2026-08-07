@@ -272,7 +272,11 @@ test("setter --from-plan reads the leading back-tick path of each ## Files item,
       "",
       "Written by `/build`:",
       "",
-      "- `.claude/hooks/enforce-writes-scope.cjs` — **NEW.** the hook",
+      // A `.claude/` path deliberately OUTSIDE the setter's CONTROL_SURFACE refusal (the hook's own test
+      // file, not the hook): this test pins the ## Files BOUNDARY parsing, so its authorized entry must
+      // not also trip the refusal — and using a `.claude/` path keeps the fixture realistic while
+      // documenting the carve-out.
+      "- `.claude/hooks/enforce-writes-scope.test.cjs` — **NEW.** the hook suite",
       "- `CLAUDE.md` — **EDIT.** add a section",
       "",
       "Explicitly **not** touched:",
@@ -288,7 +292,7 @@ test("setter --from-plan reads the leading back-tick path of each ## Files item,
   const r = setter(cwd, "--from-plan", plan);
   assert.equal(r.status, 0);
   const rec = JSON.parse(fs.readFileSync(join(cwd, ".pharn", "writes-scope.json"), "utf8"));
-  assert.deepEqual(rec.scope, [".claude/hooks/enforce-writes-scope.cjs", "CLAUDE.md"]);
+  assert.deepEqual(rec.scope, [".claude/hooks/enforce-writes-scope.test.cjs", "CLAUDE.md"]);
 });
 
 // --- Setter Mode B: exclusion-boundary tightness (fix #7 — an excluded path must NEVER enter scope) ---
@@ -357,7 +361,11 @@ test("setter --from-plan: the live-corpus `### Explicitly **not** touched` headi
       "",
       "## Files",
       "",
-      "- `.claude/hooks/set-writes-scope.cjs` — **EDIT.**",
+      // Authorized entries are the hooks' *.test.cjs siblings — deliberately outside the setter's
+      // CONTROL_SURFACE refusal, so this boundary test exercises the default (no-flag) path. The
+      // control path below stays in the EXCLUSION section: excluded paths never enter scope, so they
+      // never reach the refusal either — which this test now also demonstrates.
+      "- `.claude/hooks/set-writes-scope.test.cjs` — **EDIT.**",
       "- `.claude/hooks/enforce-writes-scope.test.cjs` — **EDIT.**",
       "",
       "### Explicitly **not** touched (declared NOT written)",
@@ -370,7 +378,7 @@ test("setter --from-plan: the live-corpus `### Explicitly **not** touched` headi
   const r = setter(cwd, "--from-plan", plan);
   assert.equal(r.status, 0);
   const rec = JSON.parse(fs.readFileSync(join(cwd, ".pharn", "writes-scope.json"), "utf8"));
-  assert.deepEqual(rec.scope, [".claude/hooks/set-writes-scope.cjs", ".claude/hooks/enforce-writes-scope.test.cjs"]);
+  assert.deepEqual(rec.scope, [".claude/hooks/set-writes-scope.test.cjs", ".claude/hooks/enforce-writes-scope.test.cjs"]);
   assert.ok(!rec.scope.includes(".claude/hooks/enforce-writes-scope.cjs"), "the GUARD path must be ABSENT");
   assert.ok(!rec.scope.includes("floor/validate.mjs"), "excluded-section path must be ABSENT");
 });

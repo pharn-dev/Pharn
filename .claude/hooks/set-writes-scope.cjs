@@ -10,11 +10,26 @@
 // Usage (run as a command's FIRST step, before any write):
 //   node .claude/hooks/set-writes-scope.cjs --from-frontmatter <capability-or-command.md> [--target <path>]
 //   node .claude/hooks/set-writes-scope.cjs --from-plan <PLAN.md>
+//   ... [--allow-claude-dir]                      # opt in to scoping the write-guards' own control surface
 //
 // `--target` resolves placeholder/glob `writes:` entries (e.g. features/<name>/PLAN.md) to one concrete
 // file before emitting scope — so the hook allowlist is a single artifact path, not a broad directory.
 //
 // Exits non-zero (and writes nothing) rather than emit an empty/placeholder scope — fail-closed.
+//
+// It also REFUSES, on the same fail-closed terms, to emit a scope naming the two pre-write guards' own
+// control surface (CONTROL_SURFACE below: .claude/settings.json + the three hook scripts). A declared
+// `writes:` / `## Files` list is `trust: untrusted` input (CONSTITUTION P2): before this check, an entry
+// naming a hook produced a scope that enforce-writes-scope.cjs then honored, so an untrusted document
+// could authorize disarming a guard. --allow-claude-dir opts back in for the increments that genuinely
+// edit a guard; it is an operator ARGV flag, so no declared file can set it for itself.
+//
+// HONEST BOUND (P0): this test is LEXICAL. Entries are normalized for the comparison (`./`, `a/../`,
+// backslashes) but never realpath-resolved, so a symlink declared in `## Files` that resolves onto a
+// control file is NOT caught here. Defense in depth, in order: this refusal is the loud EARLY failure at
+// declaration time; enforce-writes-scope.cjs realpaths the write target and denies it as out of scope; and
+// protect-trusted-paths.cjs realpaths and denies these four paths outright regardless of any scope. This
+// refusal buys a clear early failure — it is not the last line of defense.
 
 "use strict";
 
@@ -31,11 +46,16 @@ function parseArgs(argv) {
   let mode;
   let file;
   let target;
+  let allowClaudeDir = false;
   for (let i = 0; i < args.length; i++) {
     const a = args[i];
     if (a === "--target") {
       if (!args[i + 1]) fail("--target requires a path");
       target = args[++i];
+    } else if (a === "--allow-claude-dir") {
+      // Its OWN branch, ahead of the positional fallbacks — otherwise the flag is consumed as the
+      // positional `mode` or `file` and silently breaks --from-plan / --from-frontmatter parsing.
+      allowClaudeDir = true;
     } else if (!mode) {
       mode = a;
     } else if (!file) {
@@ -44,7 +64,27 @@ function parseArgs(argv) {
       fail(`unexpected argument: ${a}`);
     }
   }
-  return { mode, file, target };
+  return { mode, file, target, allowClaudeDir };
+}
+
+// The two pre-write guards' own control surface: the settings file that WIRES both PreToolUse hooks, and
+// the three hook scripts. Each is re-read fresh on every tool call, so a write to any one of them disarms
+// a guard on the very next write. Kept identical to the `.claude/` entries of DEFAULT_PROTECTED in
+// protect-trusted-paths.cjs — the two guards cover the same four paths, one by denylist, one by refusing
+// to authorize them. `.claude/commands/**` and `.claude/hooks/*.test.cjs` are deliberately absent: an
+// increment that edits a command, or a hook's own tests, must not need an opt-in flag.
+const CONTROL_SURFACE = [
+  ".claude/settings.json",
+  ".claude/hooks/protect-trusted-paths.cjs",
+  ".claude/hooks/enforce-writes-scope.cjs",
+  ".claude/hooks/set-writes-scope.cjs",
+];
+
+// Lexical normalization for the MEMBERSHIP TEST ONLY — the emitted scope value is never rewritten. Folds
+// `./`, `a/../` and backslashes so a trivial re-spelling (`./.claude/settings.json`) cannot walk past the
+// exact-membership test below. NOT a realpath; see the header's HONEST BOUND.
+function normalizeForTest(entry) {
+  return path.posix.normalize(String(entry).replace(/\\/g, "/"));
 }
 
 // Strip a trailing " (annotation)" (e.g. " (gated)") and surrounding whitespace.
@@ -187,9 +227,9 @@ function pathsFromPlanFiles(file) {
 }
 
 function main() {
-  const { mode, file, target } = parseArgs(process.argv);
+  const { mode, file, target, allowClaudeDir } = parseArgs(process.argv);
   if (!mode || !file || (mode !== "--from-frontmatter" && mode !== "--from-plan")) {
-    fail("usage: set-writes-scope.cjs (--from-frontmatter <file.md> [--target <path>] | --from-plan <PLAN.md>)");
+    fail("usage: set-writes-scope.cjs (--from-frontmatter <file.md> [--target <path>] | --from-plan <PLAN.md>) [--allow-claude-dir]");
   }
   if (!fs.existsSync(file)) fail(`file not found: ${file}`);
 
@@ -205,6 +245,22 @@ function main() {
       );
     }
     fail(`no back-tick paths under \`## Files\` in ${file}`);
+  }
+
+  // Refuse the guards' own control surface (fail-closed), LAYERED AFTER the empty-scope check above and
+  // never replacing it. Deterministic exact membership over CONTROL_SURFACE (ARCHITECTURE §2 primitive #3)
+  // — no model decides it. Nothing is written on this path.
+  if (!allowClaudeDir) {
+    const offenders = scope.filter((p) => CONTROL_SURFACE.includes(normalizeForTest(p)));
+    if (offenders.length) {
+      fail(
+        `refusing to scope the write-guards' own control surface: ${offenders.join(", ")}\n` +
+          `  Declared in : ${file}\n` +
+          `  Why         : these files wire and implement the two pre-write guards; a scope over them lets a write disarm a guard on the next tool call (CONSTITUTION P2 — a declared file is untrusted input).\n` +
+          `  If this increment genuinely edits a guard, re-run with --allow-claude-dir (an operator flag; no declared file can set it).\n` +
+          `  Nothing was written; .pharn/writes-scope.json is unchanged.`
+      );
+    }
   }
 
   const record = { scope, set_by: file, set_at: new Date().toISOString() };
