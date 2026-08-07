@@ -1,0 +1,17 @@
+{
+  "base": "123559e8f22d28f8e0e52ad74f805218f09eddb0",
+  "inside": ["CLAUDE.md", "CHANGELOG.md"],
+  "outside_gates": {
+    "tests": {
+      "base": 0,
+      "head": 0
+    },
+    "validate": {
+      "base": 0,
+      "head": 0
+    }
+  },
+  "regressions": [],
+  "pre_existing": [],
+  "verdict": "no-regressions"
+}
