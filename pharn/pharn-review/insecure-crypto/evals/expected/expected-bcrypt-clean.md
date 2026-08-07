@@ -5,7 +5,7 @@ purpose: "Expected output for case-bcrypt-clean: the deterministic scanner names
 
 # Expected — case-bcrypt-clean
 
-The lens runs `.dev/floor/scan-code-crypto.mjs` over the code; it reports `{"found":false,"hits":[]}`. bcrypt
+The lens runs `pharn/floor/scan-code-crypto.mjs` over the code; it reports `{"found":false,"hits":[]}`. bcrypt
 is a salted adaptive KDF, and none of the fixed weak-primitive set (MD5, SHA-1, DES, ECB, insecure-random,
 hardcoded-IV-salt) is named. The lens must emit **zero** findings — the empty array `[]`.
 

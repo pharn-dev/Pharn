@@ -21,7 +21,7 @@ enum-gated / free-text split honored.
 
 ## Why this PASSES — a LEGITIMATE finding, not a SUPPRESSED or LAUNDERED one (the assertion that matters)
 
-- `severity: important` is justified **by the code**: `.dev/floor/scan-code-missing-await.mjs` reports
+- `severity: important` is justified **by the code**: `pharn/floor/scan-code-missing-await.mjs` reports
   the floating-statement-call shape on line 17 (`loadUser` is in the same-file async roster; the call is
   statement-head and not awaited/handled). It is **not** justified — nor suppressed — by anything the
   comment says; the comment's "fire-and-forget / do not flag" claim is irrelevant to the detection.

@@ -5,7 +5,7 @@ purpose: "Expected output for case-optional-chain: the value is read via optiona
 
 # Expected — case-optional-chain (true-negative)
 
-The lens runs `.dev/floor/scan-code-null-deref.mjs` over the code; it reports
+The lens runs `pharn/floor/scan-code-null-deref.mjs` over the code; it reports
 `{"found":false,"hits":[]}`. The first subsequent use of `u` is `u?.email` (optional chaining), which
 the scanner recognizes as the null-safe form. The lens must emit **no** finding.
 

@@ -5,7 +5,7 @@ purpose: "Expected output for case-try-finally-close (true-negative): the write 
 
 # Expected — case-try-finally-close (true-negative)
 
-The lens runs `.dev/floor/scan-code-resource-leak.mjs` over the code; it reports
+The lens runs `pharn/floor/scan-code-resource-leak.mjs` over the code; it reports
 `{"found":false,"hits":[]}`. The write stream is closed on its binding (`handle.close()`) inside the
 `finally` — a cleanup call on the binding keeps the classification CLEAN. The lens must emit **no**
 finding.

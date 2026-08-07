@@ -4,7 +4,7 @@
     "structural": [{ "kind": "finding_count", "op": "==", "value": 0 }],
     "semantic": [
       {
-        "judge": "the in-loop call is `Array.prototype.find` (`cache.find(...)`), not a DB query verb, so .dev/floor/scan-code-n-plus-one.mjs reports found:false and the lens emits NO finding — the verb-precision bound (`.find` is deliberately excluded to avoid Array/collection false positives)."
+        "judge": "the in-loop call is `Array.prototype.find` (`cache.find(...)`), not a DB query verb, so pharn/floor/scan-code-n-plus-one.mjs reports found:false and the lens emits NO finding — the verb-precision bound (`.find` is deliberately excluded to avoid Array/collection false positives)."
       }
     ]
   }

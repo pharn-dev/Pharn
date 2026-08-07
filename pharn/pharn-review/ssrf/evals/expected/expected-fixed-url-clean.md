@@ -5,7 +5,7 @@ purpose: "Expected output for case-fixed-url-clean: the outbound URL is built fr
 
 # Expected — case-fixed-url-clean
 
-The lens runs `.dev/floor/scan-code-ssrf.mjs` over the code; it reports `{"found":false,"hits":[]}`. The lens
+The lens runs `pharn/floor/scan-code-ssrf.mjs` over the code; it reports `{"found":false,"hits":[]}`. The lens
 must emit **no** finding — the empty array `[]`.
 
 ## Why this PASSES

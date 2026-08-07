@@ -6,9 +6,9 @@ skill_kind: llm
 
 # Expected — config-without-ask-is-refused
 
-The floor decision here belongs to `.dev/floor/check-seam-config.mjs` (cited), which returns RED for a
+The floor decision here belongs to `pharn/floor/check-seam-config.mjs` (cited), which returns RED for a
 `resolutionOrder` without `ask`. That determinism is proven by the checker's own tests
-(`.dev/floor/check-seam-config.test.mjs`), not re-implemented in `eval-format.md`'s finding-shaped
+(`pharn/floor/check-seam-config.test.mjs`), not re-implemented in `eval-format.md`'s finding-shaped
 `structural[]` kinds. The resolver's behavior is asserted in `semantic[]` (advisory).
 
 ```yaml

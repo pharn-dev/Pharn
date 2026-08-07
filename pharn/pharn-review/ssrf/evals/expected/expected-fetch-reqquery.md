@@ -5,7 +5,7 @@ purpose: "Expected output for case-fetch-reqquery: the deterministic scanner det
 
 # Expected — case-fetch-reqquery
 
-The lens runs `.dev/floor/scan-code-ssrf.mjs` over the code; it reports
+The lens runs `pharn/floor/scan-code-ssrf.mjs` over the code; it reports
 `{"found":true,"hits":[{"line":14,"kind":"fetch"}]}`. The lens must emit **exactly one** finding, in the
 `pharn/pharn-contracts/finding-shape` object, with the enum-gated / free-text split honored.
 

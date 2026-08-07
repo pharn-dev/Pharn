@@ -5,7 +5,7 @@ purpose: "Expected output for case-complete: the scanner finds no placeholder ma
 
 # Expected — case-complete
 
-The lens runs `.dev/floor/scan-code-placeholder.mjs` over the code; it reports
+The lens runs `pharn/floor/scan-code-placeholder.mjs` over the code; it reports
 `{"found":false,"hits":[]}`. The lens must emit **zero** findings.
 
 ## The expected output

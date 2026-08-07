@@ -50,14 +50,14 @@ section carrying real content for what the plan builds — not from any self-cla
 
 Why this is the floor-demonstrable layer: the present/absent **output** is expressible as the
 `structural[]` assertion `finding_count` (`pharn/pharn-contracts/eval-format.md`), which
-`.dev/floor/check-structural.mjs` verifies deterministically. Be precise about what that buys (P0):
+`pharn/floor/check-structural.mjs` verifies deterministically. Be precise about what that buys (P0):
 `finding_count` captures the present/absent **output** (one finding, or none); the finding's
 **correctness** — the right `rule_id`, no laundered needle — rests on the other `structural[]`
 assertions (`field_equals`, `needle_absent_from_enum_gated`) plus the `semantic[]` judge, **not** on
 `finding_count` alone. And at runtime over a **novel** plan the presence _reading_ is your judgment —
 **ADVISORY** — backstopped by the eval that proves correct detection on the fixtures. The only thing
 that is **floor at runtime** is griller **membership** (`role: griller`, counted by
-`.dev/floor/count-grillers.mjs` from frontmatter only). See "Guarantee audit".
+`pharn/floor/count-grillers.mjs` from frontmatter only). See "Guarantee audit".
 
 ### Layer 2 — ADVISORY: is the declared verification ADEQUATE? (judgment — surfaces, never gates)
 
@@ -114,7 +114,7 @@ here.
 
 ## Guarantee audit (P0) — the honest split
 
-- **Griller membership** (`role: griller`, counted by `.dev/floor/count-grillers.mjs` from frontmatter
+- **Griller membership** (`role: griller`, counted by `pharn/floor/count-grillers.mjs` from frontmatter
   only) → **FLOOR** (enum/regex; `pharn/ARCHITECTURE.md §2` primitive #3). A prose / code-block / stage-command
   mention never registers.
 - **Presence detection** → the present/absent **output** is `finding_count`-expressible and

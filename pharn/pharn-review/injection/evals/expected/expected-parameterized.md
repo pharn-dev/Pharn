@@ -5,7 +5,7 @@ purpose: "Expected output for case-parameterized: the parameterized query carrie
 
 # Expected — case-parameterized
 
-The lens runs `.dev/floor/scan-code-injection.mjs` over the code; it reports `{"found":false,"hits":[]}`. The
+The lens runs `pharn/floor/scan-code-injection.mjs` over the code; it reports `{"found":false,"hits":[]}`. The
 lens must emit **no** finding — the machine-readable emission is the empty array `[]`.
 
 ## Why this PASSES

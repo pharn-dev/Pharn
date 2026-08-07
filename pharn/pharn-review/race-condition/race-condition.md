@@ -51,7 +51,7 @@ the scanner-backed lenses into it; there is no manufactured floor sub-check here
 ### Layer 1 — FLOOR: lens MEMBERSHIP only (the whole runtime guarantee)
 
 The **only** thing floor-guaranteed at runtime is that this file is a lens: `role: lens` + the required
-frontmatter + non-empty evals + `enforces: [P2]` produced by ≥1 eval, all checked by `.dev/floor/validate.mjs`
+frontmatter + non-empty evals + `enforces: [P2]` produced by ≥1 eval, all checked by `pharn/floor/validate.mjs`
 (`pharn/ARCHITECTURE.md §2` primitive #3, enum/regex; fix #6 binding). A prose / code-block mention never registers.
 That is the entire deterministic guarantee — **identical to `trust-fence` and to every advisory-only
 capability** — and it says **nothing** about whether any code "has a race."
@@ -137,21 +137,21 @@ Alongside the human-facing `REVIEW.md`, the lens serializes its findings as a si
 `features/race-condition/findings.json` — the JSON array defined by `pharn/pharn-contracts/finding-shape.md` §Emission
 (the enum-gated / free-text split as real JSON field boundaries; cited, not restated — P4), with that path
 declared in this lens's `writes:` (fix #7). On the emitted array the no-laundering trip-wire is the floor form
-checked by `.dev/floor/check-structural.mjs` (`needle_absent_from_enum_gated`: no needle from the untrusted input
+checked by `pharn/floor/check-structural.mjs` (`needle_absent_from_enum_gated`: no needle from the untrusted input
 reaches an enum-gated field). That the lens **emits** it at all, and emits it clean under injection, stays
 **advisory** — the named residual (`finding-shape.md` §Emission-enforcement audit; `LIMITS.md §2`).
 
 ## Guarantee audit (P0) — the honest split: MEMBERSHIP-ONLY floor; the race judgment is ADVISORY
 
 - **Lens membership** (`role: lens` + required frontmatter + non-empty evals + `enforces: [P2]` produced by ≥1
-  eval) → **FLOOR** (`.dev/floor/validate.mjs`, primitive #3 enum/regex; fix #6 binding). A prose / code-block
+  eval) → **FLOOR** (`pharn/floor/validate.mjs`, primitive #3 enum/regex; fix #6 binding). A prose / code-block
   mention never registers. **This is the ENTIRE runtime floor guarantee.**
 - **Is there a race — shared? concurrent? unsynchronized?** → **ADVISORY (the entire bulk).** Irreducible
   concurrency judgment; surfaced in free-text for the human, **never gates**. **No scanner, no syntactic
   proxy, no semantic/intent analysis is claimed on the floor** — manufacturing one would be the disease
   (see "The two layers").
 - **Fixture behavior** → the finding OUTPUT on the committed hostile fixture (count + enum-gated fields +
-  `needle_absent_from_enum_gated`) is floor-CHECKED at **eval time** by `.dev/floor/check-structural.mjs`
+  `needle_absent_from_enum_gated`) is floor-CHECKED at **eval time** by `pharn/floor/check-structural.mjs`
   (primitive #3). It pins behavior on a **known** input and proves the trust-fence holds under injection — it is
   **NOT** a runtime guarantee that "no race exists."
   - **Honest about the exit codes (the "assert exit codes" discipline).** `check-structural.mjs` is deterministic

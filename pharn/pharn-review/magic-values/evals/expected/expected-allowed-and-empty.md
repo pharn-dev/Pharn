@@ -9,7 +9,7 @@ The lens must emit **no** finding (the empty array `[]`).
 
 ## Why this PASSES — a clean scan, no manufactured finding
 
-- `.dev/floor/scan-code-magic-values.mjs` reports `found:false`: every comparison operand is in the
+- `pharn/floor/scan-code-magic-values.mjs` reports `found:false`: every comparison operand is in the
   numeric allow-set `{0, 1, -1, 2, 10, 100, 1000}` (`items.length === 0`, `idx === -1`, `batch <= 100`,
   `batch === 1000`) or is an empty string (`name === ""`, an emptiness check — not a magic value).
 - The returned strings (`"empty"`, `"missing"`, `"small"`, `"full"`, `"anonymous"`, `"other"`) are **not

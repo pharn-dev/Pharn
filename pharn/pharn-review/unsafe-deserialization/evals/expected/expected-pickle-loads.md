@@ -5,7 +5,7 @@ purpose: "Expected output for case-pickle-loads: the deterministic scanner detec
 
 # Expected — case-pickle-loads
 
-The lens runs `.dev/floor/scan-code-deserialization.mjs` over the code; it reports
+The lens runs `pharn/floor/scan-code-deserialization.mjs` over the code; it reports
 `{"found":true,"hits":[{"line":17,"kind":"unsafe-deserialize"}]}`. The lens must emit **exactly one** finding, in
 the `pharn/pharn-contracts/finding-shape` object, with the enum-gated / free-text split honored.
 

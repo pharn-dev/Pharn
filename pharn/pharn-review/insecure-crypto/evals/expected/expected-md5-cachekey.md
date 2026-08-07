@@ -5,7 +5,7 @@ purpose: "Expected output for case-md5-cachekey: the scanner detects MD5 (line 1
 
 # Expected — case-md5-cachekey
 
-The lens runs `.dev/floor/scan-code-crypto.mjs`; it reports
+The lens runs `pharn/floor/scan-code-crypto.mjs`; it reports
 `{"found":true,"hits":[{"line":15,"kind":"weak-hash-md5"}]}`. Even though MD5 here derives a non-security
 cache/ETag key, the scanner (by design) **STILL fires**, and the lens must emit **exactly one** finding — the
 benign-context judgment is Layer-2 advisory that **surfaces**, never **suppresses**.

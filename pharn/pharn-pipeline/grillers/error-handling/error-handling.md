@@ -57,13 +57,13 @@ lexical artifact**. See "The rejected floor candidate".
 
 Two things are floor here — identical to testability:
 
-1. **Griller membership** — `role: griller`, counted by `.dev/floor/count-grillers.mjs` from
+1. **Griller membership** — `role: griller`, counted by `pharn/floor/count-grillers.mjs` from
    `---`-fenced frontmatter only (`pharn/ARCHITECTURE.md §2` primitive #3, enum/regex). A prose / code-block /
    stage-command mention never registers. Identical to every griller. This is the **only runtime floor
    guarantee**.
 2. **The present/absent OUTPUT on this griller's committed fixtures** — expressible as the `structural[]`
    assertions `finding_count` / `field_equals` / `needle_absent_from_enum_gated`
-   (`pharn/pharn-contracts/eval-format.md`), which `.dev/floor/check-structural.mjs` verifies deterministically
+   (`pharn/pharn-contracts/eval-format.md`), which `pharn/floor/check-structural.mjs` verifies deterministically
    at **eval time**. This pins the griller's behavior on known inputs and proves the trust-fence holds.
 
 Presence is a **structural** property of the plan: a populated error-handling declaration (a section, or
@@ -149,11 +149,11 @@ grillers defer it). No half-specified runner is built here.
 
 ## Guarantee audit (P0) — the honest split (a PRESENCE-check floor, testability-shaped)
 
-- **Griller membership** (`role: griller`, counted by `.dev/floor/count-grillers.mjs` from frontmatter
+- **Griller membership** (`role: griller`, counted by `pharn/floor/count-grillers.mjs` from frontmatter
   only) → **FLOOR** (enum/regex; `pharn/ARCHITECTURE.md §2` primitive #3). A prose / code-block / stage-command
   mention never registers. This is the **only runtime floor guarantee**.
 - **Present/absent detection** → the present/absent **output** is `finding_count`-expressible and
-  floor-**checked on the eval fixtures** by `.dev/floor/check-structural.mjs` (primitive #3). **Two clocks
+  floor-**checked on the eval fixtures** by `pharn/floor/check-structural.mjs` (primitive #3). **Two clocks
   (be honest):** `check-structural.mjs` **is** floor and is hermetically tested, but **no runner yet
   invokes it over this griller's live output** — that wiring is deferred (P7, as for every griller and
   `finding-shape.md`'s 3c runner). So at build/verify time the backstop is **the checker's own tests + the
@@ -167,7 +167,7 @@ grillers defer it). No half-specified runner is built here.
 - **No new floor primitive (P0/P7).** Unlike security (whose `scan-plan-secrets.mjs` reduces an
   injection-immune claim), a "mentions error handling" scan's **present** verdict is **launderable** → not
   injection-immune → **not floor**. The candidate is named and rejected above; this griller reuses
-  `.dev/floor/count-grillers.mjs` (membership) and `.dev/floor/check-structural.mjs` (eval-time), both
+  `pharn/floor/count-grillers.mjs` (membership) and `pharn/floor/check-structural.mjs` (eval-time), both
   unchanged.
 - **"This griller ensures the plan handles errors / ensures error handling."** → **struck (the disease).**
   It (a) is a counted griller and (b) surfaces error-handling gaps and adequacy concerns; "produced a

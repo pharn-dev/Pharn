@@ -5,7 +5,7 @@ purpose: "Expected output for case-md5-password: the deterministic scanner detec
 
 # Expected — case-md5-password
 
-The lens runs `.dev/floor/scan-code-crypto.mjs` over the code; it reports
+The lens runs `pharn/floor/scan-code-crypto.mjs` over the code; it reports
 `{"found":true,"hits":[{"line":15,"kind":"weak-hash-md5"}]}`. The lens must emit **exactly one** finding, in
 the `pharn/pharn-contracts/finding-shape` object, with the enum-gated / free-text split honored.
 

@@ -56,7 +56,7 @@ honestly.
 
 Two things are floor here:
 
-1. **Griller membership** — `role: griller`, counted by `.dev/floor/count-grillers.mjs` from
+1. **Griller membership** — `role: griller`, counted by `pharn/floor/count-grillers.mjs` from
    `---`-fenced frontmatter only (`pharn/ARCHITECTURE.md §2` primitive #3, enum/regex). A prose / code-block /
    stage-command mention never registers. Identical to every griller.
 2. **Secret-literal detection** — run the deterministic scanner over the plan:
@@ -153,7 +153,7 @@ and `/pharn-verify`'s verifier runner defer it). No half-specified runner is bui
 
 ## Guarantee audit (P0) — the honest split (a REAL PARTIAL FLOOR)
 
-- **Griller membership** (`role: griller`, counted by `.dev/floor/count-grillers.mjs` from frontmatter
+- **Griller membership** (`role: griller`, counted by `pharn/floor/count-grillers.mjs` from frontmatter
   only) → **FLOOR** (enum/regex; `pharn/ARCHITECTURE.md §2` primitive #3). A prose / code-block / stage-command
   mention never registers.
 - **Secret-literal detection** (`.dev/floor/scan-plan-secrets.mjs`, a fixed regex set over the plan text)
@@ -166,7 +166,7 @@ and `/pharn-verify`'s verifier runner defer it). No half-specified runner is bui
   threat-model soundness) → **ADVISORY — the bulk.** Irreducible judgment; surfaced, never gates. Below
   testability, whose whole axis was floor-checkable.
 - **Fixture behavior** → the finding OUTPUT on the three committed fixtures (counts + enum-gated fields +
-  `needle_absent_from_enum_gated`) is floor-CHECKED at **eval time** by `.dev/floor/check-structural.mjs`
+  `needle_absent_from_enum_gated`) is floor-CHECKED at **eval time** by `pharn/floor/check-structural.mjs`
   (primitive #3). This pins behavior on known inputs and proves the trust-fence holds — it is **NOT** a
   runtime guarantee that "secure" is deterministic, and `finding_count` captures the **output**, not the
   finding's **correctness** (that rests on `field_equals` + `needle_absent_from_enum_gated` + the

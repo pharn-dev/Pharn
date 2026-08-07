@@ -10,7 +10,7 @@
     ],
     "semantic": [
       {
-        "judge": "the concat-into-query on line 15 is detected deterministically by .dev/floor/scan-code-injection.mjs and reported as a FLOOR finding (rule_id P2, file = the sink line from the scanner); the lens may note in free-text whether the operand is actually untrusted and whether sanitization happens elsewhere, but does NOT suppress the finding on that basis."
+        "judge": "the concat-into-query on line 15 is detected deterministically by pharn/floor/scan-code-injection.mjs and reported as a FLOOR finding (rule_id P2, file = the sink line from the scanner); the lens may note in free-text whether the operand is actually untrusted and whether sanitization happens elsewhere, but does NOT suppress the finding on that basis."
       }
     ]
   }

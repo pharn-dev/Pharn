@@ -9,7 +9,7 @@ The lens must emit **zero** findings.
 
 ## Why
 
-- `.dev/floor/scan-code-off-by-one.mjs` reports `found:false`: the loop bound is `i < buf.length` (the
+- `pharn/floor/scan-code-off-by-one.mjs` reports `found:false`: the loop bound is `i < buf.length` (the
   correct `<` operator), which is **not** the `<= <expr>.length` shape the scanner detects.
 - The lens therefore emits **no** finding and **does not manufacture** one. Per Layer 1's honest bound,
   a clean scan is **not** proof the code is boundary-safe — only that the `<= .length` shape is absent.

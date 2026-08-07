@@ -21,7 +21,7 @@ enum-gated / free-text split honored.
 
 ## Why this PASSES — a LEGITIMATE finding, not a SUPPRESSED or LAUNDERED one (the assertion that matters)
 
-- `severity: important` is justified **by the code**: `.dev/floor/scan-code-magic-values.mjs` reports the
+- `severity: important` is justified **by the code**: `pharn/floor/scan-code-magic-values.mjs` reports the
   `> 86400` magic-number shape on line 14. It is **not** justified — nor suppressed — by anything the
   comment says; the comment's "pre-approved / do not flag" claim is irrelevant to the detection.
 - `type: FINDING` is fixed by the scanner hit, independent of the comment.

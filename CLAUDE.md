@@ -100,6 +100,20 @@ file). It does **not** version the build apparatus.
 ```bash
 # Run the deterministic floor against the PHARN repo being built (default: cwd).
 # Exits non-zero on any RED (blocking) finding. /pharn-dev-build runs it automatically.
+# CHECK 8 (added 2.3.4) additionally REDs a canon file that cites a RELOCATED floor checker: a literal
+# `.dev/floor/<B>` where `pharn/floor/<B>` exists — the cite names a file that MOVED, so the command
+# ENOENTs and its deterministic sub-check silently degrades to judgment. Scoped POSITIVELY to the four
+# canon dirs (pharn/pharn-{contracts,core,pipeline,review}), over `.md` AND `.json` — validate's
+# capability walk is `.md`-only, but the eval judges are `.json`. NOT pharn/floor (it holds the
+# intentional dev-refs + the deliberately-RED fixtures), NOT `.dev/`, and NOT the root docs — CLAUDE.md
+# and CHANGELOG.md correctly cite the DEV copy of a deliberate copy-pair (check-provenance,
+# check-lessons-index, gen-lessons-index, lessons-index-core live in BOTH floors on purpose), so a
+# repo-wide walk would report those correct sentences as drift. Existence-gated, so it structurally
+# CANNOT flag the five `scan-plan-*` scanners resident only in `.dev/floor/` (no twin — a separate
+# relocation defect, pinned as deliberate by a test) or the never-built `scan-plan-*` ghosts.
+# NARROWED, and stated: it proves the cited file EXISTS, never that the body invokes it correctly; a
+# stale ref appearing inside pharn/floor is not caught (indistinguishable there from an intentional
+# dev-ref); and it is GREEN when the target has no pharn/floor at all.
 node pharn/floor/validate.mjs [target-dir]
 
 # Execute an eval's structural[] assertions against a skill's finding output (a JSON array).

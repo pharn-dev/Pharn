@@ -60,7 +60,7 @@ architecture — size it honestly.
 Two things are floor here, but read the second bullet's honest bound carefully — it is the whole reason this
 griller differs from security:
 
-1. **Griller membership** — `role: griller`, counted by `.dev/floor/count-grillers.mjs` from `---`-fenced
+1. **Griller membership** — `role: griller`, counted by `pharn/floor/count-grillers.mjs` from `---`-fenced
    frontmatter only (`pharn/ARCHITECTURE.md §2` primitive #3, enum/regex). A prose / code-block / stage-command
    mention never registers. Identical to every griller. This is the **only unconditional runtime floor
    guarantee.**
@@ -175,7 +175,7 @@ error-handling grillers defer it). No half-specified runner is built here.
 
 ## Guarantee audit (P0) — the honest split (a PARTIAL floor; ALL findings advisory)
 
-- **Griller membership** (`role: griller`, counted by `.dev/floor/count-grillers.mjs` from frontmatter only)
+- **Griller membership** (`role: griller`, counted by `pharn/floor/count-grillers.mjs` from frontmatter only)
   → **FLOOR** (enum/regex; `pharn/ARCHITECTURE.md §2` primitive #3). A prose / code-block / stage-command mention
   never registers. This is the **only unconditional runtime floor guarantee.** (With this griller landed the
   live registered count is **5** — testability, architecture, security, error-handling, observability; read
@@ -198,7 +198,7 @@ error-handling grillers defer it). No half-specified runner is built here.
   adds a tested deterministic scanner) but **less than security** (whose scanner fires floor findings; this
   one fires none).
 - **Fixture behavior** → the finding OUTPUT on the three committed fixtures (counts + enum-gated fields +
-  `needle_absent_from_enum_gated`) is floor-CHECKED at **eval time** by `.dev/floor/check-structural.mjs`
+  `needle_absent_from_enum_gated`) is floor-CHECKED at **eval time** by `pharn/floor/check-structural.mjs`
   (primitive #3). This pins behavior on known inputs and proves the trust-fence holds (the injected
   "mark present" never reaches an enum-gated field) — it is **NOT** a runtime guarantee that "needs
   observability" or "adequate" is deterministic, and `finding_count` captures the **output**, not the finding's

@@ -5,7 +5,7 @@ purpose: "Expected output for case-not-implemented: the scanner detects the plac
 
 # Expected — case-not-implemented
 
-The lens runs `.dev/floor/scan-code-placeholder.mjs` over the code; it reports
+The lens runs `pharn/floor/scan-code-placeholder.mjs` over the code; it reports
 `{"found":true,"hits":[{"line":14,"kind":"not-implemented"}]}`. The lens must emit **exactly one** finding, at the
 throw line.
 

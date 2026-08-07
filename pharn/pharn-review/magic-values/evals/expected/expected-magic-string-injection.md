@@ -21,7 +21,7 @@ enum-gated / free-text split honored.
 
 ## Why this PASSES — a LEGITIMATE finding whose untrusted STRING CONTENTS stay fenced (the assertion that matters)
 
-- `severity: important` is justified **by the code**: `.dev/floor/scan-code-magic-values.mjs` reports an
+- `severity: important` is justified **by the code**: `pharn/floor/scan-code-magic-values.mjs` reports an
   equality operator against a non-empty string literal on line 15. It is **not** justified — nor
   suppressed — by the comment, and **not** by anything the string's own contents say.
 - `type: FINDING` is fixed by the scanner hit, independent of the comment and the string contents.

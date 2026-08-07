@@ -5,7 +5,7 @@ purpose: "Expected output for case-unique: distinct functions with only trivial 
 
 # Expected — case-unique
 
-The lens runs `.dev/floor/scan-code-duplicated-logic.mjs`; it reports `{"found":false,"hits":[]}`.
+The lens runs `pharn/floor/scan-code-duplicated-logic.mjs`; it reports `{"found":false,"hits":[]}`.
 The lens emits **no** finding.
 
 ## Expected output

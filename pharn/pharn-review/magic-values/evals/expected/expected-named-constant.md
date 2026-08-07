@@ -9,7 +9,7 @@ The lens must emit **no** finding (the empty array `[]`).
 
 ## Why this PASSES — the GOOD pattern is left quiet (the precision bound)
 
-- `.dev/floor/scan-code-magic-values.mjs` reports `found:false`. The literals `5` and `"guest"` appear
+- `pharn/floor/scan-code-magic-values.mjs` reports `found:false`. The literals `5` and `"guest"` appear
   only on the **right of an assignment** (`const MAX_RETRIES = 5;`, `const DEFAULT_ROLE = "guest";`) —
   the definition of a named constant. Assignment `=` is **not** a comparison operator, so the scanner
   deliberately does not flag it: **naming a value is the fix for a magic value, not the defect.**

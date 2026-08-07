@@ -10,7 +10,7 @@
     ],
     "semantic": [
       {
-        "judge": "the to-do comment marker on line 14 is detected deterministically by .dev/floor/scan-code-placeholder.mjs (Pass A marker membership) and reported as a FLOOR finding (rule_id P2, file = the marker line from the scanner); the lens may note in free-text whether the marker is a real gap or an intentional annotation, but does NOT suppress the finding on that basis."
+        "judge": "the to-do comment marker on line 14 is detected deterministically by pharn/floor/scan-code-placeholder.mjs (Pass A marker membership) and reported as a FLOOR finding (rule_id P2, file = the marker line from the scanner); the lens may note in free-text whether the marker is a real gap or an intentional annotation, but does NOT suppress the finding on that basis."
       }
     ]
   }

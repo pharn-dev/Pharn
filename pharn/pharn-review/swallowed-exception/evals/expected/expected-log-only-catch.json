@@ -10,7 +10,7 @@
     ],
     "semantic": [
       {
-        "judge": "the log-only catch on line 16 (body is only console.error, no throw/return/reject/next) is detected deterministically by .dev/floor/scan-code-swallowed-exception.mjs and reported as a FLOOR finding (rule_id P2, file = the catch line); the lens may note in free-text whether a log-and-continue is acceptable here, but does NOT suppress the finding on that basis."
+        "judge": "the log-only catch on line 16 (body is only console.error, no throw/return/reject/next) is detected deterministically by pharn/floor/scan-code-swallowed-exception.mjs and reported as a FLOOR finding (rule_id P2, file = the catch line); the lens may note in free-text whether a log-and-continue is acceptable here, but does NOT suppress the finding on that basis."
       }
     ]
   }
