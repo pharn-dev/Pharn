@@ -14,6 +14,7 @@ the third, **content-hash**, is used inline by `/plan` and `/build` to pin the s
 | `validate.mjs`                               | enum / regex / structural check          | P1, P3, P4; fixes #1, #5, #6                  |
 | `check-structural.mjs`                       | enum / regex-substring / path-resolution | `structural[]` of an eval `expected` (P0, P1) |
 | `../.claude/hooks/protect-trusted-paths.cjs` | pre-write hook                           | P2; fix #2                                    |
+| `../.claude/hooks/enforce-writes-scope.cjs`  | pre-write hook                           | P2, P5; fix #7                                |
 
 ## Run the validator
 
@@ -65,17 +66,40 @@ residual (`LIMITS §2`, `THREAT-MODEL §5`, attempt 0). The trip-wire moves onto
 behavior under injection does not become guaranteed. `semantic[]` stays **advisory** — the checker
 never evaluates a `judge` string (no LLM).
 
-## Wire the write-guard hook
+## Wire the write-guard hooks
 
-The write-guard is wired in `.claude/settings.json` (committed): a `PreToolUse` hook on
-`Write|Edit|MultiEdit` that blocks any write to a trusted file (`CONSTITUTION.md`, `ARCHITECTURE.md`,
-`THREAT-MODEL.md`, `LIMITS.md`). Extend the protected set with the `PHARN_PROTECTED` env var
-(comma-separated). Confirm it works:
+Two `PreToolUse` hooks are wired in `.claude/settings.json` (committed), both on
+`Write|Edit|MultiEdit`; a deny from **either** blocks. **`protect-trusted-paths.cjs` (fix #2)** blocks
+any write to a protected path. The default set is the four trusted
+spec docs (`CONSTITUTION.md`, `ARCHITECTURE.md`, `THREAT-MODEL.md`, `LIMITS.md`), `CODEOWNERS` — the
+GitHub-layer write-guard itself — and **the two pre-write guards' own control surface**:
+`.claude/settings.json` (which wires both hooks) plus the three hook scripts
+(`protect-trusted-paths.cjs`, `enforce-writes-scope.cjs`, `set-writes-scope.cjs`). Each hook is re-read
+fresh on every tool call, so a write to one would disarm that guard on the very next write. Extend the
+set further with the `PHARN_PROTECTED` env var (comma-separated). Confirm it works:
 
 ```bash
 echo '{"tool_name":"Edit","tool_input":{"file_path":"CONSTITUTION.md"}}' | node .claude/hooks/protect-trusted-paths.cjs   # → exit 2, denied
+echo '{"tool_name":"Write","tool_input":{"file_path":".claude/settings.json"}}' | node .claude/hooks/protect-trusted-paths.cjs  # → exit 2, denied
 echo '{"tool_name":"Write","tool_input":{"file_path":"pharn-core/rules/x.md"}}' | node .claude/hooks/protect-trusted-paths.cjs  # → exit 0, allowed
 ```
+
+**`enforce-writes-scope.cjs` (fix #7)** is the runtime scope-enforcement hook: it denies any write
+outside the active scope in `.pharn/writes-scope.json` (fail-closed to a default-safe-set when none is
+set). Confirm it works:
+
+```bash
+echo '{"tool_name":"Write","tool_input":{"file_path":"pharn/floor/x.mjs"}}' | node .claude/hooks/enforce-writes-scope.cjs  # → exit 2, denied (no scope; fail-closed)
+echo '{"tool_name":"Write","tool_input":{"file_path":"README.md"}}' | node .claude/hooks/enforce-writes-scope.cjs  # → exit 2, denied (root file outside default-safe-set)
+```
+
+The **setter** (`set-writes-scope.cjs`) is separate from both hooks: it refuses to _authorize_ those
+same four control paths at scope-set time — exits non-zero and writes nothing if the parsed scope names
+one, unless the operator passes `--allow-claude-dir`. That early refusal is not runtime enforcement;
+**`enforce-writes-scope.cjs`** enforces whatever scope was emitted on every write. `.claude/commands/**`
+and the hooks' own `*.test.cjs` are deliberately in neither protected set nor the refusal set.
+**Bounded, and stated (P0):** the two `PreToolUse` hooks cover the `Write|Edit|MultiEdit` surface only
+— Bash-tool writes bypass them entirely, for these paths exactly as for the trusted docs.
 
 ## Honest scope (P0, P7)
 

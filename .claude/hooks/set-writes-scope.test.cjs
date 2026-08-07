@@ -180,3 +180,249 @@ test("--from-plan over the real pharn-plan.md template exits 1 (its `## Files` `
   assert.equal(r.status, 1);
   assert.equal(fs.existsSync(join(cwd, ".pharn", "writes-scope.json")), false);
 });
+
+// --- F3: the setter REFUSES to authorize the write-guards' own control surface (fail-closed) ---
+// A declared `writes:` / `## Files` list is untrusted input (CONSTITUTION P2). Before this refusal, an
+// entry naming a hook emitted a scope that enforce-writes-scope.cjs honored, so an untrusted document
+// could authorize disarming a guard. The refusal is exact membership over the same four paths
+// protect-trusted-paths.cjs protects; --allow-claude-dir is the only opt-in.
+
+const CONTROL_SURFACE = [
+  ".claude/settings.json",
+  ".claude/hooks/protect-trusted-paths.cjs",
+  ".claude/hooks/enforce-writes-scope.cjs",
+  ".claude/hooks/set-writes-scope.cjs",
+];
+
+function planWith(cwd, ...paths) {
+  const plan = join(cwd, "PLAN.md");
+  fs.writeFileSync(plan, ["## Files", "", ...paths.map((p) => `- \`${p}\` — an entry`), ""].join("\n"));
+  return plan;
+}
+
+for (const ctl of CONTROL_SURFACE) {
+  test(`--from-plan naming the control file ${ctl} is REFUSED and writes nothing`, () => {
+    const cwd = tmp();
+    const r = setter(cwd, "--from-plan", planWith(cwd, ctl, "src/legit.ts"));
+    assert.notEqual(r.status, 0);
+    assert.match(r.stderr, /refusing to scope the write-guards' own control surface/);
+    assert.match(r.stderr, new RegExp(ctl.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
+    assert.equal(fs.existsSync(join(cwd, ".pharn", "writes-scope.json")), false);
+  });
+}
+
+test("--allow-claude-dir opts back in: the same PLAN succeeds and the entry survives in scope", () => {
+  const cwd = tmp();
+  const r = setter(cwd, "--from-plan", planWith(cwd, ".claude/settings.json", "src/legit.ts"), "--allow-claude-dir");
+  assert.equal(r.status, 0);
+  const rec = JSON.parse(fs.readFileSync(join(cwd, ".pharn", "writes-scope.json"), "utf8"));
+  assert.deepEqual(rec.scope, [".claude/settings.json", "src/legit.ts"]);
+});
+
+test("--allow-claude-dir is its own arg-loop branch: placed FIRST it does not eat the positional mode/file", () => {
+  const cwd = tmp();
+  const r = setter(cwd, "--allow-claude-dir", "--from-plan", planWith(cwd, ".claude/settings.json"));
+  assert.equal(r.status, 0);
+  const rec = JSON.parse(fs.readFileSync(join(cwd, ".pharn", "writes-scope.json"), "utf8"));
+  assert.deepEqual(rec.scope, [".claude/settings.json"]);
+});
+
+test("--from-frontmatter with a control path in `writes:` is REFUSED without the flag", () => {
+  const cwd = tmp();
+  const cap = join(cwd, "cap.md");
+  fs.writeFileSync(cap, ["---", 'writes: [".claude/hooks/enforce-writes-scope.cjs"]', "---", "", "# cap", ""].join("\n"));
+  const r = setter(cwd, "--from-frontmatter", cap);
+  assert.notEqual(r.status, 0);
+  assert.match(r.stderr, /refusing to scope the write-guards' own control surface/);
+  assert.equal(fs.existsSync(join(cwd, ".pharn", "writes-scope.json")), false);
+});
+
+// The membership test normalizes the entry (lexically) so a trivial re-spelling cannot walk past it.
+// NOT a realpath — a symlink resolving onto a control file is still not caught here; that is the
+// enforcing hook's job. These pin the normalization, not a resolution guarantee.
+for (const spelling of ["./.claude/settings.json", ".claude/hooks/../hooks/set-writes-scope.cjs", ".claude//settings.json"]) {
+  test(`a re-spelled control path is still REFUSED: ${spelling}`, () => {
+    const cwd = tmp();
+    const r = setter(cwd, "--from-plan", planWith(cwd, spelling));
+    assert.notEqual(r.status, 0);
+    assert.equal(fs.existsSync(join(cwd, ".pharn", "writes-scope.json")), false);
+  });
+}
+
+// --- Deliberately NOT refused: commands and the hooks' own tests. An increment that edits either must
+// not need an opt-in flag (46 of 104 historical plans write a command file). ---
+
+test("a PLAN naming .claude/commands/* and .claude/hooks/*.test.cjs is UNAFFECTED (no flag needed)", () => {
+  const cwd = tmp();
+  const r = setter(cwd, "--from-plan", planWith(cwd, ".claude/commands/pharn-plan.md", ".claude/hooks/set-writes-scope.test.cjs"));
+  assert.equal(r.status, 0);
+  const rec = JSON.parse(fs.readFileSync(join(cwd, ".pharn", "writes-scope.json"), "utf8"));
+  assert.deepEqual(rec.scope, [".claude/commands/pharn-plan.md", ".claude/hooks/set-writes-scope.test.cjs"]);
+});
+
+// --- Regression: a plan with no control path emits exactly the scope it always did ---
+
+test("a PLAN with no control path emits the identical scope as before the refusal existed", () => {
+  const cwd = tmp();
+  const r = setter(cwd, "--from-plan", planWith(cwd, "src/widget.ts", "src/widget.test.ts"));
+  assert.equal(r.status, 0);
+  const rec = JSON.parse(fs.readFileSync(join(cwd, ".pharn", "writes-scope.json"), "utf8"));
+  assert.deepEqual(rec.scope, ["src/widget.ts", "src/widget.test.ts"]);
+});
+
+test("the refusal is layered AFTER the empty-scope fail, which stays reachable (L14: compose, never replace)", () => {
+  const cwd = tmp();
+  const plan = join(cwd, "PLAN.md");
+  fs.writeFileSync(plan, ["## Files", "", "- no back-tick path here", ""].join("\n"));
+  const r = setter(cwd, "--from-plan", plan);
+  assert.notEqual(r.status, 0);
+  assert.match(r.stderr, /no back-tick paths/); // the pre-existing fail, not the new refusal
+  assert.doesNotMatch(r.stderr, /refusing to scope/);
+});
+
+test("the usage line advertises --allow-claude-dir", () => {
+  const cwd = tmp();
+  const r = setter(cwd);
+  assert.notEqual(r.status, 0);
+  assert.match(r.stderr, /--allow-claude-dir/);
+});
+
+// --- Coverage backfill for the entry-resolution paths this increment's refusal sits downstream of.
+// These were untested before: a refusal that runs over `scope` is only as sound as the parsing that
+// builds `scope`, so the glob / block-list / unquoted-inline forms are pinned here. ---
+
+function capWith(cwd, ...frontmatterLines) {
+  const cap = join(cwd, "cap.md");
+  fs.writeFileSync(cap, ["---", ...frontmatterLines, "---", "", "# cap", ""].join("\n"));
+  return cap;
+}
+
+test("--from-frontmatter resolves a GLOB `writes:` entry against --target", () => {
+  const cwd = tmp();
+  const r = setter(cwd, "--from-frontmatter", capWith(cwd, 'writes: ["features/*/REVIEW.md"]'), "--target", "features/x/REVIEW.md");
+  assert.equal(r.status, 0);
+  const rec = JSON.parse(fs.readFileSync(join(cwd, ".pharn", "writes-scope.json"), "utf8"));
+  assert.deepEqual(rec.scope, ["features/x/REVIEW.md"]);
+});
+
+test("--from-frontmatter: a GLOB that does not match --target yields no scope (fail-closed)", () => {
+  const cwd = tmp();
+  const r = setter(cwd, "--from-frontmatter", capWith(cwd, 'writes: ["features/*/REVIEW.md"]'), "--target", "docs/other.md");
+  assert.notEqual(r.status, 0);
+  assert.equal(fs.existsSync(join(cwd, ".pharn", "writes-scope.json")), false);
+});
+
+test("--from-frontmatter reads the BLOCK-list `writes:` form", () => {
+  const cwd = tmp();
+  const r = setter(cwd, "--from-frontmatter", capWith(cwd, "writes:", '  - "src/a.ts"', "  - src/b.ts"));
+  assert.equal(r.status, 0);
+  const rec = JSON.parse(fs.readFileSync(join(cwd, ".pharn", "writes-scope.json"), "utf8"));
+  assert.deepEqual(rec.scope, ["src/a.ts", "src/b.ts"]);
+});
+
+test("--from-frontmatter reads an UNQUOTED inline-array `writes:` form", () => {
+  const cwd = tmp();
+  const r = setter(cwd, "--from-frontmatter", capWith(cwd, "writes: [src/a.ts, src/b.ts]"));
+  assert.equal(r.status, 0);
+  const rec = JSON.parse(fs.readFileSync(join(cwd, ".pharn", "writes-scope.json"), "utf8"));
+  assert.deepEqual(rec.scope, ["src/a.ts", "src/b.ts"]);
+});
+
+test("a BLOCK-list `writes:` naming a control file is refused too (the refusal is form-independent)", () => {
+  const cwd = tmp();
+  const r = setter(cwd, "--from-frontmatter", capWith(cwd, "writes:", '  - ".claude/settings.json"'));
+  assert.notEqual(r.status, 0);
+  assert.match(r.stderr, /refusing to scope the write-guards' own control surface/);
+  assert.equal(fs.existsSync(join(cwd, ".pharn", "writes-scope.json")), false);
+});
+
+test("--target that escapes the repo root is rejected", () => {
+  const cwd = tmp();
+  const r = setter(cwd, "--from-frontmatter", capWith(cwd, 'writes: ["features/<name>/PLAN.md"]'), "--target", "../outside/PLAN.md");
+  assert.notEqual(r.status, 0);
+  assert.match(r.stderr, /escapes repo root/);
+});
+
+test("--target with no value, an unexpected extra argument, and a missing file each fail-closed", () => {
+  const cwd = tmp();
+  assert.match(setter(cwd, "--from-plan", "P.md", "--target").stderr, /--target requires a path/);
+  assert.match(setter(cwd, "--from-plan", "a.md", "b.md", "c.md").stderr, /unexpected argument/);
+  assert.match(setter(cwd, "--from-plan", "nope.md").stderr, /file not found/);
+});
+
+test("a frontmatter file with no `writes:` key, and one with no frontmatter at all, each fail-closed", () => {
+  const cwd = tmp();
+  assert.match(setter(cwd, "--from-frontmatter", capWith(cwd, "role: skill")).stderr, /no `writes:` key/);
+  const bare = join(cwd, "bare.md");
+  fs.writeFileSync(bare, "# no frontmatter\n");
+  assert.match(setter(cwd, "--from-frontmatter", bare).stderr, /no YAML frontmatter/);
+});
+
+// ── ✧ CROSS-COPY AGREEMENT GUARD (the guards' control surface) ───────────────────────────────────────
+//
+// WHY THIS EXISTS. The four control paths are a DELIBERATE duplicate: `CONTROL_SURFACE` in
+// set-writes-scope.cjs and the `.claude/` entries of `DEFAULT_PROTECTED` in protect-trusted-paths.cjs.
+// A shared module was rejected for the reason the check-provenance.mjs split records — each hook must
+// stay a standalone, stdlib-only script invoked as `node <file>`, and routing the membership set through
+// an import makes the gate's set reachable. Two copies drift; that is the cost of the choice, and this
+// guard is the mitigation that makes the choice acceptable. It converts "drifts silently" into "drifts
+// loudly", exactly as .dev/floor/check-provenance.test.mjs does for its own second copy.
+//
+// It pins THREE copies, because this file's own CONTROL_SURFACE literal above is the third: adding a
+// fifth control path to one file alone would otherwise leave every gate GREEN while the setter silently
+// stopped covering it.
+//
+// ── Honest scope (P0) — what a green run does and does NOT buy ───────────────────────────────────────
+// FLOOR, and only within the `npm test` gate: the three declarations are the same SET of paths.
+//   `node --test` is not a fourth floor primitive; what makes this binding is its membership in
+//   /pharn-dev-verify's check-verify.mjs gate map (the `test` gate) — the same standing every other
+//   *.test.cjs here has. Its VERDICT is floor-grade there; its EXISTENCE is advisory (two clocks).
+// NOT guaranteed: that the two guards BEHAVE identically on those paths. The hook matches path
+//   FRAGMENTS via isProtected(); the setter does exact membership over a normalized entry. This compares
+//   declarations, not logic — a divergence in matching behavior passes untouched.
+//
+// MEASURED REJECTING MUTANTS before being trusted (L4 — an authored assertion passes by construction).
+// Three mutations were applied to a sandbox copy of the two hooks and confirmed to FAIL, then reverted:
+//   1. a fifth path appended to DEFAULT_PROTECTED only        → 1 failure (the agreement test)
+//   2. an entry removed from CONTROL_SURFACE only             → 7 failures
+//   3. `.claude/commands/pharn-plan.md` added to CONTROL_SURFACE → 4 failures (the GATE-1 decision guard)
+// The unmutated sandbox was green before and after. If that measurement is ever repeated and the guard
+// stays green, the guard is inert and this comment is a lie — treat it as such.
+
+const PROTECT_HOOK = join(__dirname, "protect-trusted-paths.cjs");
+
+// Extract the quoted entries of a top-level `const <NAME> = [ … ];` from a source file. Line comments are
+// stripped first so commentary inside the array can never be read as an entry. Deliberately textual and
+// derived from BOTH sources — neither side is restated as a literal in the assertion.
+function arrayEntries(file, name) {
+  const src = fs.readFileSync(file, "utf8").replace(/^[ \t]*\/\/.*$/gm, "");
+  const m = src.match(new RegExp(`^const ${name} = \\[([\\s\\S]*?)^\\];`, "m"));
+  assert.ok(m, `${file} must declare a top-level \`const ${name} = [ … ];\``);
+  return (m[1].match(/"([^"]*)"/g) || []).map((s) => s.slice(1, -1));
+}
+
+test("✧ the two guards agree on the control surface: setter CONTROL_SURFACE == the hook's `.claude/` protected entries", () => {
+  const setterSet = arrayEntries(SETTER, "CONTROL_SURFACE");
+  const hookClaude = arrayEntries(PROTECT_HOOK, "DEFAULT_PROTECTED").filter((p) => p.startsWith(".claude/"));
+  assert.ok(setterSet.length > 0, "CONTROL_SURFACE must not be empty — an empty set silently disables the refusal");
+  assert.deepEqual(
+    [...setterSet].sort(),
+    [...hookClaude].sort(),
+    "the control surface has drifted between set-writes-scope.cjs and protect-trusted-paths.cjs — " +
+      "change BOTH copies, or split them deliberately and update this guard"
+  );
+});
+
+test("✧ this file's own CONTROL_SURFACE literal (the third copy) matches the setter's", () => {
+  assert.deepEqual([...CONTROL_SURFACE].sort(), [...arrayEntries(SETTER, "CONTROL_SURFACE")].sort());
+});
+
+test("✧ the control surface names exactly the wiring file plus the three hook scripts — no command, no test file", () => {
+  // Pins the GATE-1 decision itself: `.claude/commands/**` and `*.test.cjs` must stay OUT, or the
+  // self-hosting loop breaks (46 of 104 historical plans write a command file).
+  const set = arrayEntries(SETTER, "CONTROL_SURFACE");
+  assert.equal(set.filter((p) => p.endsWith(".test.cjs")).length, 0, "a hook's own tests must never be refused");
+  assert.equal(set.filter((p) => p.startsWith(".claude/commands/")).length, 0, "commands must never be refused");
+  assert.ok(set.includes(".claude/settings.json"), "the file that WIRES both hooks must be covered");
+  assert.equal(set.filter((p) => p.startsWith(".claude/hooks/") && p.endsWith(".cjs")).length, 3, "all three hooks");
+});
