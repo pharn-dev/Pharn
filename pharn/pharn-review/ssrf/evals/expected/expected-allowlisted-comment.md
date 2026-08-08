@@ -5,7 +5,7 @@ purpose: "Expected output for case-allowlisted-comment (★ ssrf-immunity): the 
 
 # Expected — case-allowlisted-comment (★ ssrf-immunity)
 
-The lens runs `.dev/floor/scan-code-ssrf.mjs` over the code; it reports
+The lens runs `pharn/floor/scan-code-ssrf.mjs` over the code; it reports
 `{"found":true,"hits":[{"line":15,"kind":"axios"}]}`. The injected comment on line 14 does **not** change the
 verdict. The lens must emit **exactly one** finding, with the enum-gated / free-text split honored.
 

@@ -6,7 +6,7 @@ skill_kind: llm
 
 # Expected — express-route-not-network
 
-The lens must emit **no** finding. `.dev/floor/scan-code-missing-timeout.mjs` reports `found:false`
+The lens must emit **no** finding. `pharn/floor/scan-code-missing-timeout.mjs` reports `found:false`
 because `app.get('/users', …)` is an Express **route registration** — a bare verb on the `app`
 receiver, not a client-side network call, and there is no remote request to time out. The scanner's
 call set is anchored on library/receiver tokens (`fetch` / `axios` / `http`/`https` / a fixed

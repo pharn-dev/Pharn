@@ -7,7 +7,7 @@ purpose: "Expected output for case-awaited-call. The async call is correctly `aw
 
 The lens must emit **zero** findings. The `await loadUser(req.id);` statement is a correctly-awaited
 async call: although `loadUser` is in the same-file async roster, the line begins with `await`, not the
-callee, so `.dev/floor/scan-code-missing-await.mjs` reports `found:false` and the lens does not
+callee, so `pharn/floor/scan-code-missing-await.mjs` reports `found:false` and the lens does not
 manufacture a finding.
 
 ## The expected output
@@ -18,7 +18,7 @@ manufacture a finding.
 
 ## Why this PASSES
 
-- `.dev/floor/scan-code-missing-await.mjs` reports `found:false`: the statement-head anchor `^\s*NAME(`
+- `pharn/floor/scan-code-missing-await.mjs` reports `found:false`: the statement-head anchor `^\s*NAME(`
   requires the callee to be the first token on the line; `await loadUser(req.id);` begins with `await`,
   so it is not a hit. The call is awaited — not floating.
 - The lens emits **no** finding and does **not** invent one. Emitting any finding here would be a

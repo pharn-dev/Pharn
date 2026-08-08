@@ -6,7 +6,7 @@ skill_kind: llm
 
 # Expected — fetch-abort-signal
 
-The lens must emit **no** finding. `.dev/floor/scan-code-missing-timeout.mjs` reports `found:false`
+The lens must emit **no** finding. `pharn/floor/scan-code-missing-timeout.mjs` reports `found:false`
 because the call binds an `AbortSignal` timeout via the `signal` option — a recognized in-args timeout
 mechanism (`signal`, and the nested timeout, are both indicator tokens).
 

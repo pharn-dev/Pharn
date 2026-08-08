@@ -6,7 +6,7 @@ skill_kind: llm
 
 # Expected — db-query-with-timeout
 
-The lens must emit **no** finding. `.dev/floor/scan-code-missing-timeout.mjs` reports `found:false`
+The lens must emit **no** finding. `pharn/floor/scan-code-missing-timeout.mjs` reports `found:false`
 because the `db.query(...)` call passes a `timeout` token in its own argument object — the call-local
 indicator test finds it and reports the call CLEAN.
 

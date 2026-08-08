@@ -60,7 +60,7 @@ read a manufactured floor sub-check into it (see "The rejected floor candidate")
 ### Layer 1 — FLOOR: griller MEMBERSHIP only (the whole runtime guarantee)
 
 The **only** thing floor-guaranteed at runtime is that this file is a griller: `role: griller`,
-counted by `.dev/floor/count-grillers.mjs` from `---`-fenced frontmatter (`pharn/ARCHITECTURE.md §2`
+counted by `pharn/floor/count-grillers.mjs` from `---`-fenced frontmatter (`pharn/ARCHITECTURE.md §2`
 primitive #3, enum/regex). A prose / code-block / stage-command mention never registers. That is the
 entire deterministic guarantee — **identical to every griller** — and it says nothing about whether any
 plan is performant.
@@ -73,7 +73,7 @@ carries scaling risk (a one-row indexed lookup does not; a nightly full-table fa
 judgment. You **surface** concerns as findings for the human; you **never** gate on them (grillers as a
 class never gate — the grill stage surfaces griller findings, its only deterministic stop is the
 spec→plan hash chain). Your findings are **floor-CHECKED on this griller's eval fixtures** by
-`.dev/floor/check-structural.mjs` (the output shape + the no-laundering trip-wire) — that is
+`pharn/floor/check-structural.mjs` (the output shape + the no-laundering trip-wire) — that is
 **eval-time** verification of behavior on known inputs, **not** a runtime guarantee that "slow at scale"
 is deterministic. See "Guarantee audit".
 
@@ -85,7 +85,7 @@ is deterministic. See "Guarantee audit".
 > itself — this is exactly the candidate the **error-handling** griller named and rejected. So **no
 > `.dev/floor/scan-plan-performance.mjs` is built**; treating its verdict as floor would dress a
 > launderable heuristic as a guarantee — the exact disease P0 forbids. Where a structural invariant is
-> _genuinely_ deterministic, its home is `.dev/floor/validate.mjs` (the floor over built product), not
+> _genuinely_ deterministic, its home is `pharn/floor/validate.mjs` (the floor over built product), not
 > this advisory griller.
 
 ## Procedure (membership tests; terminal fallback is ask — P5)
@@ -139,7 +139,7 @@ griller and `finding-shape.md`'s 3c runner defer it). No half-specified runner i
 
 ## Guarantee audit (P0) — the honest split (performance is LARGELY ADVISORY)
 
-- **Griller membership** (`role: griller`, counted by `.dev/floor/count-grillers.mjs` from frontmatter
+- **Griller membership** (`role: griller`, counted by `pharn/floor/count-grillers.mjs` from frontmatter
   only) → **FLOOR** (enum/regex; `pharn/ARCHITECTURE.md §2` primitive #3). A prose / code-block / stage-command
   mention never registers. **The only runtime guarantee this griller makes.**
 - **Performance-risk assessment** (N+1, missing index, loop over network calls, unbounded load,
@@ -152,7 +152,7 @@ griller and `finding-shape.md`'s 3c runner defer it). No half-specified runner i
   and tested, but no runner yet invokes it over this griller's live output — deferred P7.)
 - **No new floor primitive (P0/P7).** A "mentions performance" scan's verdict is **launderable** → not
   injection-immune → **not floor** (named and rejected above, the error-handling precedent). This griller
-  reuses `.dev/floor/count-grillers.mjs` (membership) and `.dev/floor/check-structural.mjs` (eval-time),
+  reuses `pharn/floor/count-grillers.mjs` (membership) and `pharn/floor/check-structural.mjs` (eval-time),
   both unchanged.
 - **"This griller ensures the plan is performant / ensures performance / prevents slow code."** →
   **struck (the disease).** It detects and **surfaces** scaling-risk concerns; "produced a griller
@@ -161,4 +161,4 @@ griller and `finding-shape.md`'s 3c runner defer it). No half-specified runner i
 The honest converse: a griller **may be advisory-only beyond membership** when its axis is irreducible
 judgment — **provided it labels that plainly** (as here, mirroring the architecture griller) and does not
 manufacture a fake floor for symmetry. Genuine deterministic invariants belong in
-`.dev/floor/validate.mjs` (the floor over built product), not an advisory griller.
+`pharn/floor/validate.mjs` (the floor over built product), not an advisory griller.

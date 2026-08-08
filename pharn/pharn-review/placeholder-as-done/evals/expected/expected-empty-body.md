@@ -5,7 +5,7 @@ purpose: "Expected output for case-empty-body: the scanner detects the empty fun
 
 # Expected — case-empty-body
 
-The lens runs `.dev/floor/scan-code-placeholder.mjs` over the code; it reports
+The lens runs `pharn/floor/scan-code-placeholder.mjs` over the code; it reports
 `{"found":true,"hits":[{"line":13,"kind":"empty-body"}]}`. The lens must emit **exactly one** finding, at the
 function-head line.
 

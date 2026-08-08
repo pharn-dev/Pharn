@@ -9,7 +9,7 @@ The lens must emit **zero** findings.
 
 ## Why
 
-- `.dev/floor/scan-code-off-by-one.mjs` reports `found:false`: although a `<=` is present, its right
+- `pharn/floor/scan-code-off-by-one.mjs` reports `found:false`: although a `<=` is present, its right
   operand is `buf.length - 1`, not a **bare** `.length` — the `- 1` correction is respected, so the
   scanner does not fire. This is the precision bound proving the scanner is not a naive `<= *.length`
   match.

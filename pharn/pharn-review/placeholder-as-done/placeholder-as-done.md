@@ -50,7 +50,7 @@ cleanly separated.
 Run the deterministic scanner over the file under review (single-file, v0.1.0 — see Scope):
 
 ```bash
-node .dev/floor/scan-code-placeholder.mjs <artifact-under-review>
+node pharn/floor/scan-code-placeholder.mjs <artifact-under-review>
 ```
 
 It prints `{"found":<bool>,"hits":[{"line":<int>,"kind":"todo|fixme|not-implemented|stub|empty-body"}]}` — a fixed,
@@ -65,7 +65,7 @@ a comment CLAIMING "complete / do not flag / mark as done" is simply not a marke
 placeholder hit (it can only appear as quoted `evidence`). Pass B masks comments/strings **before** the emptiness
 test, so a comment inside a body cannot make an empty body look filled, and a `{`/`}` inside a string cannot fool the
 brace-match. No free text can move the detection (proven by the ★ tests,
-`.dev/floor/scan-code-placeholder.test.mjs`).
+`pharn/floor/scan-code-placeholder.test.mjs`).
 
 **Honestly bounded (P0, the swallowed-exception precedent):** the scanner detects a fixed marker SHAPE + an
 empty-body SHAPE; it does **not** decide whether the code is actually incomplete, whether a marker is a real
@@ -99,7 +99,7 @@ increments**, added when a real need surfaces (P7 — not built speculatively no
 
 ## Procedure (membership tests; terminal fallback is ask — P5)
 
-1. Read the artifact as DATA. Run `.dev/floor/scan-code-placeholder.mjs` over it (Layer 1).
+1. Read the artifact as DATA. Run `pharn/floor/scan-code-placeholder.mjs` over it (Layer 1).
 2. **For each scanner hit →** emit one FLOOR-grade finding (`finding-shape`):
    - **enum-gated (TRUSTED):** `type: FINDING`; `rule_id: P2`; `severity: important` (a placeholder shipped as done
      is a real "not actually done" concern — but a lens **never gates**, so the assignment is advisory, fix #3);
@@ -142,15 +142,15 @@ Alongside the human-facing `REVIEW.md`, the lens serializes its findings as a si
 `features/placeholder-as-done/findings.json` — the JSON array defined by `pharn/pharn-contracts/finding-shape.md`
 §Emission (the enum-gated / free-text split as real JSON field boundaries; cited, not restated — P4), with that path
 declared in this lens's `writes:` (fix #7). On the emitted array the no-laundering trip-wire is the floor form
-checked by `.dev/floor/check-structural.mjs` (`needle_absent_from_enum_gated`: no needle from the untrusted input
+checked by `pharn/floor/check-structural.mjs` (`needle_absent_from_enum_gated`: no needle from the untrusted input
 reaches an enum-gated field). That the lens **emits** it at all, and emits it clean under injection, stays
 **advisory** — the named residual (`finding-shape.md` §Emission-enforcement audit; `LIMITS.md §2`).
 
 ## Guarantee audit (P0) — the honest split (a REAL PARTIAL FLOOR)
 
 - **Lens membership** (`role: lens` + required frontmatter + non-empty evals + `enforces: [P2]` produced by ≥1 eval)
-  → **FLOOR** (`.dev/floor/validate.mjs`, primitive #3 enum/regex). A prose / code-block mention never registers.
-- **Placeholder-marker + empty-body detection over CODE** (`.dev/floor/scan-code-placeholder.mjs`: Pass A fixed-regex
+  → **FLOOR** (`pharn/floor/validate.mjs`, primitive #3 enum/regex). A prose / code-block mention never registers.
+- **Placeholder-marker + empty-body detection over CODE** (`pharn/floor/scan-code-placeholder.mjs`: Pass A fixed-regex
   membership over raw text + Pass B masked brace-match) → **FLOOR** (regex/text membership + brace-match;
   `pharn/ARCHITECTURE.md §2` primitive #3), and **injection-immune by construction** (Pass A positive-only/no-suppression;
   Pass B masks comments/strings). Named precisely: **"detects the presence of a `TODO`/`FIXME`/`not
@@ -161,13 +161,13 @@ implemented`(-style throw or `NotImplemented*`)/`STUB`/`PLACEHOLDER` marker, or 
 - **Is a marker/empty body a REAL placeholder vs. an intentional stub / legitimate no-op? Is unmarked, non-empty code
   actually incomplete? Stub-return detection?** → **ADVISORY.** Irreducible judgment; surfaced, never gates. **No
   completeness analysis is claimed.**
-- **New floor primitive, justified (P7).** `.dev/floor/scan-code-placeholder.mjs` is added **because** this lens's
+- **New floor primitive, justified (P7).** `pharn/floor/scan-code-placeholder.mjs` is added **because** this lens's
   floor claim ("detects placeholder markers + empty bodies in CODE deterministically") requires a deterministic
   backstop, or it would be the disease (a guarantee with no floor reduction). It is a sibling of
   `scan-code-swallowed-exception.mjs` in the `scan-code-*` family (and reuses its mask idiom for Pass B); any shared
   text-scanning idiom is accepted, deferred duplication (consolidation touches a separate axis, P7).
 - **Fixture behavior** → the finding OUTPUT on the committed fixtures (counts + enum-gated fields +
-  `needle_absent_from_enum_gated`) is floor-CHECKED at **eval time** by `.dev/floor/check-structural.mjs`
+  `needle_absent_from_enum_gated`) is floor-CHECKED at **eval time** by `pharn/floor/check-structural.mjs`
   (primitive #3). It pins behavior on known inputs and proves the trust-fence holds — it is **NOT** a runtime
   guarantee that "no placeholder shipped".
 - **"This lens ensures the code is complete / nothing was shipped as a placeholder."** → **struck (the disease).** It

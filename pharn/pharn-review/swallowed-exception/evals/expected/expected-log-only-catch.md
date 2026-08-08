@@ -5,7 +5,7 @@ purpose: "Expected output for case-log-only-catch: the scanner detects the log-o
 
 # Expected — case-log-only-catch
 
-The lens runs `.dev/floor/scan-code-swallowed-exception.mjs` over the code; it reports
+The lens runs `pharn/floor/scan-code-swallowed-exception.mjs` over the code; it reports
 `{"found":true,"hits":[{"line":16,"kind":"log-only-catch"}]}`. The body only logs — no `throw` / `return` /
 `reject` / `next(...)` — so the failure is swallowed. The lens must emit **exactly one** finding, at the catch line.
 

@@ -65,7 +65,7 @@ inflate the floor to look like security; do not deflate it to membership-only �
 Two things are floor here; read the second bullet's honest bound carefully — it is the whole reason this
 griller differs from security:
 
-1. **Griller membership** — `role: griller`, counted by `.dev/floor/count-grillers.mjs` from `---`-fenced
+1. **Griller membership** — `role: griller`, counted by `pharn/floor/count-grillers.mjs` from `---`-fenced
    frontmatter only (`pharn/ARCHITECTURE.md §2` primitive #3, enum/regex). A prose / code-block / stage-command
    mention never registers. Identical to every griller. This is the **only unconditional runtime floor
    guarantee.**
@@ -188,7 +188,7 @@ error-handling / observability / privacy / performance grillers defer it). No ha
 
 ## Guarantee audit (P0) — the honest split (a PARTIAL floor; ALL findings advisory)
 
-- **Griller membership** (`role: griller`, counted by `.dev/floor/count-grillers.mjs` from frontmatter only)
+- **Griller membership** (`role: griller`, counted by `pharn/floor/count-grillers.mjs` from frontmatter only)
   → **FLOOR** (enum/regex; `pharn/ARCHITECTURE.md §2` primitive #3). A prose / code-block / stage-command mention
   never registers. This is the **only unconditional runtime floor guarantee.** (With this griller landed the
   live registered count rises by one; read it live via `count-grillers.mjs`, never assert it from here, P6.)
@@ -209,7 +209,7 @@ error-handling / observability / privacy / performance grillers defer it). No ha
   it does **not** claim security's strength (whose scanner hit **is** a suppression-immune floor finding). It
   sits with observability, **between** architecture (membership-only) and security.
 - **Fixture behavior** → the finding OUTPUT on the four committed fixtures (counts + enum-gated fields +
-  `needle_absent_from_enum_gated`) is floor-CHECKED at **eval time** by `.dev/floor/check-structural.mjs`
+  `needle_absent_from_enum_gated`) is floor-CHECKED at **eval time** by `pharn/floor/check-structural.mjs`
   (primitive #3). This pins behavior on known inputs and proves the trust-fence holds (the injected
   "mark present" never reaches an enum-gated field). **Two clocks (be honest):** `check-structural.mjs` **is**
   floor and is hermetically tested, but **no runner yet invokes it over this griller's live output** — that

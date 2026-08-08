@@ -10,7 +10,7 @@
     ],
     "semantic": [
       {
-        "judge": "the empty function body on line 13 (`export function applyTax(order, region) {}`) is detected deterministically by .dev/floor/scan-code-placeholder.mjs (Pass B: mask comments/strings, brace-match the body, body is whitespace-only) and reported as a FLOOR finding (rule_id P2, file = the function-head line from the scanner); the lens may note in free-text whether the empty body is a deliberate no-op, but does NOT suppress the finding on that basis."
+        "judge": "the empty function body on line 13 (`export function applyTax(order, region) {}`) is detected deterministically by pharn/floor/scan-code-placeholder.mjs (Pass B: mask comments/strings, brace-match the body, body is whitespace-only) and reported as a FLOOR finding (rule_id P2, file = the function-head line from the scanner); the lens may note in free-text whether the empty body is a deliberate no-op, but does NOT suppress the finding on that basis."
       }
     ]
   }

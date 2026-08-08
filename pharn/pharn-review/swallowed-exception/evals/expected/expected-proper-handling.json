@@ -4,7 +4,7 @@
     "structural": [{ "kind": "finding_count", "op": "==", "value": 0 }],
     "semantic": [
       {
-        "judge": "the catch logs AND rethrows a wrapped SyncError, so .dev/floor/scan-code-swallowed-exception.mjs reports found:false (the throw HANDLE-token keeps it CLEAN); the lens emits NO finding and does not manufacture one. A clean scan is not proof the code is error-safe (Layer-1 bound), only that no empty/log-only catch shape was detected."
+        "judge": "the catch logs AND rethrows a wrapped SyncError, so pharn/floor/scan-code-swallowed-exception.mjs reports found:false (the throw HANDLE-token keeps it CLEAN); the lens emits NO finding and does not manufacture one. A clean scan is not proof the code is error-safe (Layer-1 bound), only that no empty/log-only catch shape was detected."
       }
     ]
   }

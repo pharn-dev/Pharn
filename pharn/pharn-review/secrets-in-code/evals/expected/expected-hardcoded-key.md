@@ -5,7 +5,7 @@ purpose: "Expected output for case-hardcoded-key: the deterministic scanner dete
 
 # Expected — case-hardcoded-key
 
-The lens runs `.dev/floor/scan-code-secrets.mjs` over the code; it reports
+The lens runs `pharn/floor/scan-code-secrets.mjs` over the code; it reports
 `{"found":true,"hits":[{"line":14,"kind":"aws-access-key-id"}]}`. The lens must emit **exactly one**
 finding, in the `pharn/pharn-contracts/finding-shape` object, with the enum-gated / free-text split honored.
 

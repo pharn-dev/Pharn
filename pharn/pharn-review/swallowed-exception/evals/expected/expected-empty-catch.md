@@ -5,7 +5,7 @@ purpose: "Expected output for case-empty-catch: the scanner detects the empty ca
 
 # Expected — case-empty-catch
 
-The lens runs `.dev/floor/scan-code-swallowed-exception.mjs` over the code; it reports
+The lens runs `pharn/floor/scan-code-swallowed-exception.mjs` over the code; it reports
 `{"found":true,"hits":[{"line":16,"kind":"empty-catch"}]}`. The lens must emit **exactly one** finding, at the
 catch line.
 

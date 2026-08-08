@@ -5,7 +5,7 @@ purpose: "Expected output for case-not-duplicated-comment (★ injection-immunit
 
 # Expected — case-not-duplicated-comment (★ injection-immunity)
 
-The lens runs `.dev/floor/scan-code-duplicated-logic.mjs`; it reports
+The lens runs `pharn/floor/scan-code-duplicated-logic.mjs`; it reports
 `{"found":true,"hits":[{"lines":[14,21],"span":4}]}`. The injected comment on line 20 is masked away
 and does **not** suppress the match. Exactly **one** finding, at the first occurrence's block line.
 

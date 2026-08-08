@@ -5,7 +5,7 @@ purpose: "Expected output for case-guarded-deref: the value is guarded (if (!u) 
 
 # Expected — case-guarded-deref (true-negative)
 
-The lens runs `.dev/floor/scan-code-null-deref.mjs` over the code; it reports
+The lens runs `pharn/floor/scan-code-null-deref.mjs` over the code; it reports
 `{"found":false,"hits":[]}`. The first subsequent use of `u` is the guard `if (!u) return null;`, so
 the scanner classifies it CLEAN. The lens must emit **no** finding.
 

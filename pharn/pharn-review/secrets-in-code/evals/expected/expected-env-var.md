@@ -5,7 +5,7 @@ purpose: "Expected output for case-env-var: the scanner is clean (credential fro
 
 # Expected — case-env-var
 
-The lens runs `.dev/floor/scan-code-secrets.mjs` over the code; it reports
+The lens runs `pharn/floor/scan-code-secrets.mjs` over the code; it reports
 `{"found":false,"hits":[]}`. The lens emits **zero** findings.
 
 ## Expected result

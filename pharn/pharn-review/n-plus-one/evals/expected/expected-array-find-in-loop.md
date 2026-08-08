@@ -13,7 +13,7 @@ The lens must emit **no** finding — the machine-readable output is the empty a
   (`query`, `execute`, `findOne`, `findMany`, `findFirst`, `findUnique`, `findAll`, `aggregate`). It is
   deliberately excluded because it collides with `Array` / `Set` / `Map` methods (`arr.find`,
   `set.delete`, `map.get`) and would manufacture false positives.
-- So `.dev/floor/scan-code-n-plus-one.mjs` reports `found:false` and the lens emits nothing.
+- So `pharn/floor/scan-code-n-plus-one.mjs` reports `found:false` and the lens emits nothing.
 
 ## The bound this proves (P0)
 

@@ -13,6 +13,7 @@
 //   5. finding templates separate enum-gated from free-text fields  (fix #1, best-effort)
 //   6. no forbidden sibling reference                               (P3, best-effort)
 //   7. archetype maps agree, if an archetype-maps manifest exists   (fix #5, conditional)
+//   8. the capability canon names a relocated floor checker at its LIVE path (P6, enum/regex)
 //
 // Usage:  node pharn/floor/validate.mjs [targetDir]      (default: cwd)
 // Honest scope: checks 5 and 6 are BEST-EFFORT — markdown has no import statement to lint, so they
@@ -252,6 +253,126 @@ if (existsSync(archManifest)) {
     }
   } catch (e) {
     finding("blocking", "fix#5", "pharn/pharn-contracts/archetype-maps.json", `archetype-maps.json is unparseable: ${e.message}`);
+  }
+}
+
+// ---------------------------------------------------------------------------
+// CHECK 8: the capability canon must name a relocated floor checker at its LIVE path (P6).
+//
+// When the checkers moved .dev/floor/ -> pharn/floor/, CHANGELOG 1.1.2 rewrote their own line-2
+// self-headers but not the capability bodies that INVOKE them, so a lens's Layer-1 sub-check still
+// named the old directory and ENOENTed — the strongest deterministic sub-check silently degrading to
+// judgment, with the audit record citing a command that errored. That hand-fix was a discipline-only
+// remedy and the canon rotted anyway; per .dev/memory-bank/lessons-learned.md L20 the second
+// occurrence is the trigger to give the class a deterministic check rather than another reminder.
+//
+// RULE: a literal `.dev/floor/<B>` is RED iff <TARGET>/pharn/floor/<B> is a real file — i.e. the cite
+// names a file that MOVED. The existence gate means it structurally cannot flag:
+//   - the five scan-plan-* grill-scanners still resident ONLY in .dev/floor/ (no twin). That is a
+//     real and separate defect — they are dead in every install, which ships pharn/ without .dev/ —
+//     but it is fixed by RELOCATING the file, not by rewriting the cite. Pinned by a test.
+//   - scan-plan-{a11y,comprehension,docs,error-handling,performance}.mjs, named in griller prose as
+//     scanners that are NOT built (resident nowhere).
+//
+// SCOPE: the capability canon only — every pharn/pharn-* module, DISCOVERED FROM THE TARGET at run
+// time rather than fixed in a list, so a module added later (pharn-audits, pharn-stack-<fw>, …) is
+// covered the day it lands instead of being a silent blind spot in the very check meant to stop
+// floor-rot. The `pharn-` prefix IS the exclusion, and it is the same predicate the writes-scope
+// guard already partitions on (.claude/hooks/enforce-writes-scope.cjs DEFAULT_SAFE_SET):
+//   - NOT pharn/floor (no `pharn-` prefix): it holds the INTENTIONAL dev-references (the cross-copy
+//     agreement pin's home, and the "deliberately does NOT import the packaged-away copy" notes) plus
+//     the deliberately-RED fixtures. Inside pharn/floor an intentional dev-ref and a stale ref are
+//     byte-indistinguishable.
+//   - NOT the trusted pharn/*.md docs: they are files, not pharn-* module dirs — and human-only,
+//     hook-governed, a different governance class.
+//   - NOT .dev/: the apparatus references .dev/floor/ by design.
+//   - NOT the root docs: CLAUDE.md, CHANGELOG.md and docs/lessons-index.md correctly cite the DEV
+//     copy of a deliberate copy-pair (check-provenance, check-lessons-index, gen-lessons-index,
+//     lessons-index-core all exist in BOTH floors on purpose), so a TARGET-wide walk would report 31
+//     correct sentences as drift. Canon cites zero copy-pair files, which is what makes it safe.
+// EXCLUDE_SEGMENTS is applied on top as defence-in-depth.
+//
+// Honest bound (P0): a genuinely stale ref that later appears inside pharn/floor is NOT caught here —
+// that surface stays a manual concern. And this proves only that the cited file EXISTS; it never runs
+// it, checks its arguments, or knows the body invokes it correctly. It is also GREEN when the target
+// has no pharn/floor at all (no twin anywhere), and silently empty-scoped when the target has no
+// pharn/ at all — both correct, both fail-open paths, named.
+
+// Discovered, not fixed. Mirrors walkExts's two guards below: a missing <TARGET>/pharn and a per-entry
+// stat failure (a broken symlink) each degrade to a skip, never a crash of the validator. .sort() is
+// load-bearing, not cosmetic — findings are emitted in loop order and readdirSync's order is
+// filesystem-dependent, so an unsorted scope would make one tree report in different orders on
+// different machines. Sorted, it is byte-identical in behavior to the four-name list it replaces.
+function canonDirs() {
+  let entries;
+  try {
+    entries = readdirSync(join(TARGET, "pharn"));
+  } catch {
+    return [];
+  }
+  const dirs = [];
+  for (const name of entries) {
+    if (!/^pharn-/.test(name)) continue;
+    let st;
+    try {
+      st = statSync(join(TARGET, "pharn", name));
+    } catch {
+      continue;
+    }
+    if (st.isDirectory()) dirs.push(name);
+  }
+  return dirs.sort();
+}
+const CANON_DIRS = canonDirs();
+const FLOOR_REF_RE = /\.dev\/floor\/([A-Za-z0-9._-]+\.(?:mjs|cjs))/g;
+
+// validate's capability walk (above) is .md-only; the eval judges are .json, so collect both here.
+function walkExts(dir, exts, acc = []) {
+  let entries;
+  try {
+    entries = readdirSync(dir);
+  } catch {
+    return acc;
+  }
+  for (const name of entries) {
+    const p = join(dir, name);
+    let st;
+    try {
+      st = statSync(p);
+    } catch {
+      continue;
+    }
+    if (st.isDirectory()) walkExts(p, exts, acc);
+    else if (exts.some((e) => name.endsWith(e))) acc.push(p);
+  }
+  return acc;
+}
+
+for (const d of CANON_DIRS) {
+  for (const file of walkExts(join(TARGET, "pharn", d), [".md", ".json"])) {
+    if (isExcluded(file)) continue;
+    const rel = relative(TARGET, file);
+    const seen = new Set(); // one finding per stale checker per file, not one per occurrence
+    let text;
+    try {
+      text = readFileSync(file, "utf8");
+    } catch {
+      continue;
+    }
+    for (const m of text.matchAll(FLOOR_REF_RE)) {
+      const base = m[1];
+      if (seen.has(base)) continue;
+      // The gate: a twin in pharn/floor means the file MOVED and this cite is stale. No twin means
+      // there is nothing to point at, so the cite is left alone.
+      if (!existsSync(join(TARGET, "pharn", "floor", base))) continue;
+      seen.add(base);
+      finding(
+        "blocking",
+        "P6/floor-path",
+        rel,
+        `cites .dev/floor/${base}, but that checker now lives at pharn/floor/${base} — the cited path does not resolve, so the command ENOENTs and its deterministic check silently degrades`
+      );
+    }
   }
 }
 

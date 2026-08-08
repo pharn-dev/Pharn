@@ -14,7 +14,7 @@ purpose: "Single source of truth for the seam-resolution config object (the conf
 > ("The agnostic resolver resolves each needed seam once through a confidence-gated chain … terminal
 > fallback is **ask**, P5") and reduces its one guaranteeable invariant to `pharn/ARCHITECTURE.md §2`
 > primitive #3 (enum / presence). The principles (P0, P2, P5) live in `pharn/CONSTITUTION.md`; the
-> deterministic validator (`.dev/floor/check-seam-config.mjs`) **cites** and **conforms** to this
+> deterministic validator (`pharn/floor/check-seam-config.mjs`) **cites** and **conforms** to this
 > schema — it does not restate its semantics (P4).
 
 ## The object
@@ -98,7 +98,7 @@ agent-edited into §5.
 Honest scope, because the disease this repo exists to prevent is "written in the contract" mistaken
 for "therefore guaranteed":
 
-- **Config validity → floor (enforced by `.dev/floor/check-seam-config.mjs`, primitive #3).** A
+- **Config validity → floor (enforced by `pharn/floor/check-seam-config.mjs`, primitive #3).** A
   conforming config has a `resolutionOrder` that is a non-empty array of enum steps **containing
   `ask`**, with well-typed optional fields. This IS guaranteed the moment the validator runs GREEN.
 - **Correct resolution at runtime → ADVISORY.** Whether the resolver, at the `model` step, actually

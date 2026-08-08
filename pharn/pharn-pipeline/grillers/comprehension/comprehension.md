@@ -95,7 +95,7 @@ a floor sub-check for symmetry; there is none here beyond membership.
 ### Layer 1 — FLOOR: griller MEMBERSHIP only (the whole runtime guarantee)
 
 The **only** thing floor-guaranteed at runtime is that this file is a griller: `role: griller`, counted
-by `.dev/floor/count-grillers.mjs` from `---`-fenced frontmatter (`pharn/ARCHITECTURE.md §2` primitive #3,
+by `pharn/floor/count-grillers.mjs` from `---`-fenced frontmatter (`pharn/ARCHITECTURE.md §2` primitive #3,
 enum/regex). A prose / code-block / stage-command mention never registers. That is the entire
 deterministic guarantee — **identical to every griller** — and it says nothing about whether any plan is
 "comprehensible".
@@ -116,7 +116,7 @@ Two irreducible judgments live here — the **whole bulk** of the axis:
 
 You **surface** these as findings for the human; you **never** gate on them (grillers as a class never
 gate — the grill stage's only deterministic stop is the spec→plan hash chain). Your findings are
-**floor-CHECKED on this griller's eval fixtures** by `.dev/floor/check-structural.mjs` (the output shape +
+**floor-CHECKED on this griller's eval fixtures** by `pharn/floor/check-structural.mjs` (the output shape +
 the no-laundering trip-wire) — that is **eval-time** verification of behavior on known inputs, **not** a
 runtime guarantee that "comprehension" is deterministic. See "Guarantee audit".
 
@@ -128,7 +128,7 @@ runtime guarantee that "comprehension" is deterministic. See "Guarantee audit".
 > _mention_ can be manufactured by the untrusted plan itself. So no `.dev/floor/scan-plan-comprehension.mjs`
 > is built; treating its verdict as floor would dress a launderable heuristic as a guarantee — the exact
 > disease P0 forbids (the architecture / documentation rejected-candidate pattern). The genuine floor is
-> membership; genuine deterministic invariants (if any ever arise) belong in `.dev/floor/validate.mjs`,
+> membership; genuine deterministic invariants (if any ever arise) belong in `pharn/floor/validate.mjs`,
 > not this advisory griller.
 
 ## Procedure (membership tests; terminal fallback is ask — P5)
@@ -192,7 +192,7 @@ guarantee that `findings.json` is produced until that runner lands.
 Because this griller **is** PHARN's thesis, over-claiming here is the disease at the heart of the product.
 Every claim is reduced or labeled:
 
-- **Griller membership** (`role: griller`, counted by `.dev/floor/count-grillers.mjs` from frontmatter
+- **Griller membership** (`role: griller`, counted by `pharn/floor/count-grillers.mjs` from frontmatter
   only) → **FLOOR** (enum/regex; `pharn/ARCHITECTURE.md §2` primitive #3). A prose / code-block / stage-command
   mention never registers. **The only runtime guarantee this griller makes.**
 - **The comprehension assessment** (is the WHY captured? does this change need it? is the rationale
@@ -205,7 +205,7 @@ Every claim is reduced or labeled:
   tested, but no runner yet invokes it over live output — deferred P7, as for every griller.)
 - **No new floor primitive (P0/P7).** A "mentions rationale / has a `## Why` section" scan's **present**
   verdict is **launderable** → not injection-immune → **not floor** (named and rejected above). This
-  griller reuses `.dev/floor/count-grillers.mjs` (membership) and `.dev/floor/check-structural.mjs`
+  griller reuses `pharn/floor/count-grillers.mjs` (membership) and `pharn/floor/check-structural.mjs`
   (eval-time), both **unchanged**.
 - **"This griller ensures comprehension / ensures the plan is understandable."** → **STRUCK — the disease,
   and the worst place to commit it.** It **surfaces** comprehension-debt concerns; "produced a finding" (or

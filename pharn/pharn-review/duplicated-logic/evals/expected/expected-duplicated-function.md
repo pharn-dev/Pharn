@@ -5,7 +5,7 @@ purpose: "Expected output for case-duplicated-function: the scanner detects the 
 
 # Expected — case-duplicated-function
 
-The lens runs `.dev/floor/scan-code-duplicated-logic.mjs`; it reports
+The lens runs `pharn/floor/scan-code-duplicated-logic.mjs`; it reports
 `{"found":true,"hits":[{"lines":[14,21],"span":5}]}`. Exactly **one** finding, at the first
 occurrence's block line.
 

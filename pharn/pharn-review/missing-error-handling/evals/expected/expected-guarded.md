@@ -5,7 +5,7 @@ purpose: "Expected output for case-guarded: every risky op is guarded (try/catch
 
 # Expected — case-guarded
 
-The lens runs `.dev/floor/scan-code-missing-error-handling.mjs` over the code; it reports
+The lens runs `pharn/floor/scan-code-missing-error-handling.mjs` over the code; it reports
 `{"found":false,"hits":[]}`. The lens emits **no** finding — the expected findings array is `[]`.
 
 ## Why this PASSES

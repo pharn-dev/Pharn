@@ -6,7 +6,7 @@ skill_kind: llm
 
 # Expected — axios-timeout-option
 
-The lens must emit **no** finding. `.dev/floor/scan-code-missing-timeout.mjs` reports `found:false`
+The lens must emit **no** finding. `pharn/floor/scan-code-missing-timeout.mjs` reports `found:false`
 because the call carries an explicit `timeout` option in its own argument object — the call-local
 indicator test finds a timeout token and reports the call CLEAN.
 

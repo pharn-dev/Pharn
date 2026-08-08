@@ -5,7 +5,7 @@ purpose: "Expected output for case-proper-handling (true-negative): the catch lo
 
 # Expected — case-proper-handling (true-negative)
 
-The lens runs `.dev/floor/scan-code-swallowed-exception.mjs` over the code; it reports
+The lens runs `pharn/floor/scan-code-swallowed-exception.mjs` over the code; it reports
 `{"found":false,"hits":[]}`. The catch logs **and** `throw`s a wrapped `SyncError` — the `throw` HANDLE-token keeps
 the classification CLEAN. The lens must emit **no** finding.
 

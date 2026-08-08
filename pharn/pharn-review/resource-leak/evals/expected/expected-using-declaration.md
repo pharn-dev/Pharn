@@ -5,7 +5,7 @@ purpose: "Expected output for case-using-declaration (true-negative): the handle
 
 # Expected — case-using-declaration (true-negative)
 
-The lens runs `.dev/floor/scan-code-resource-leak.mjs` over the code; it reports
+The lens runs `pharn/floor/scan-code-resource-leak.mjs` over the code; it reports
 `{"found":false,"hits":[]}`. The handle is bound with a `using` declaration (TC39 explicit resource
 management), which auto-disposes at scope exit — the scanner classifies it CLEAN deterministically. The
 lens must emit **no** finding.

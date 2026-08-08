@@ -34,7 +34,7 @@ optional `modelConfidenceThreshold` (the confidence bar at the **model-judgment*
 `fetch`; **absent ⇒ `high`**), and an optional `haltOnUnknown` (**absent ⇒ `true`**).
 The **order is user-configurable; the walk itself is fixed** by this skill. The **one thing a config
 can never do** is remove the terminal `ask` — that invariant is **floor-enforced** by
-`.dev/floor/check-seam-config.mjs` (it rejects any config whose `resolutionOrder` lacks `ask`,
+`pharn/floor/check-seam-config.mjs` (it rejects any config whose `resolutionOrder` lacks `ask`,
 fail-closed). The default order (`pharn/ARCHITECTURE.md §5`) is
 `official-skill → pinned-docs → model → fetch → ask` (**`model` before `fetch`**).
 
@@ -108,7 +108,7 @@ unmovable, but "ignore the extra field" is model adherence, **not** a floor clos
 ## Guarantee audit (P0) — what this skill does and does NOT guarantee
 
 - **The terminal `ask` always exists / a config can never remove it → FLOOR** (enum/presence,
-  `.dev/floor/check-seam-config.mjs`, `pharn/ARCHITECTURE.md §2` primitive #3). This is the one guarantee.
+  `pharn/floor/check-seam-config.mjs`, `pharn/ARCHITECTURE.md §2` primitive #3). This is the one guarantee.
 - **Config validity** (steps ∈ enum, `ask` present, optional fields well-typed) → **FLOOR** (same
   checker).
 - **That the model resolves the seam _correctly_ at the `model` step → ADVISORY**, bounded by the

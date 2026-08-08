@@ -10,7 +10,7 @@
     ],
     "semantic": [
       {
-        "judge": "the fs.openSync handle bound on line 16 is detected deterministically by .dev/floor/scan-code-resource-leak.mjs as unclosed (no close call on the binding, no using, no finally) and reported as a FLOOR finding (rule_id P2, file = the binding line from the scanner); the lens may note in free-text whether a caller closes it elsewhere, but does NOT suppress the finding on that basis."
+        "judge": "the fs.openSync handle bound on line 16 is detected deterministically by pharn/floor/scan-code-resource-leak.mjs as unclosed (no close call on the binding, no using, no finally) and reported as a FLOOR finding (rule_id P2, file = the binding line from the scanner); the lens may note in free-text whether a caller closes it elsewhere, but does NOT suppress the finding on that basis."
       }
     ]
   }

@@ -5,7 +5,7 @@ purpose: "Expected output for case-todo-marker: the scanner detects the to-do ma
 
 # Expected — case-todo-marker
 
-The lens runs `.dev/floor/scan-code-placeholder.mjs` over the code; it reports
+The lens runs `pharn/floor/scan-code-placeholder.mjs` over the code; it reports
 `{"found":true,"hits":[{"line":14,"kind":"todo"}]}`. The lens must emit **exactly one** finding, at the marker
 line.
 

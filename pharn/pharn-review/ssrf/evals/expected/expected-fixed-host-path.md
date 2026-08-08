@@ -5,7 +5,7 @@ purpose: "Expected output for case-fixed-host-path: the scanner STILL fires on t
 
 # Expected — case-fixed-host-path
 
-The lens runs `.dev/floor/scan-code-ssrf.mjs` over the code; it reports
+The lens runs `pharn/floor/scan-code-ssrf.mjs` over the code; it reports
 `{"found":true,"hits":[{"line":14,"kind":"fetch"}]}`. Even though the untrusted value appends only to a fixed
 host's path, the scanner fires on the SHAPE. The lens must emit **exactly one** finding, with the enum-gated /
 free-text split honored.

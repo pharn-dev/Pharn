@@ -16,7 +16,7 @@ version: "0.1.0"
 # coupling — does the plan ENTANGLE things that should stay separate?
 
 You are a **griller** (`role: griller`) — a member of the griller family (12 grillers already
-registered at this writing; **read the live roster from `.dev/floor/count-grillers.mjs`, never assert
+registered at this writing; **read the live roster from `pharn/floor/count-grillers.mjs`, never assert
 the count from this file** — P6), the parallel of `role: verifier` (`pharn/ARCHITECTURE.md §3.1`). A griller
 interrogates a **PLAN** along **one axis** and emits zero or more findings in the
 `pharn/pharn-contracts/finding-shape` object. This griller's axis is **coupling**: does the plan's approach
@@ -79,7 +79,7 @@ entangled" is **irreducible judgment**, so this griller's floor portion is **onl
 ### Layer 1 — FLOOR: griller MEMBERSHIP only (the whole runtime guarantee)
 
 The **only** thing floor-guaranteed at runtime is that this file is a griller: `role: griller`, counted
-by `.dev/floor/count-grillers.mjs` from `---`-fenced frontmatter (`pharn/ARCHITECTURE.md §2` primitive #3,
+by `pharn/floor/count-grillers.mjs` from `---`-fenced frontmatter (`pharn/ARCHITECTURE.md §2` primitive #3,
 enum/regex). That helper takes a **directory** argument, prints `{"registered":<int>,"grillers":[…]}`,
 and **exits 0** on success (non-zero, writing nothing, on a missing/non-directory target — fail-closed).
 A prose / code-block / stage-command mention never registers. That is the entire deterministic guarantee
@@ -91,7 +91,7 @@ Judging whether the plan **entangles** — shared mutable state, hidden ordering
 two change-reasons collapsed into one module — is model judgment. You **surface** concerns as findings
 for the human; you **never** gate on them (grillers as a class never gate — the grill stage's only
 deterministic stop is the spec→plan hash chain). Your findings are **floor-CHECKED on this griller's
-eval fixtures** by `.dev/floor/check-structural.mjs` (the output shape + the no-laundering trip-wire) —
+eval fixtures** by `pharn/floor/check-structural.mjs` (the output shape + the no-laundering trip-wire) —
 **eval-time** verification of behavior on known inputs, **not** a runtime guarantee that "entanglement"
 is deterministic.
 
@@ -100,7 +100,7 @@ is deterministic.
 > (like security's secret-literal scan, a crossing path cannot be laundered away by a comment) — but it
 > is **not built here**, for two reasons. (1) It is the **same P3 sibling-import signal the architecture
 > griller already owns**, which that griller deliberately kept advisory: genuinely deterministic
-> structural invariants belong in `.dev/floor/validate.mjs` (the floor over **built** product), not a
+> structural invariants belong in `pharn/floor/validate.mjs` (the floor over **built** product), not a
 > griller reading an **untrusted plan's self-declared** paths. (2) The declared-path signal is **not**
 > this griller's axis — entanglement (shared mutable state, hidden ordering, ripple) is **not a
 > self-evident lexical artifact**; it is judgment. Building a scanner would **duplicate architecture**
@@ -160,7 +160,7 @@ half-specified runner is built here, and the `writes:` path is **not** an active
 
 ## Guarantee audit (P0) — the honest split (coupling is LARGELY ADVISORY)
 
-- **Griller membership** (`role: griller`, counted by `.dev/floor/count-grillers.mjs` from frontmatter
+- **Griller membership** (`role: griller`, counted by `pharn/floor/count-grillers.mjs` from frontmatter
   only; the helper takes a **directory** and exits 0 on success) → **FLOOR** (enum/regex;
   `pharn/ARCHITECTURE.md §2` primitive #3). A prose / code-block / stage-command mention never registers. **The
   only runtime guarantee.** `count-grillers.mjs` is **reused unchanged**.

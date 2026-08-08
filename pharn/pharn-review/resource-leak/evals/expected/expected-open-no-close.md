@@ -5,7 +5,7 @@ purpose: "Expected output for case-open-no-close: the scanner detects the unclos
 
 # Expected — case-open-no-close
 
-The lens runs `.dev/floor/scan-code-resource-leak.mjs` over the code; it reports
+The lens runs `pharn/floor/scan-code-resource-leak.mjs` over the code; it reports
 `{"found":true,"hits":[{"line":16,"kind":"unclosed-resource"}]}`. The lens must emit **exactly one**
 finding, at the binding (acquisition) line.
 

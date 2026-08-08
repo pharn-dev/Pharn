@@ -5,7 +5,7 @@ purpose: "Expected output for case-unguarded-await: the scanner detects one ungu
 
 # Expected — case-unguarded-await
 
-The lens runs `.dev/floor/scan-code-missing-error-handling.mjs` over the code; it reports
+The lens runs `pharn/floor/scan-code-missing-error-handling.mjs` over the code; it reports
 `{"found":true,"hits":[{"line":14,"kind":"unguarded-await"}]}`. The lens emits **exactly one** finding.
 
 ## The expected finding

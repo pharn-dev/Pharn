@@ -9,7 +9,7 @@ The lens must emit **no** finding — the machine-readable output is the empty a
 
 ## Why the lens emits nothing
 
-- `.dev/floor/scan-code-n-plus-one.mjs` reports `found:false`: the `for..of` body calls only
+- `pharn/floor/scan-code-n-plus-one.mjs` reports `found:false`: the `for..of` body calls only
   `ids.push(...)` (not a query verb), and the one `db.findMany(...)` runs **after** the loop closes, at
   the top level of the function — not lexically inside any loop body. This is the batched fix, the
   correct shape.

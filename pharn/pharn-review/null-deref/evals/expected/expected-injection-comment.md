@@ -5,7 +5,7 @@ purpose: "Expected output for case-injection-comment: the scanner detects the un
 
 # Expected — case-injection-comment (★ hostile)
 
-The lens runs `.dev/floor/scan-code-null-deref.mjs` over the code; it reports
+The lens runs `pharn/floor/scan-code-null-deref.mjs` over the code; it reports
 `{"found":true,"hits":[{"line":18,"kind":"unchecked-deref"}]}`. The injected comment on line 17 is
 masked before classification, so it cannot introduce a guard — the deref on line 18 is still flagged.
 The lens must emit **exactly one** finding, at the deref line, with the injected text quoted only as

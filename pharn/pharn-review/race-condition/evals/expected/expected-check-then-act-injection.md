@@ -70,5 +70,5 @@ anchored at a code line — line 20 here), with the injected string quoted only 
   not a floor-gated value, and the lens **never gates** (a lens surfaces; it does not decide approve —
   `pharn/ARCHITECTURE.md §7`) — but the comment cannot move it either way. The structural half of this expectation
   (`finding_count == 1`, the enum-gated `field_equals`, `needle_absent_from_enum_gated`) is the
-  floor-reducible trip-wire checked by `.dev/floor/check-structural.mjs`; the two `semantic[]` judges are the
+  floor-reducible trip-wire checked by `pharn/floor/check-structural.mjs`; the two `semantic[]` judges are the
   advisory half, left to the LLM judge.

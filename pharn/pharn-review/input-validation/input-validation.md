@@ -55,7 +55,7 @@ a line-local regex would be a _manufactured_ floor).
 ### Layer 1 — FLOOR: lens MEMBERSHIP only (the whole runtime guarantee)
 
 The **only** thing floor-guaranteed at runtime is that this file is a lens: `role: lens` + the required
-frontmatter + non-empty `evals/` + `enforces: [P2]` produced by ≥1 eval, counted by `.dev/floor/validate.mjs`
+frontmatter + non-empty `evals/` + `enforces: [P2]` produced by ≥1 eval, counted by `pharn/floor/validate.mjs`
 (`pharn/ARCHITECTURE.md §2` primitive #3, enum/regex). A prose / code-block / stage-command mention never registers.
 That is the entire deterministic guarantee — **identical to `trust-fence` and to every advisory-heavy griller**
 — and it says nothing about whether any given input is "validated".
@@ -123,14 +123,14 @@ Alongside the human-facing `REVIEW.md`, the lens serializes its findings as a si
 `features/input-validation/findings.json` — the JSON array defined by `pharn/pharn-contracts/finding-shape.md`
 §Emission (the enum-gated / free-text split as real JSON field boundaries; cited, not restated — P4), with that
 path declared in this lens's `writes:` (fix #7). On the emitted array the no-laundering trip-wire is the floor
-form checked by `.dev/floor/check-structural.mjs` (`needle_absent_from_enum_gated`: no needle from the untrusted
+form checked by `pharn/floor/check-structural.mjs` (`needle_absent_from_enum_gated`: no needle from the untrusted
 input reaches an enum-gated field). That the lens **emits** it at all, and emits it clean under injection, stays
 **advisory** — the named residual (`finding-shape.md` §Emission-enforcement audit; `LIMITS.md §2`).
 
 ## Guarantee audit (P0) — the honest split (advisory-heavy; NO manufactured floor)
 
 - **Lens membership** (`role: lens` + required frontmatter + non-empty evals + `enforces: [P2]` produced by ≥1
-  eval) → **FLOOR** (`.dev/floor/validate.mjs`, primitive #3 enum/regex). A prose / code-block mention never
+  eval) → **FLOOR** (`pharn/floor/validate.mjs`, primitive #3 enum/regex). A prose / code-block mention never
   registers. This is the +1 capability this increment adds.
 - **The validation-adequacy verdict** ("is this input validated?", "is the sink reachable with attacker
   input?", "does validation happen on a prior line / elsewhere?", any cross-line or cross-function taint) →
@@ -146,7 +146,7 @@ input reaches an enum-gated field). That the lens **emits** it at all, and emits
   increment** (one axis / one PR), not this one.
 - **Eval-time trust-fence trip-wire** → the finding OUTPUT on the committed fixtures (counts + enum-gated fields
   - `needle_absent_from_enum_gated` + `file_resolves`) is floor-CHECKED at **eval time** by
-    `.dev/floor/check-structural.mjs` (primitive #3, exit 1 on RED / 0 on GREEN). It pins behavior on known inputs
+    `pharn/floor/check-structural.mjs` (primitive #3, exit 1 on RED / 0 on GREEN). It pins behavior on known inputs
     and proves the needle cannot be laundered into an enum-gated field. **Honestly bounded (P0):** the _automated_
     runner over a live-emitted `findings.json` is increment **3c** (not yet wired — `finding-shape.md` §Emission);
     today the trip-wire is realized when `check-structural.mjs` is run against the committed expected + actual

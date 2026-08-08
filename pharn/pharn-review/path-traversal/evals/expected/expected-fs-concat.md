@@ -5,7 +5,7 @@ purpose: "Expected output for case-fs-concat: the deterministic scanner detects 
 
 # Expected — case-fs-concat
 
-The lens runs `.dev/floor/scan-code-path-traversal.mjs` over the code; it reports
+The lens runs `pharn/floor/scan-code-path-traversal.mjs` over the code; it reports
 `{"found":true,"hits":[{"line":15,"kind":"fs-path"}]}`. The lens must emit **exactly one** finding, in the
 `pharn/pharn-contracts/finding-shape` object, with the enum-gated / free-text split honored.
 

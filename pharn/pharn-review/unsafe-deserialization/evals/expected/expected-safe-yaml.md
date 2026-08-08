@@ -5,7 +5,7 @@ purpose: "Expected output for case-safe-yaml: the scanner is clean (yaml.safe_lo
 
 # Expected — case-safe-yaml (true-negative)
 
-The lens runs `.dev/floor/scan-code-deserialization.mjs` over the code; it reports
+The lens runs `pharn/floor/scan-code-deserialization.mjs` over the code; it reports
 `{"found":false,"hits":[]}`. The lens must emit **zero** findings — an empty finding list (`[]`).
 
 ## Why this is CLEAN

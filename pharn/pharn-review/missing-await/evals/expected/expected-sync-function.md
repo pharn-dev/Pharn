@@ -18,7 +18,7 @@ lens does not manufacture a finding.
 
 ## Why this PASSES — the roster-precision bound (the assertion that matters)
 
-- `.dev/floor/scan-code-missing-await.mjs` reports `found:false`: the roster (names the file declares
+- `pharn/floor/scan-code-missing-await.mjs` reports `found:false`: the roster (names the file declares
   `async function NAME(` / `NAME = async`) is **empty**, so the statement-head call `logAccess(req.id);`
   is not a roster call and is not flagged.
 - This proves the scanner is **roster-gated** — it does **not** flag every floating statement call

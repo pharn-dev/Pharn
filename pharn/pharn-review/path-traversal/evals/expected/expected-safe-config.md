@@ -5,7 +5,7 @@ purpose: "Expected output for case-safe-config: the path joins only trusted part
 
 # Expected — case-safe-config
 
-The lens runs `.dev/floor/scan-code-path-traversal.mjs` over the code; it reports
+The lens runs `pharn/floor/scan-code-path-traversal.mjs` over the code; it reports
 `{"found":false,"hits":[]}`. The path is built from `__dirname` + a constant filename — no `req.*` source
 enters it — so the scanner is clean and the lens emits **no** finding.
 

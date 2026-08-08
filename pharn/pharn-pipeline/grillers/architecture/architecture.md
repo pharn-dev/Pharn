@@ -49,7 +49,7 @@ Do not read symmetry with testability into it; there is no manufactured floor su
 ### Layer 1 — FLOOR: griller MEMBERSHIP only (the whole runtime guarantee)
 
 The **only** thing floor-guaranteed at runtime is that this file is a griller: `role: griller`,
-counted by `.dev/floor/count-grillers.mjs` from `---`-fenced frontmatter (`pharn/ARCHITECTURE.md §2`
+counted by `pharn/floor/count-grillers.mjs` from `---`-fenced frontmatter (`pharn/ARCHITECTURE.md §2`
 primitive #3, enum/regex). A prose / code-block / stage-command mention never registers. That is the
 entire deterministic guarantee — **identical to every griller**, and it says nothing about whether any
 plan "fits".
@@ -60,13 +60,13 @@ Judging whether the plan's approach **fits** — reuse vs reinvention, layer cor
 coupling, consistency with established patterns — is model judgment. You **surface** concerns as
 findings for the human; you **never** gate on them (grillers as a class never gate — the grill stage
 surfaces griller findings, its only deterministic stop is the spec→plan hash chain). Your findings are
-**floor-CHECKED on this griller's eval fixtures** by `.dev/floor/check-structural.mjs` (the output
+**floor-CHECKED on this griller's eval fixtures** by `pharn/floor/check-structural.mjs` (the output
 shape + the no-laundering trip-wire) — that is **eval-time** verification of behavior on known inputs,
 **not** a runtime guarantee that "fit" is deterministic. See "Guarantee audit".
 
 > **Where a genuine deterministic architecture check belongs (P0/P7).** Some structural invariants
 > _are_ deterministic (e.g. a behavior file declared under the schemas-only `pharn/pharn-contracts/`). Such
-> an invariant's home is **`.dev/floor/validate.mjs`** — the floor that scans **built** product — not
+> an invariant's home is **`pharn/floor/validate.mjs`** — the floor that scans **built** product — not
 > this advisory griller. This griller does **not** manufacture a floor sub-check to look symmetric with
 > testability; doing so would dress judgment as guarantee, the exact disease P0 forbids.
 
@@ -120,7 +120,7 @@ griller and `/pharn-verify`'s verifier runner defer it). No half-specified runne
 
 ## Guarantee audit (P0) — the honest split (architecture is LARGELY ADVISORY)
 
-- **Griller membership** (`role: griller`, counted by `.dev/floor/count-grillers.mjs` from frontmatter
+- **Griller membership** (`role: griller`, counted by `pharn/floor/count-grillers.mjs` from frontmatter
   only) → **FLOOR** (enum/regex; `pharn/ARCHITECTURE.md §2` primitive #3). A prose / code-block / stage-command
   mention never registers. **The only runtime guarantee this griller makes.**
 - **Architectural-fit assessment** (layering, sibling coupling, reuse vs reinvention, consistency) →
@@ -137,4 +137,4 @@ griller and `/pharn-verify`'s verifier runner defer it). No half-specified runne
 The honest converse the testability griller anticipated: a griller **may be advisory-only beyond
 membership** when its axis is irreducible judgment — **provided it labels that plainly** (as here) and
 does not manufacture a fake floor for symmetry. Genuine deterministic structural invariants belong in
-`.dev/floor/validate.mjs` (the floor over built product), not an advisory griller.
+`pharn/floor/validate.mjs` (the floor over built product), not an advisory griller.
