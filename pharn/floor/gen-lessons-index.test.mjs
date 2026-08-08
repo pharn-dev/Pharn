@@ -4,7 +4,19 @@
 
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, existsSync, statSync, rmSync } from "node:fs";
+import {
+  mkdtempSync,
+  mkdirSync,
+  writeFileSync,
+  readFileSync,
+  existsSync,
+  statSync,
+  rmSync,
+  openSync,
+  readSync,
+  fstatSync,
+  closeSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join, dirname } from "node:path";
 import { generate } from "./gen-lessons-index.mjs";
@@ -22,6 +34,19 @@ function tmpRepo(canon) {
 }
 
 const CANON_ONE = "## L1 — a title\n\ntype: floor · concepts: [x]\n\nbody\n";
+
+/** Read content + mtime from one open fd — avoids path-based TOCTOU between stat and read. */
+function readSnapshot(abs) {
+  const fd = openSync(abs, "r");
+  try {
+    const { mtimeMs, size } = fstatSync(fd);
+    const buf = Buffer.alloc(size);
+    readSync(fd, buf, 0, size, 0);
+    return { mtimeMs, content: buf.toString("utf8") };
+  } finally {
+    closeSync(fd);
+  }
+}
 
 test("first run writes the cache and reports updated", () => {
   const dir = tmpRepo(CANON_ONE);
@@ -52,13 +77,13 @@ test("a SECOND run is a true filesystem no-op — byte-identical AND mtime-uncha
   try {
     generate(dir);
     const abs = join(dir, OUT_PATH);
-    const first = readFileSync(abs, "utf8");
-    const mtimeBefore = statSync(abs).mtimeMs;
+    const before = readSnapshot(abs);
 
     const r2 = generate(dir);
     assert.equal(r2.updated, false, "a second run must report no update");
-    assert.equal(readFileSync(abs, "utf8"), first, "the bytes must be identical");
-    assert.equal(statSync(abs).mtimeMs, mtimeBefore, "the file must not be rewritten at all — a no-op, not a rewrite");
+    const after = readSnapshot(abs);
+    assert.equal(after.content, before.content, "the bytes must be identical");
+    assert.equal(after.mtimeMs, before.mtimeMs, "the file must not be rewritten at all — a no-op, not a rewrite");
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
