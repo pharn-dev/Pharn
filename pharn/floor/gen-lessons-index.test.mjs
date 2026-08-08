@@ -41,7 +41,14 @@ function readSnapshot(abs) {
   try {
     const { mtimeMs, size } = fstatSync(fd);
     const buf = Buffer.alloc(size);
-    readSync(fd, buf, 0, size, 0);
+    let offset = 0;
+    while (offset < size) {
+      const n = readSync(fd, buf, offset, size - offset, offset);
+      if (n === 0) {
+        throw new Error(`readSync returned 0 before filling ${size} bytes (got ${offset})`);
+      }
+      offset += n;
+    }
     return { mtimeMs, content: buf.toString("utf8") };
   } finally {
     closeSync(fd);
