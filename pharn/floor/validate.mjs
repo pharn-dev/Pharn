@@ -274,10 +274,17 @@ if (existsSync(archManifest)) {
 //   - scan-plan-{a11y,comprehension,docs,error-handling,performance}.mjs, named in griller prose as
 //     scanners that are NOT built (resident nowhere).
 //
-// SCOPE: the four canon dirs only, and deliberately so.
-//   - NOT pharn/floor: it holds the INTENTIONAL dev-references (the cross-copy agreement pin's home,
-//     and the "deliberately does NOT import the packaged-away copy" notes) plus the deliberately-RED
-//     fixtures. Inside pharn/floor an intentional dev-ref and a stale ref are byte-indistinguishable.
+// SCOPE: the capability canon only — every pharn/pharn-* module, DISCOVERED FROM THE TARGET at run
+// time rather than fixed in a list, so a module added later (pharn-audits, pharn-stack-<fw>, …) is
+// covered the day it lands instead of being a silent blind spot in the very check meant to stop
+// floor-rot. The `pharn-` prefix IS the exclusion, and it is the same predicate the writes-scope
+// guard already partitions on (.claude/hooks/enforce-writes-scope.cjs DEFAULT_SAFE_SET):
+//   - NOT pharn/floor (no `pharn-` prefix): it holds the INTENTIONAL dev-references (the cross-copy
+//     agreement pin's home, and the "deliberately does NOT import the packaged-away copy" notes) plus
+//     the deliberately-RED fixtures. Inside pharn/floor an intentional dev-ref and a stale ref are
+//     byte-indistinguishable.
+//   - NOT the trusted pharn/*.md docs: they are files, not pharn-* module dirs — and human-only,
+//     hook-governed, a different governance class.
 //   - NOT .dev/: the apparatus references .dev/floor/ by design.
 //   - NOT the root docs: CLAUDE.md, CHANGELOG.md and docs/lessons-index.md correctly cite the DEV
 //     copy of a deliberate copy-pair (check-provenance, check-lessons-index, gen-lessons-index,
@@ -288,8 +295,35 @@ if (existsSync(archManifest)) {
 // Honest bound (P0): a genuinely stale ref that later appears inside pharn/floor is NOT caught here —
 // that surface stays a manual concern. And this proves only that the cited file EXISTS; it never runs
 // it, checks its arguments, or knows the body invokes it correctly. It is also GREEN when the target
-// has no pharn/floor at all (no twin anywhere), which is correct but is a fail-open path, named.
-const CANON_DIRS = ["pharn-contracts", "pharn-core", "pharn-pipeline", "pharn-review"];
+// has no pharn/floor at all (no twin anywhere), and silently empty-scoped when the target has no
+// pharn/ at all — both correct, both fail-open paths, named.
+
+// Discovered, not fixed. Mirrors walkExts's two guards below: a missing <TARGET>/pharn and a per-entry
+// stat failure (a broken symlink) each degrade to a skip, never a crash of the validator. .sort() is
+// load-bearing, not cosmetic — findings are emitted in loop order and readdirSync's order is
+// filesystem-dependent, so an unsorted scope would make one tree report in different orders on
+// different machines. Sorted, it is byte-identical in behavior to the four-name list it replaces.
+function canonDirs() {
+  let entries;
+  try {
+    entries = readdirSync(join(TARGET, "pharn"));
+  } catch {
+    return [];
+  }
+  const dirs = [];
+  for (const name of entries) {
+    if (!/^pharn-/.test(name)) continue;
+    let st;
+    try {
+      st = statSync(join(TARGET, "pharn", name));
+    } catch {
+      continue;
+    }
+    if (st.isDirectory()) dirs.push(name);
+  }
+  return dirs.sort();
+}
+const CANON_DIRS = canonDirs();
 const FLOOR_REF_RE = /\.dev\/floor\/([A-Za-z0-9._-]+\.(?:mjs|cjs))/g;
 
 // validate's capability walk (above) is .md-only; the eval judges are .json, so collect both here.

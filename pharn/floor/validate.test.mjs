@@ -8,7 +8,7 @@ import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
-import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from "node:fs";
+import { mkdtempSync, mkdirSync, writeFileSync, symlinkSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -281,4 +281,132 @@ test("CHECK 8: the real repo tree is GREEN — no canon file cites a relocated f
   const r = run(join(here, "..", ".."));
   assert.equal(r.status, 0);
   assert.match(r.stdout, /FLOOR: GREEN/);
+});
+
+// ── CHECK 8's canon scope is DISCOVERED from the target, not a fixed list ─────────────────────────
+// The four modules that exist today were once a hardcoded array, which made every FUTURE pharn-*
+// module a silent blind spot in the one check meant to stop floor-rot. CANON_DIRS is now every
+// pharn/pharn-* directory under the target, sorted. These four pin the axis: a module outside the old
+// list is scanned; the graceful skip when pharn/ is absent survives the extra readdirSync; the
+// `pharn-` prefix is what excludes pharn/floor; and a pharn-*-named FILE is not a module root.
+
+test("CHECK 8: a module OUTSIDE the old hardcoded four (pharn-audits) IS scanned — the scope is discovered", () => {
+  withRepo(
+    {
+      "pharn/pharn-audits/some/some.md": CANON_DOC(".dev/floor/validate.mjs"),
+      "pharn/floor/validate.mjs": "// the twin lives here now\n",
+    },
+    (root) => {
+      const r = run(root);
+      assert.equal(r.status, 1);
+      assert.match(r.stdout, /FLOOR: RED/);
+      assert.match(r.stdout, /P6\/floor-path/);
+      assert.match(r.stdout, /pharn\/pharn-audits\/some\/some\.md/);
+      // The message-level assertion is the linchpin: a scope that never visits pharn-audits emits no
+      // CHECK 8 finding at all, so only this line fails when the enumeration regresses to a fixed list.
+      assert.match(r.stdout, /now lives at pharn\/floor\/validate\.mjs/);
+    }
+  );
+});
+
+// The enumeration reads <TARGET>/pharn directly, one level ABOVE walkExts. Without the same
+// try/catch -> [], a target with no pharn/ goes from a clean skip to a crash of the whole validator.
+test("CHECK 8: a target with NO pharn/ directory does not throw — the documented fail-open path holds", () => {
+  withRepo({ "README.md": "# a repo that is not PHARN\n" }, (root) => {
+    const r = run(root);
+    assert.equal(r.status, 0);
+    assert.doesNotMatch(r.stderr, /Error/);
+    assert.match(r.stdout, /FLOOR: GREEN/);
+  });
+});
+
+// `floor` carries no `pharn-` prefix, so the discovered scope never visits it — the exclusion the old
+// list got by omission is now structural. A twinned dev-ref there is INTENTIONAL (the cross-copy pin's
+// home); flagging it would turn a true statement into a false one.
+test("CHECK 8: the `pharn-` prefix excludes pharn/floor — a twinned dev-ref there emits no finding", () => {
+  withRepo(
+    {
+      "pharn/floor/check-loop-record.mjs": "// deliberately does NOT import `.dev/floor/check-provenance.mjs`\n",
+      "pharn/floor/check-provenance.mjs": "// the deliberate product-side copy\n",
+      "pharn/pharn-review/sample/sample.md": CANON_DOC("pharn/floor/check-provenance.mjs"),
+    },
+    (root) => {
+      const r = run(root);
+      assert.equal(r.status, 0);
+      assert.match(r.stdout, /FLOOR: GREEN/);
+      assert.doesNotMatch(r.stdout, /now lives at/);
+    }
+  );
+});
+
+// The `pharn-` prefix is the POSITIVE scope, and it is NOT redundant with EXCLUDE_SEGMENTS: that list
+// names pharn/floor specifically, so ANY OTHER non-module directory under pharn/ would be walked
+// without the prefix test. Canon is pharn-*; a sibling directory is not canon and is not scanned.
+// (This is the case that kills a prefix-filter mutant — the pharn/floor case above cannot, because
+// EXCLUDE_SEGMENTS catches that one on its own.)
+test("CHECK 8: a non-module directory under pharn/ (not `pharn-*`, not floor) is NOT scanned", () => {
+  withRepo(
+    {
+      "pharn/templates/t.md": CANON_DOC(".dev/floor/validate.mjs"),
+      "pharn/floor/validate.mjs": "// the twin\n",
+    },
+    (root) => {
+      const r = run(root);
+      assert.equal(r.status, 0);
+      assert.match(r.stdout, /FLOOR: GREEN/);
+      assert.doesNotMatch(r.stdout, /now lives at/);
+    }
+  );
+});
+
+// A pharn-*-named FILE is not a module root. NARROWED, and stated: this pins the observable BEHAVIOR,
+// not the isDirectory() guard itself — walkExts's own readdirSync try/catch produces the same silence
+// when handed a file path, so removing the guard is not black-box detectable. The guard is kept for
+// explicitness: the scope should be directories by construction, not by an exception downstream.
+test("CHECK 8: a pharn-*-named FILE beside a real module is NOT treated as a module root", () => {
+  withRepo(
+    {
+      "pharn/pharn-notadir.md": CANON_DOC(".dev/floor/validate.mjs"),
+      "pharn/pharn-review/sample/sample.md": CANON_DOC(".dev/floor/validate.mjs"),
+      "pharn/floor/validate.mjs": "// the twin\n",
+    },
+    (root) => {
+      const r = run(root);
+      assert.equal(r.status, 1);
+      // Exactly ONE finding — the real module's. The sibling FILE is skipped, never scanned as a root.
+      assert.equal(r.stdout.match(/P6\/floor-path/g).length, 1);
+      assert.match(r.stdout, /pharn\/pharn-review\/sample\/sample\.md/);
+      assert.doesNotMatch(r.stdout, /pharn-notadir/);
+    }
+  );
+});
+
+// Two broken-symlink cases, one per enumeration level — the discovered scope reads <TARGET>/pharn
+// itself, so a stat failure is now possible one level ABOVE walkExts as well as inside it. Both must
+// degrade to a skip: the scope walk feeds a floor verdict, and a crash converts RED-or-GREEN into no
+// verdict at all, which is strictly worse than either. Each asserts the REST of the scope still
+// reports, so one bad entry cannot silently swallow the scan.
+const DANGLING_FIXTURE = {
+  "pharn/pharn-review/s/s.md": CANON_DOC(".dev/floor/validate.mjs"),
+  "pharn/floor/validate.mjs": "// the twin\n",
+};
+
+test("CHECK 8: a broken symlink NAMED pharn-* is skipped, not crashed on — the rest of the scope still reports", () => {
+  withRepo(DANGLING_FIXTURE, (root) => {
+    symlinkSync(join(root, "nowhere"), join(root, "pharn", "pharn-dangling"));
+    const r = run(root);
+    assert.equal(r.status, 1);
+    assert.doesNotMatch(r.stderr, /Error/);
+    assert.match(r.stdout, /now lives at pharn\/floor\/validate\.mjs/);
+  });
+});
+
+test("CHECK 8: a broken symlink INSIDE a module is skipped, not crashed on — the rest of the scope still reports", () => {
+  withRepo(DANGLING_FIXTURE, (root) => {
+    symlinkSync(join(root, "nowhere"), join(root, "pharn", "pharn-review", "dangling.md"));
+    const r = run(root);
+    assert.equal(r.status, 1);
+    assert.doesNotMatch(r.stderr, /Error/);
+    assert.match(r.stdout, /now lives at pharn\/floor\/validate\.mjs/);
+  });
 });

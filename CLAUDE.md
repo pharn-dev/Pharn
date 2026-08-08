@@ -102,8 +102,10 @@ file). It does **not** version the build apparatus.
 # Exits non-zero on any RED (blocking) finding. /pharn-dev-build runs it automatically.
 # CHECK 8 (added 2.3.4) additionally REDs a canon file that cites a RELOCATED floor checker: a literal
 # `.dev/floor/<B>` where `pharn/floor/<B>` exists — the cite names a file that MOVED, so the command
-# ENOENTs and its deterministic sub-check silently degrades to judgment. Scoped POSITIVELY to the four
-# canon dirs (pharn/pharn-{contracts,core,pipeline,review}), over `.md` AND `.json` — validate's
+# ENOENTs and its deterministic sub-check silently degrades to judgment. Scoped POSITIVELY to the
+# capability canon — every `pharn/pharn-*` module, DISCOVERED from the target at run time and sorted, so
+# a module added later is covered the day it lands and the emission order is filesystem-independent —
+# over `.md` AND `.json` — validate's
 # capability walk is `.md`-only, but the eval judges are `.json`. NOT pharn/floor (it holds the
 # intentional dev-refs + the deliberately-RED fixtures), NOT `.dev/`, and NOT the root docs — CLAUDE.md
 # and CHANGELOG.md correctly cite the DEV copy of a deliberate copy-pair (check-provenance,
@@ -113,7 +115,8 @@ file). It does **not** version the build apparatus.
 # relocation defect, pinned as deliberate by a test) or the never-built `scan-plan-*` ghosts.
 # NARROWED, and stated: it proves the cited file EXISTS, never that the body invokes it correctly; a
 # stale ref appearing inside pharn/floor is not caught (indistinguishable there from an intentional
-# dev-ref); and it is GREEN when the target has no pharn/floor at all.
+# dev-ref); it is GREEN when the target has no pharn/floor at all; and its scope is silently empty when
+# the target has no pharn/ at all.
 node pharn/floor/validate.mjs [target-dir]
 
 # Execute an eval's structural[] assertions against a skill's finding output (a JSON array).
