@@ -5,7 +5,7 @@
 
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, rmSync, statSync, existsSync } from "node:fs";
+import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, rmSync, existsSync, openSync, readSync, fstatSync, closeSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { tmpdir } from "node:os";
 import { generate } from "./gen-lessons-index.mjs";
@@ -34,6 +34,26 @@ const CANON = [
   "**Lesson.** y",
 ].join("\n");
 
+/** Read content + mtime from one open fd — avoids path-based TOCTOU between stat and read. */
+function readSnapshot(abs) {
+  const fd = openSync(abs, "r");
+  try {
+    const { mtimeMs, size } = fstatSync(fd);
+    const buf = Buffer.alloc(size);
+    let offset = 0;
+    while (offset < size) {
+      const n = readSync(fd, buf, offset, size - offset, offset);
+      if (n === 0) {
+        throw new Error(`readSync returned 0 before filling ${size} bytes (got ${offset})`);
+      }
+      offset += n;
+    }
+    return { mtimeMs, content: buf.toString("utf8") };
+  } finally {
+    closeSync(fd);
+  }
+}
+
 test("writes the index to docs/lessons-index.md and reports the lesson count", () => {
   const dir = fixture(CANON);
   try {
@@ -53,12 +73,12 @@ test("a second run is a true filesystem NO-OP (idempotence, not merely byte-equa
   try {
     generate(dir);
     const abs = join(dir, OUT_PATH);
-    const before = statSync(abs).mtimeMs;
-    const bytes = readFileSync(abs, "utf8");
+    const before = readSnapshot(abs);
     const { updated } = generate(dir);
     assert.equal(updated, false, "the second run must not report an update");
-    assert.equal(statSync(abs).mtimeMs, before, "the file must not be rewritten when unchanged");
-    assert.equal(readFileSync(abs, "utf8"), bytes);
+    const after = readSnapshot(abs);
+    assert.equal(after.mtimeMs, before.mtimeMs, "the file must not be rewritten when unchanged");
+    assert.equal(after.content, before.content);
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
