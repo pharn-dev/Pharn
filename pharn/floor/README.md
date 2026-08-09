@@ -75,7 +75,8 @@ guard's own location — never by bare basename, so a user's own `docs/ARCHITECT
 The default set is the four trusted spec docs (`pharn/CONSTITUTION.md`, `pharn/ARCHITECTURE.md`,
 `THREAT-MODEL.md`, `LIMITS.md`), `CODEOWNERS` at each of the three locations GitHub honors (root,
 `.github/`, `docs/`) — the GitHub-layer write-guard itself — and **the two pre-write guards' own control
-surface**: `.claude/settings.json` (which wires both hooks) plus the three hook scripts
+surface**: both settings files that can wire the hooks (`.claude/settings.json` and
+`.claude/settings.local.json`) plus the three hook scripts
 (`protect-trusted-paths.cjs`, `enforce-writes-scope.cjs`, `set-writes-scope.cjs`). Each hook is re-read
 fresh on every tool call, so a write to one would disarm that guard on the very next write. Extend the
 set further with the `PHARN_PROTECTED` env var (comma-separated; an entry containing `/` is an exact

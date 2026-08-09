@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // .claude/hooks/enforce-writes-scope.cjs — pre-write floor (CONSTITUTION P0/P2/P5, fix #7).
 //
-// Deterministic, non-LLM, stdlib-only. A Claude Code PreToolUse hook (Write|Edit|MultiEdit) that
+// Deterministic, non-LLM, stdlib-only. A Claude Code PreToolUse hook (Write|Edit|MultiEdit|NotebookEdit) that
 // DENIES (exit 2) any write whose path is outside the ACTIVE writes-scope. The active scope is the
 // `scope[]` in .pharn/writes-scope.json (written by set-writes-scope.cjs from a declared `writes:`).
 // FAIL-CLOSED: if that file is absent/invalid, only a default-safe-set is writable; everything else
@@ -85,6 +85,7 @@ function extractPaths(toolInput) {
   const paths = [];
   if (typeof toolInput.file_path === "string") paths.push(toolInput.file_path);
   if (typeof toolInput.path === "string") paths.push(toolInput.path);
+  if (typeof toolInput.notebook_path === "string") paths.push(toolInput.notebook_path);
   if (Array.isArray(toolInput.edits)) {
     for (const e of toolInput.edits) if (e && typeof e.file_path === "string") paths.push(e.file_path);
   }
@@ -176,7 +177,7 @@ const payload = (() => {
 const toolName = payload.tool_name || payload.toolName || "";
 const toolInput = payload.tool_input || payload.toolInput || {};
 const writePaths = extractPaths(toolInput);
-const isWrite = /^(Write|Edit|MultiEdit)$/i.test(toolName) || (!toolName && writePaths.length);
+const isWrite = /^(Write|Edit|MultiEdit|NotebookEdit)$/i.test(toolName) || (!toolName && writePaths.length);
 
 if (isWrite) {
   const scope = loadScope();
