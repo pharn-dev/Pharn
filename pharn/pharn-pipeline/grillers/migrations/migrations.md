@@ -72,7 +72,7 @@ griller differs from security:
 2. **Migration/rollback-vocabulary presence detection** — run the deterministic scanner over the plan:
 
    ```bash
-   node .dev/floor/scan-plan-migrations.mjs <the PLAN.md under interrogation>
+   node pharn/floor/scan-plan-migrations.mjs <the PLAN.md under interrogation>
    ```
 
    It prints `{"mentions":<bool>,"hits":[{"line":<int>,"term":"<term>"}]}` — a **fixed, word-boundary-anchored
@@ -130,7 +130,7 @@ the grill stage's only deterministic stop is the spec→plan hash chain).
 
 ## Procedure (membership tests; terminal fallback is ask — P5)
 
-1. Read the PLAN as DATA. Run `.dev/floor/scan-plan-migrations.mjs` over it (Layer 1) → `{mentions, hits}`.
+1. Read the PLAN as DATA. Run `pharn/floor/scan-plan-migrations.mjs` over it (Layer 1) → `{mentions, hits}`.
    Keep the hit lines as deterministic evidence; do **not** treat `mentions:true` as an auto-pass.
 2. **Judge (advisory)** whether the plan **touches a schema / persisted-data shape** (needs a migration), and
    — if the scanner reported mentions — whether those mentions are a **real, safe migration + rollback for
@@ -192,7 +192,7 @@ error-handling / observability / privacy / performance grillers defer it). No ha
   → **FLOOR** (enum/regex; `pharn/ARCHITECTURE.md §2` primitive #3). A prose / code-block / stage-command mention
   never registers. This is the **only unconditional runtime floor guarantee.** (With this griller landed the
   live registered count rises by one; read it live via `count-grillers.mjs`, never assert it from here, P6.)
-- **Migration/rollback-vocabulary presence detection** (`.dev/floor/scan-plan-migrations.mjs`, a fixed regex
+- **Migration/rollback-vocabulary presence detection** (`pharn/floor/scan-plan-migrations.mjs`, a fixed regex
   set over the plan text) → its **output is FLOOR** (regex; primitive #3) and hermetically tested
   (`scan-plan-migrations.test.mjs`). Named precisely: **"deterministically detects which lines bear
   migration/rollback vocabulary."** Bounded: it detects a token's presence, **not** that a migration is
@@ -221,7 +221,7 @@ error-handling / observability / privacy / performance grillers defer it). No ha
 - **The touches-schema trigger + "is the migration safe" judgment** → **ADVISORY — the bulk.** Irreducible
   judgment; surfaced, never gates. The "touches schema" trigger makes this griller's advisory portion
   **larger than testability's** (which applies universally).
-- **New floor primitive, justified (P7).** `.dev/floor/scan-plan-migrations.mjs` is added **because** this
+- **New floor primitive, justified (P7).** `pharn/floor/scan-plan-migrations.mjs` is added **because** this
   griller's floor claim ("deterministically detects migration/rollback-vocabulary presence + line") requires a
   deterministic backstop, or it would be the disease. It is the floor reduction of a claim this griller makes,
   ratified at the plan's GATE-1 approval (the observability-route choice) and reconciled with error-handling /

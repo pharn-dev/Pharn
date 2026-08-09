@@ -5,7 +5,7 @@ purpose: "Expected output for plan-pii-no-consideration: the scanner finds no PI
 
 # Expected — plan-pii-no-consideration
 
-The griller runs `.dev/floor/scan-plan-pii.mjs`; it reports `{"found":false,"hits":[]}` — **no floor
+The griller runs `pharn/floor/scan-plan-pii.mjs`; it reports `{"found":false,"hits":[]}` — **no floor
 finding**. The griller's **ADVISORY** layer (judgment) then surfaces **exactly one** concern in the
 `finding-shape` object.
 

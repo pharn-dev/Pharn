@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// .dev/floor/scan-plan-i18n.mjs — deterministic hardcoded-USER-FACING-STRING SCANNER over a plan file
+// pharn/floor/scan-plan-i18n.mjs — deterministic hardcoded-USER-FACING-STRING SCANNER over a plan file
 // (CONSTITUTION P0/P5).
 //
 // Answers ONE structural question for the i18n griller's FLOOR sub-check: does the plan TEXT contain a
@@ -7,7 +7,7 @@
 // of words sitting immediately before a CLOSING tag `</`), or a canonically user-facing JSX/HTML attribute
 // (placeholder / aria-label / alt / title) assigned a QUOTED literal? Detection is a FIXED REGEX SET over
 // the file's lines — non-LLM, no judgment. It reduces to ARCHITECTURE §2 primitive #3 (regex / enum check).
-// It is the closest analog of .dev/floor/scan-plan-secrets.mjs and MIRRORS it byte-for-byte in structure
+// It is the closest analog of pharn/floor/scan-plan-secrets.mjs and MIRRORS it byte-for-byte in structure
 // (pattern list, scan loop, output shape, fail-closed contract).
 //
 // HONEST BOUND (the secret-scanner precedent, P0): this detects a PATTERN's PRESENCE + line. It does NOT
@@ -30,10 +30,10 @@
 // lexical artifact and a "mentions a11y" scan is launderable; a hardcoded user-facing STRING LITERAL IS a
 // lexical artifact whose presence a hit cannot be talked out of.
 //
-// Non-LLM, stdlib-only, fail-closed. MIRRORS the fail-closed contract of .dev/floor/scan-plan-secrets.mjs:
+// Non-LLM, stdlib-only, fail-closed. MIRRORS the fail-closed contract of pharn/floor/scan-plan-secrets.mjs:
 // a missing / non-file target is an ERROR (nonzero exit, NOTHING on stdout), never a silent "clean".
 //
-// Usage:  node .dev/floor/scan-plan-i18n.mjs <plan-file>
+// Usage:  node pharn/floor/scan-plan-i18n.mjs <plan-file>
 // Output: {"found":<bool>,"hits":[{"line":<int>,"kind":"<pattern-kind>"},...]} on stdout; exit 0 on a
 //         successful scan (whatever the result). `found` === (hits.length > 0); hits sorted by line.
 //         Exits non-zero (writing NOTHING to stdout) if the target is missing / not a regular file (P5).

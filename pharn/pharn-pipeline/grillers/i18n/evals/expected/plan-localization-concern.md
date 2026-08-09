@@ -5,7 +5,7 @@ purpose: "Expected output for plan-localization-concern: the deterministic scann
 
 # Expected — plan-localization-concern
 
-The griller runs `.dev/floor/scan-plan-i18n.mjs` over the plan; it reports `{"found":false,"hits":[]}` —
+The griller runs `pharn/floor/scan-plan-i18n.mjs` over the plan; it reports `{"found":false,"hits":[]}` —
 **the floor sub-check is clean**. The concern here is **not** a lexical hardcoded-string pattern; it is a
 localization gap only **Layer-2 judgment** can see. The griller emits **exactly one advisory finding**.
 

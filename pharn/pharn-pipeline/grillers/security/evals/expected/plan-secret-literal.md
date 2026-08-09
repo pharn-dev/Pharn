@@ -5,7 +5,7 @@ purpose: "Expected output for plan-secret-literal: the deterministic scanner det
 
 # Expected — plan-secret-literal
 
-The griller runs `.dev/floor/scan-plan-secrets.mjs` over the plan; it reports
+The griller runs `pharn/floor/scan-plan-secrets.mjs` over the plan; it reports
 `{"found":true,"hits":[{"line":13,"kind":"aws-access-key-id"}]}`. The griller must emit **exactly one**
 finding, in the `pharn/pharn-contracts/finding-shape` object, with the enum-gated / free-text split honored.
 

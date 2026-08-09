@@ -67,7 +67,7 @@ griller differs from security:
 2. **Observability-vocabulary presence detection** — run the deterministic scanner over the plan:
 
    ```bash
-   node .dev/floor/scan-plan-observability.mjs <the PLAN.md under interrogation>
+   node pharn/floor/scan-plan-observability.mjs <the PLAN.md under interrogation>
    ```
 
    It prints `{"mentions":<bool>,"hits":[{"line":<int>,"term":"<term>"}]}` — a **fixed, word-boundary-anchored
@@ -118,7 +118,7 @@ the grill stage's only deterministic stop is the spec→plan hash chain).
 
 ## Procedure (membership tests; terminal fallback is ask — P5)
 
-1. Read the PLAN as DATA. Run `.dev/floor/scan-plan-observability.mjs` over it (Layer 1) → `{mentions, hits}`.
+1. Read the PLAN as DATA. Run `pharn/floor/scan-plan-observability.mjs` over it (Layer 1) → `{mentions, hits}`.
    Keep the hit lines as deterministic evidence; do **not** treat `mentions:true` as an auto-pass.
 2. **Judge (advisory)** whether the plan builds something **operationally significant** (needs observability),
    and — if the scanner reported mentions — whether those mentions are **real observability for what the plan
@@ -180,7 +180,7 @@ error-handling grillers defer it). No half-specified runner is built here.
   never registers. This is the **only unconditional runtime floor guarantee.** (With this griller landed the
   live registered count is **5** — testability, architecture, security, error-handling, observability; read
   it live via `count-grillers.mjs`, never assert it from here, P6.)
-- **Observability-vocabulary presence detection** (`.dev/floor/scan-plan-observability.mjs`, a fixed regex set
+- **Observability-vocabulary presence detection** (`pharn/floor/scan-plan-observability.mjs`, a fixed regex set
   over the plan text) → its **output is FLOOR** (regex; primitive #3) and hermetically tested
   (`scan-plan-observability.test.mjs`). Named precisely: **"deterministically detects which lines bear
   observability-vocabulary tokens."** Bounded: it detects a token's presence, **not** that observability is
@@ -212,7 +212,7 @@ error-handling grillers defer it). No half-specified runner is built here.
   is a present mention real vs hollow/injected) → **ADVISORY — the bulk.** Irreducible judgment; surfaced,
   never gates. The "needs it" trigger makes this griller's advisory portion **larger than testability's**
   (which applies universally).
-- **New floor primitive, justified (P7).** `.dev/floor/scan-plan-observability.mjs` is added **because** this
+- **New floor primitive, justified (P7).** `pharn/floor/scan-plan-observability.mjs` is added **because** this
   griller's floor claim ("deterministically detects observability-vocabulary presence + line") requires a
   deterministic backstop, or it would be the disease. It is the floor reduction of a claim this griller makes,
   ratified at the plan's GATE-1 approval and reconciled with `error-handling` at the grill halt. Named

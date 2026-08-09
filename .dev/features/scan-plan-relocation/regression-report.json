@@ -1,0 +1,65 @@
+{
+  "base": "24a43d6c61532efadb52ce9c386428d4fae339c3",
+  "inside": [
+    ".dev/features/scan-plan-relocation/GRILL.md",
+    ".dev/features/scan-plan-relocation/PLAN.md",
+    "CHANGELOG.md",
+    "CLAUDE.md",
+    "README.md",
+    "SKILLS_VERSION",
+    "pharn/floor/scan-code-secrets.mjs",
+    "pharn/floor/scan-plan-i18n.mjs",
+    "pharn/floor/scan-plan-i18n.test.mjs",
+    "pharn/floor/scan-plan-migrations.mjs",
+    "pharn/floor/scan-plan-migrations.test.mjs",
+    "pharn/floor/scan-plan-observability.mjs",
+    "pharn/floor/scan-plan-observability.test.mjs",
+    "pharn/floor/scan-plan-pii.mjs",
+    "pharn/floor/scan-plan-pii.test.mjs",
+    "pharn/floor/scan-plan-secrets.mjs",
+    "pharn/floor/scan-plan-secrets.test.mjs",
+    "pharn/floor/validate.mjs",
+    "pharn/floor/validate.test.mjs",
+    "pharn/pharn-pipeline/grillers/i18n/evals/expected/plan-hardcoded-ui-string.json",
+    "pharn/pharn-pipeline/grillers/i18n/evals/expected/plan-hardcoded-ui-string.md",
+    "pharn/pharn-pipeline/grillers/i18n/evals/expected/plan-localization-concern.md",
+    "pharn/pharn-pipeline/grillers/i18n/evals/expected/plan-uses-translation-keys.md",
+    "pharn/pharn-pipeline/grillers/i18n/i18n.md",
+    "pharn/pharn-pipeline/grillers/migrations/evals/expected/plan-fake-migration-injection.md",
+    "pharn/pharn-pipeline/grillers/migrations/evals/expected/plan-migration-declared.md",
+    "pharn/pharn-pipeline/grillers/migrations/evals/expected/plan-schema-no-migration.md",
+    "pharn/pharn-pipeline/grillers/migrations/evals/expected/plan-unsafe-migration.md",
+    "pharn/pharn-pipeline/grillers/migrations/migrations.md",
+    "pharn/pharn-pipeline/grillers/observability/evals/expected/plan-fake-observability-injection.md",
+    "pharn/pharn-pipeline/grillers/observability/evals/expected/plan-needs-observability-none.md",
+    "pharn/pharn-pipeline/grillers/observability/evals/expected/plan-observability-declared.md",
+    "pharn/pharn-pipeline/grillers/observability/observability.md",
+    "pharn/pharn-pipeline/grillers/privacy/evals/expected/plan-clean.md",
+    "pharn/pharn-pipeline/grillers/privacy/evals/expected/plan-pii-field.json",
+    "pharn/pharn-pipeline/grillers/privacy/evals/expected/plan-pii-field.md",
+    "pharn/pharn-pipeline/grillers/privacy/evals/expected/plan-pii-no-consideration.md",
+    "pharn/pharn-pipeline/grillers/privacy/privacy.md",
+    "pharn/pharn-pipeline/grillers/security/evals/expected/plan-clean.md",
+    "pharn/pharn-pipeline/grillers/security/evals/expected/plan-secret-literal.json",
+    "pharn/pharn-pipeline/grillers/security/evals/expected/plan-secret-literal.md",
+    "pharn/pharn-pipeline/grillers/security/evals/expected/plan-sensitive-no-consideration.md",
+    "pharn/pharn-pipeline/grillers/security/security.md"
+  ],
+  "outside_gates": {
+    "structural:expected-injection-comment": {
+      "base": 0,
+      "head": 0
+    },
+    "tests": {
+      "base": 0,
+      "head": 0
+    },
+    "validate": {
+      "base": 0,
+      "head": 0
+    }
+  },
+  "regressions": [],
+  "pre_existing": [],
+  "verdict": "no-regressions"
+}

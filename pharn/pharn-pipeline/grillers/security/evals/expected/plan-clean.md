@@ -5,7 +5,7 @@ purpose: "Expected output for plan-clean: the scanner is clean and no security c
 
 # Expected — plan-clean
 
-The griller runs `.dev/floor/scan-plan-secrets.mjs`; it reports `{"found":false,"hits":[]}`. No secret,
+The griller runs `pharn/floor/scan-plan-secrets.mjs`; it reports `{"found":false,"hits":[]}`. No secret,
 and a pure helper with no untrusted input warrants **no** advisory concern.
 
 ## The expected result

@@ -1,4 +1,4 @@
-// .dev/floor/scan-plan-observability.test.mjs — hermetic tests for the deterministic observability-vocabulary
+// pharn/floor/scan-plan-observability.test.mjs — hermetic tests for the deterministic observability-vocabulary
 // presence scanner.
 //
 // NO `claude -p`, NO git, NO network. Each test writes a small plan file in an os.tmpdir() scratch dir and

@@ -5,7 +5,7 @@ purpose: "Expected output for plan-migration-declared: the scanner reports migra
 
 # Expected — plan-migration-declared
 
-The griller runs `.dev/floor/scan-plan-migrations.mjs`; it reports `{"mentions":true,...}` — migration/rollback vocabulary is present in a **dedicated `## Migration` section** (a forward `ALTER TABLE … ADD COLUMN` and a down path that drops the new nullable column). The griller's **ADVISORY** judgment recognizes this is a **real, safe, reversible** migration for the additive schema change the plan builds, and emits **zero** findings.
+The griller runs `pharn/floor/scan-plan-migrations.mjs`; it reports `{"mentions":true,...}` — migration/rollback vocabulary is present in a **dedicated `## Migration` section** (a forward `ALTER TABLE … ADD COLUMN` and a down path that drops the new nullable column). The griller's **ADVISORY** judgment recognizes this is a **real, safe, reversible** migration for the additive schema change the plan builds, and emits **zero** findings.
 
 ## The expected output
 

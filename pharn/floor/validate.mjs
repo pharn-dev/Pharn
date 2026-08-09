@@ -267,12 +267,15 @@ if (existsSync(archManifest)) {
 // occurrence is the trigger to give the class a deterministic check rather than another reminder.
 //
 // RULE: a literal `.dev/floor/<B>` is RED iff <TARGET>/pharn/floor/<B> is a real file — i.e. the cite
-// names a file that MOVED. The existence gate means it structurally cannot flag:
-//   - the five scan-plan-* grill-scanners still resident ONLY in .dev/floor/ (no twin). That is a
-//     real and separate defect — they are dead in every install, which ships pharn/ without .dev/ —
-//     but it is fixed by RELOCATING the file, not by rewriting the cite. Pinned by a test.
-//   - scan-plan-{a11y,comprehension,docs,error-handling,performance}.mjs, named in griller prose as
-//     scanners that are NOT built (resident nowhere).
+// names a file that MOVED. The existence gate is the whole decision, and it cuts both ways:
+//   - it FORCED the scan-plan relocation. The five scan-plan-* grill-scanners once lived only in
+//     .dev/floor/, so they were dead in every install (which ships pharn/ without .dev/) — a real
+//     defect this check could not see, because with no twin there was nothing to point at. Moving
+//     them to pharn/floor/ is what made their canon cites flag here, which is exactly how the
+//     relocation was driven to completion rather than left half-done. Pinned by a test.
+//   - it structurally cannot flag scan-plan-{a11y,comprehension,docs,error-handling,performance}.mjs,
+//     named in griller prose as scanners that are NOT built (resident nowhere). No twin, no flag —
+//     the same gate, the opposite outcome, and no name list to keep in sync.
 //
 // SCOPE: the capability canon only — every pharn/pharn-* module, DISCOVERED FROM THE TARGET at run
 // time rather than fixed in a list, so a module added later (pharn-audits, pharn-stack-<fw>, …) is

@@ -1,4 +1,4 @@
-// .dev/floor/scan-plan-secrets.test.mjs — hermetic tests for the deterministic secret-literal scanner.
+// pharn/floor/scan-plan-secrets.test.mjs — hermetic tests for the deterministic secret-literal scanner.
 //
 // NO `claude -p`, NO git, NO network. Each test writes a small plan file in an os.tmpdir() scratch dir and
 // asserts the public surface (exit code + stdout JSON) by subprocess — mirroring count-grillers.test.mjs.
