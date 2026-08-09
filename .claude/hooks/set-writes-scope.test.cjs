@@ -189,6 +189,7 @@ test("--from-plan over the real pharn-plan.md template exits 1 (its `## Files` `
 
 const CONTROL_SURFACE = [
   ".claude/settings.json",
+  ".claude/settings.local.json",
   ".claude/hooks/protect-trusted-paths.cjs",
   ".claude/hooks/enforce-writes-scope.cjs",
   ".claude/hooks/set-writes-scope.cjs",
@@ -417,12 +418,15 @@ test("✧ this file's own CONTROL_SURFACE literal (the third copy) matches the s
   assert.deepEqual([...CONTROL_SURFACE].sort(), [...arrayEntries(SETTER, "CONTROL_SURFACE")].sort());
 });
 
-test("✧ the control surface names exactly the wiring file plus the three hook scripts — no command, no test file", () => {
+test("✧ the control surface names exactly the wiring files plus the three hook scripts — no command, no test file", () => {
   // Pins the GATE-1 decision itself: `.claude/commands/**` and `*.test.cjs` must stay OUT, or the
   // self-hosting loop breaks (46 of 104 historical plans write a command file).
   const set = arrayEntries(SETTER, "CONTROL_SURFACE");
   assert.equal(set.filter((p) => p.endsWith(".test.cjs")).length, 0, "a hook's own tests must never be refused");
   assert.equal(set.filter((p) => p.startsWith(".claude/commands/")).length, 0, "commands must never be refused");
   assert.ok(set.includes(".claude/settings.json"), "the file that WIRES both hooks must be covered");
+  // BOTH settings files, not just the committed one: settings.local.json is loaded too and can wire or
+  // override the same hooks, so covering only settings.json left the control surface half-open.
+  assert.ok(set.includes(".claude/settings.local.json"), "the LOCAL wiring file must be covered too");
   assert.equal(set.filter((p) => p.startsWith(".claude/hooks/") && p.endsWith(".cjs")).length, 3, "all three hooks");
 });

@@ -75,6 +75,9 @@ function parseArgs(argv) {
 // increment that edits a command, or a hook's own tests, must not need an opt-in flag.
 const CONTROL_SURFACE = [
   ".claude/settings.json",
+  // settings.local.json is a real, loaded settings file that can wire or override the same hooks, so
+  // guarding only settings.json left the control surface half-open.
+  ".claude/settings.local.json",
   ".claude/hooks/protect-trusted-paths.cjs",
   ".claude/hooks/enforce-writes-scope.cjs",
   ".claude/hooks/set-writes-scope.cjs",

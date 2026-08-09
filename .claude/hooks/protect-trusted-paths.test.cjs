@@ -7,9 +7,9 @@
 // location (<root>/.claude/hooks/<this file>), NOT to cwd. So:
 //   • run()    drives the REAL hook in this repo; relative paths resolve against cwd, which `npm test`
 //              sets to the repo root, and the anchor is this repo.
-//   • runIn()  drives a COPY installed into a throwaway sandbox at <sb>/.claude/hooks/. That is the only
-//              way to exercise a different root — symlink fixtures, subpath installs, cwd variation —
-//              and it mirrors how the hook actually ships.
+//   • runIn()  drives the hook INSTALLED into a throwaway sandbox at <sb>/.claude/hooks/ (a symlink to
+//              the real file — see sandbox()). That is the only way to exercise a different root —
+//              symlink fixtures, subpath installs, cwd variation — and it mirrors how the hook ships.
 
 const { test } = require("node:test");
 const assert = require("node:assert/strict");
@@ -33,10 +33,21 @@ function tmp() {
 }
 
 // Build a throwaway repo with this hook INSTALLED at its real relative location, plus any listed files.
-function sandbox(files = []) {
+//
+// The install is a SYMLINK to the real hook by default, not a copy — deliberately. A copy is a different
+// file, so every sandbox assertion would exercise (and report coverage for) a duplicate rather than the
+// script that actually ships. The symlink is also the more honest fixture: it is exactly the
+// dotfiles/stow install shape, and the hook guards BOTH the as-invoked root (this sandbox) and the
+// symlink-resolved one, so sandbox paths still resolve against the sandbox.
+//
+// MUTANTS MUST PASS { link: false }. Writing modified source through a symlink would overwrite the real
+// hook in this repo; mutantSandbox() below asserts it is editing a plain file before it writes.
+function sandbox(files = [], { link = true } = {}) {
   const dir = tmp();
   fs.mkdirSync(join(dir, ".claude", "hooks"), { recursive: true });
-  fs.copyFileSync(HOOK, join(dir, ".claude", "hooks", "protect-trusted-paths.cjs"));
+  const dest = join(dir, ".claude", "hooks", "protect-trusted-paths.cjs");
+  if (link) fs.symlinkSync(HOOK, dest);
+  else fs.copyFileSync(HOOK, dest);
   for (const f of files) {
     const p = join(dir, f);
     fs.mkdirSync(dirname(p), { recursive: true });
@@ -63,8 +74,9 @@ function declaredProtected() {
 
 // A copy of the hook with one source substitution applied, installed in its own sandbox (L4 mutants).
 function mutantSandbox(files, anchor, replacement) {
-  const dir = sandbox(files);
+  const dir = sandbox(files, { link: false });
   const target = join(dir, ".claude", "hooks", "protect-trusted-paths.cjs");
+  assert.ok(!fs.lstatSync(target).isSymbolicLink(), "a mutant must never be written through a symlink to the real hook");
   const src = fs.readFileSync(target, "utf8");
   assert.ok(src.includes(anchor), `mutant anchor not found in source: ${anchor}`);
   fs.writeFileSync(target, src.replace(anchor, replacement));
@@ -157,7 +169,7 @@ test("✧ blocks `..` applied after a SYMLINKED directory (lexical collapse is n
 });
 
 test("✧ MUTANT: lexical `path.resolve` before realpath re-opens the symlink+`..` bypass", () => {
-  const anchorSrc = '  for (const seg of raw.split("/")) {';
+  const anchorSrc = "  while (pending.length) {";
   const sb = mutantSandbox(["pharn/ARCHITECTURE.md", "pharn/sub/keep.md"], anchorSrc, "  return path.resolve(CWD, raw);\n" + anchorSrc);
   fs.symlinkSync(join(sb, "pharn", "sub"), join(sb, "a"));
   assert.equal(
@@ -439,7 +451,7 @@ test("✧ no declared entry over-blocks the same basename at depth (the F4 invar
 // applied to a sandbox copy and confirmed to flip the behavior the corresponding test pins. ---
 
 test("✧ MUTANT: re-introducing the basename branch flips the F4 over-block case back to a deny", () => {
-  const anchor = "  const rel = key.slice(prefix.length);";
+  const anchor = "  if (EXTRA_KEYS.some((e) => matchesExtra(key, e))) return true;";
   const sb = mutantSandbox(
     [],
     anchor,
@@ -453,29 +465,17 @@ test("✧ MUTANT: re-introducing the basename branch flips the F4 over-block cas
 });
 
 test("✧ MUTANT: dropping the case fold lets a case variant of a trusted doc through", () => {
-  const sb = mutantSandbox(["pharn/CONSTITUTION.md"], ".toUpperCase().toLowerCase();", ";");
+  const sb = mutantSandbox(["pharn/CONSTITUTION.md"], "    .toUpperCase()\n    .toLowerCase();", "    ;");
   const payload = { tool_name: "Write", tool_input: { file_path: "pharn/constitution.md" } };
   assert.equal(runIn(sb, payload).status, 0, "the un-folded mutant MUST allow it — the F4 under-block, reproduced");
   assert.equal(run(payload).status, 2, "the real hook must block it");
 });
 
 test("✧ MUTANT: a bare toLowerCase() fold lets the U+017F spelling through", () => {
-  const sb = mutantSandbox(["pharn/CONSTITUTION.md"], ".toUpperCase().toLowerCase();", ".toLowerCase();");
+  const sb = mutantSandbox(["pharn/CONSTITUTION.md"], "    .toUpperCase()\n    .toLowerCase();", "    .toLowerCase();");
   const payload = { tool_name: "Write", tool_input: { file_path: "pharn/CONſTITUTION.md" } };
   assert.equal(runIn(sb, payload).status, 0, "simple case mapping MUST miss it — that is why the fold upper-cases first");
   assert.equal(run(payload).status, 2, "the real hook must block it");
-});
-
-test("✧ MUTANT: anchoring ROOT to cwd disables the guard from a subdirectory", () => {
-  const anchor = 'const ROOT = realpathOr(path.resolve(__dirname, "..", ".."));';
-  const sb = mutantSandbox(["pharn/CONSTITUTION.md"], anchor, "const ROOT = realpathOr(process.cwd());");
-  const payload = { tool_name: "Write", tool_input: { file_path: join(sb, "pharn", "CONSTITUTION.md") } };
-  assert.equal(runIn(sb, payload, join(sb, "pharn")).status, 0, "the cwd-anchored mutant MUST allow it from a subdirectory");
-  const good = sandbox(["pharn/CONSTITUTION.md"]);
-  assert.equal(
-    runIn(good, { tool_name: "Write", tool_input: { file_path: join(good, "pharn", "CONSTITUTION.md") } }, join(good, "pharn")).status,
-    2
-  );
 });
 
 // --- PHARN_PROTECTED: an operator extension. A bare name keeps its ORIGINAL basename semantics, so an
@@ -503,14 +503,229 @@ test("PHARN_PROTECTED: a BARE name keeps basename semantics (backward compatible
   assert.equal(at("docs/other.md"), 0);
 });
 
-test("PHARN_PROTECTED: a SLASHED entry is an exact repo-relative path", () => {
-  const at = (file_path) =>
+// ════════════════════════════════════════════════════════════════════════════════════════════════════
+// HARDENING PASS. Every test below exists because an adversarial sweep RAN this hook and found a write
+// that reached a trusted file, or an input that made the hook exit 1 — which Claude Code treats as a
+// NON-BLOCKING error, so the write proceeds. In a write-guard, every crash is a bypass.
+// ════════════════════════════════════════════════════════════════════════════════════════════════════
+
+// --- FAIL-CLOSED: three inputs used to exit 1 (fail-OPEN) ---
+
+test("✧ a deleted working directory does not crash the guard (was exit 1 = fail-open)", (t) => {
+  if (process.platform === "win32") return t.skip("POSIX cwd-unlink semantics");
+  const sb = sandbox(["pharn/CONSTITUTION.md"]);
+  const dead = tmp();
+  const r = spawnSync(
+    "/bin/sh",
+    ["-c", `cd "${dead}" && rmdir "${dead}" && exec "${process.execPath}" "${join(sb, ".claude", "hooks", "protect-trusted-paths.cjs")}"`],
+    { input: JSON.stringify({ tool_name: "Write", tool_input: { file_path: join(sb, "pharn", "CONSTITUTION.md") } }), encoding: "utf8" }
+  );
+  assert.equal(r.status, 2, "must still DENY with an unusable cwd, not exit 1 and let the write through");
+});
+
+for (const payload of ["null", "42", '"str"', "[1,2]", "true"]) {
+  test(`✧ a scalar/null stdin payload is handled, not crashed on: ${payload}`, () => {
+    // JSON.parse("null") returns null WITHOUT throwing, so the try/catch never fired and the next
+    // property access exited 1.
+    const r = spawnSync(process.execPath, [HOOK], { input: payload, encoding: "utf8" });
+    assert.equal(r.status, 0);
+  });
+}
+
+test("✧ a pathological deep path neither crashes nor hangs, and does not mask a trusted path beside it", () => {
+  const sb = sandbox(["pharn/CONSTITUTION.md"]);
+  // 20k segments is ~5x the resolution cap — enough to prove the bound without a 400 KB payload
+  // that dominates the run under coverage instrumentation.
+  const deep = "a/".repeat(20000) + "x.md";
+  const started = process.hrtime.bigint();
+  const r = runIn(sb, { tool_name: "Write", tool_input: { file_path: deep } });
+  const ms = Number(process.hrtime.bigint() - started) / 1e6;
+  assert.equal(r.status, 0, "an absurd path is not protected — but it must not exit 1 either");
+  assert.ok(ms < 20000, `resolution must stay bounded; took ${Math.round(ms)}ms`);
+  // The per-path evaluation must not abort the scan: a trusted path later in the SAME payload still denies.
+  const r2 = runIn(sb, {
+    tool_name: "MultiEdit",
+    tool_input: { edits: [{ file_path: deep }, { file_path: join(sb, "pharn", "CONSTITUTION.md") }] },
+  });
+  assert.equal(r2.status, 2);
+});
+
+// --- ANCHORING: the hook may be installed as a symlink ---
+
+test("✧ a hook installed as a SYMLINK still guards the project it is linked INTO", () => {
+  // Node resolves __dirname THROUGH symlinks, so a dotfiles/stow-style install anchored to the dotfiles
+  // checkout and left the real project unguarded. The as-invoked path (argv[1]) is a root too.
+  const dotfiles = tmp();
+  fs.mkdirSync(join(dotfiles, "hooks"), { recursive: true });
+  fs.copyFileSync(HOOK, join(dotfiles, "hooks", "protect-trusted-paths.cjs"));
+  const sb = tmp();
+  fs.mkdirSync(join(sb, ".claude", "hooks"), { recursive: true });
+  fs.symlinkSync(join(dotfiles, "hooks", "protect-trusted-paths.cjs"), join(sb, ".claude", "hooks", "protect-trusted-paths.cjs"));
+  fs.mkdirSync(join(sb, "pharn"), { recursive: true });
+  fs.writeFileSync(join(sb, "pharn", "CONSTITUTION.md"), "trusted\n");
+  const r = spawnSync(process.execPath, [".claude/hooks/protect-trusted-paths.cjs"], {
+    input: JSON.stringify({ tool_name: "Write", tool_input: { file_path: "pharn/CONSTITUTION.md" } }),
+    encoding: "utf8",
+    cwd: sb,
+  });
+  assert.equal(r.status, 2);
+});
+
+// --- SYMLINKS: a broken link still NAMES a target ---
+
+test("✧ a dangling symlink cannot be used to CREATE a protected file", () => {
+  const sb = sandbox(["pharn/CONSTITUTION.md"]);
+  fs.mkdirSync(join(sb, "docs"), { recursive: true });
+  fs.symlinkSync(join(sb, "docs", "CODEOWNERS"), join(sb, "notes.md")); // absolute, target absent
+  fs.symlinkSync("docs/CODEOWNERS", join(sb, "rel.md")); // relative, target absent
+  fs.symlinkSync(join(sb, "nowhere.md"), join(sb, "benign.md"));
+  assert.ok(!fs.existsSync(join(sb, "docs", "CODEOWNERS")), "precondition: the protected file does not exist yet");
+  assert.equal(runIn(sb, { tool_name: "Write", tool_input: { file_path: "notes.md" } }).status, 2);
+  assert.equal(runIn(sb, { tool_name: "Write", tool_input: { file_path: "rel.md" } }).status, 2);
+  assert.equal(runIn(sb, { tool_name: "Write", tool_input: { file_path: "benign.md" } }).status, 0);
+});
+
+test("✧ a self-referential symlink terminates instead of spinning", () => {
+  const sb = sandbox([]);
+  fs.symlinkSync(join(sb, "loop.md"), join(sb, "loop.md"));
+  const started = process.hrtime.bigint();
+  const r = runIn(sb, { tool_name: "Write", tool_input: { file_path: "loop.md" } });
+  const ms = Number(process.hrtime.bigint() - started) / 1e6;
+  assert.ok(r.status === 0 || r.status === 2, `must terminate with a decision, got ${r.status}`);
+  assert.ok(ms < 15000, `must not spin; took ${Math.round(ms)}ms`);
+});
+
+// --- HARD LINKS: realpath cannot see through them; only the inode can ---
+
+test("✧ a HARD LINK to a trusted doc is denied (realpath resolves symlinks only)", () => {
+  const sb = sandbox(["pharn/CONSTITUTION.md", "docs/keep.md"]);
+  fs.linkSync(join(sb, "pharn", "CONSTITUTION.md"), join(sb, "alias.md"));
+  assert.equal(runIn(sb, { tool_name: "Write", tool_input: { file_path: "alias.md" } }).status, 2);
+  // ...and an ordinary file is still allowed while the inode set is non-empty.
+  assert.equal(runIn(sb, { tool_name: "Write", tool_input: { file_path: "docs/keep.md" } }).status, 0);
+});
+
+// --- CONTROL SURFACE: settings.local.json wires the same hooks ---
+
+test("✧ .claude/settings.local.json is guarded — it configures the very hooks this file implements", () => {
+  assert.equal(run({ tool_name: "Write", tool_input: { file_path: ".claude/settings.local.json" } }).status, 2);
+  assert.equal(run({ tool_name: "Write", tool_input: { file_path: ".claude/settings.local.json.bak" } }).status, 0);
+  assert.equal(run({ tool_name: "Write", tool_input: { file_path: "src/settings.local.json" } }).status, 0);
+});
+
+// --- WINDOWS TRAILING DOT/SPACE: the OS drops them, so they name the real file there ---
+
+for (const p of ["LIMITS.md.", "LIMITS.md ", "pharn/CONSTITUTION.md.", "pharn/CONSTITUTION.md  "]) {
+  test(`✧ blocks a trailing dot/space spelling of a trusted path: ${JSON.stringify(p)}`, () => {
+    assert.equal(run({ tool_name: "Write", tool_input: { file_path: p } }).status, 2);
+  });
+}
+
+// --- RELATIVE PATHS mean cwd, not the guarded root ---
+
+test("✧ a relative payload path is resolved against cwd, so a user's own subdirectory file is allowed", () => {
+  const sb = sandbox(["pharn/CONSTITUTION.md", "features/pharn/CONSTITUTION.md"]);
+  // cwd = <root>/features, so "pharn/CONSTITUTION.md" means features/pharn/CONSTITUTION.md — the user's.
+  assert.equal(runIn(sb, { tool_name: "Write", tool_input: { file_path: "pharn/CONSTITUTION.md" } }, join(sb, "features")).status, 0);
+  // ...while the same relative path from the root still denies.
+  assert.equal(runIn(sb, { tool_name: "Write", tool_input: { file_path: "pharn/CONSTITUTION.md" } }).status, 2);
+});
+
+// --- PHARN_PROTECTED: full backward compatibility with basenames AND path fragments ---
+
+test("✧ PHARN_PROTECTED keeps basename semantics for a bare name", () => {
+  const at = (file_path, val) =>
     spawnSync(process.execPath, [HOOK], {
       input: JSON.stringify({ tool_name: "Write", tool_input: { file_path } }),
       encoding: "utf8",
-      env: { ...process.env, PHARN_PROTECTED: "custom/extra.md" },
+      env: { ...process.env, PHARN_PROTECTED: val },
     }).status;
-  assert.equal(at("custom/extra.md"), 2);
-  assert.equal(at("CUSTOM/Extra.MD"), 2);
-  assert.equal(at("other/custom/extra.md"), 0, "an exact entry does NOT over-block the same name at depth");
+  assert.equal(at("extra.md", "extra.md"), 2);
+  assert.equal(at("docs/deep/extra.md", "extra.md"), 2, "a bare entry matches at any depth, as it always did");
+  assert.equal(at("EXTRA.MD", "extra.md"), 2, "and folds case like every other entry");
+  assert.equal(at("other.md", "extra.md"), 0);
+});
+
+test("✧ PHARN_PROTECTED keeps PATH-FRAGMENT semantics for a slashed entry", () => {
+  const at = (file_path, val) =>
+    spawnSync(process.execPath, [HOOK], {
+      input: JSON.stringify({ tool_name: "Write", tool_input: { file_path } }),
+      encoding: "utf8",
+      env: { ...process.env, PHARN_PROTECTED: val },
+    }).status;
+  assert.equal(at("custom/extra.md", "custom/extra.md"), 2);
+  assert.equal(at("deep/custom/extra.md", "custom/extra.md"), 2, "a fragment matches at depth — the ORIGINAL contract");
+  assert.equal(at("custom/extra.md.bak", "custom/extra.md"), 0, "but only at a path boundary");
+});
+
+// --- ✧ MEASURED REJECTING MUTANTS for each hardening (L4) ---
+
+test("✧ MUTANT: dropping the argv[1] root leaves a symlinked hook install unguarded", () => {
+  const dotfiles = tmp();
+  fs.mkdirSync(join(dotfiles, "hooks"), { recursive: true });
+  const src = fs.readFileSync(HOOK, "utf8");
+  const anchor = "dirs.push(path.dirname(path.resolve(CWD, process.argv[1])));";
+  assert.ok(src.includes(anchor), "mutant anchor: the as-invoked root");
+  fs.writeFileSync(join(dotfiles, "hooks", "protect-trusted-paths.cjs"), src.replace(anchor, "void 0;"));
+  const sb = tmp();
+  fs.mkdirSync(join(sb, ".claude", "hooks"), { recursive: true });
+  fs.symlinkSync(join(dotfiles, "hooks", "protect-trusted-paths.cjs"), join(sb, ".claude", "hooks", "protect-trusted-paths.cjs"));
+  fs.mkdirSync(join(sb, "pharn"), { recursive: true });
+  fs.writeFileSync(join(sb, "pharn", "CONSTITUTION.md"), "trusted\n");
+  const r = spawnSync(process.execPath, [".claude/hooks/protect-trusted-paths.cjs"], {
+    input: JSON.stringify({ tool_name: "Write", tool_input: { file_path: "pharn/CONSTITUTION.md" } }),
+    encoding: "utf8",
+    cwd: sb,
+  });
+  assert.equal(r.status, 0, "the mutant MUST allow it — that is the dotfiles-install bypass reproduced");
+});
+
+test("✧ MUTANT: anchoring the roots to cwd disables the guard from a subdirectory", () => {
+  const sb = mutantSandbox(["pharn/CONSTITUTION.md"], "  return out.length ? out : [CWD];", "  return [CWD];");
+  const payload = { tool_name: "Write", tool_input: { file_path: join(sb, "pharn", "CONSTITUTION.md") } };
+  assert.equal(runIn(sb, payload, join(sb, "pharn")).status, 0, "the cwd-anchored mutant MUST allow it");
+  const good = sandbox(["pharn/CONSTITUTION.md"]);
+  assert.equal(
+    runIn(good, { tool_name: "Write", tool_input: { file_path: join(good, "pharn", "CONSTITUTION.md") } }, join(good, "pharn")).status,
+    2
+  );
+});
+
+test("✧ MUTANT: not resolving a dangling symlink re-opens protected-file CREATION", () => {
+  const sb = mutantSandbox(
+    ["pharn/CONSTITUTION.md", "docs/keep.md"],
+    "      if (hops < 40 && fs.lstatSync(next).isSymbolicLink()) {",
+    "      if (false) {"
+  );
+  fs.symlinkSync(join(sb, "docs", "CODEOWNERS"), join(sb, "notes.md"));
+  assert.equal(runIn(sb, { tool_name: "Write", tool_input: { file_path: "notes.md" } }).status, 0, "mutant MUST allow it");
+  const good = sandbox(["pharn/CONSTITUTION.md", "docs/keep.md"]);
+  fs.symlinkSync(join(good, "docs", "CODEOWNERS"), join(good, "notes.md"));
+  assert.equal(runIn(good, { tool_name: "Write", tool_input: { file_path: "notes.md" } }).status, 2);
+});
+
+test("✧ MUTANT: dropping the inode test re-opens the hard-link alias", () => {
+  const sb = mutantSandbox(["pharn/CONSTITUTION.md"], '        if (st.nlink > 1) s.add(st.dev + ":" + st.ino);', "        void st;");
+  fs.linkSync(join(sb, "pharn", "CONSTITUTION.md"), join(sb, "alias.md"));
+  assert.equal(runIn(sb, { tool_name: "Write", tool_input: { file_path: "alias.md" } }).status, 0, "mutant MUST allow it");
+  const good = sandbox(["pharn/CONSTITUTION.md"]);
+  fs.linkSync(join(good, "pharn", "CONSTITUTION.md"), join(good, "alias.md"));
+  assert.equal(runIn(good, { tool_name: "Write", tool_input: { file_path: "alias.md" } }).status, 2);
+});
+
+test("✧ MUTANT: dropping the non-object payload guard makes a `null` payload exit 1 (fail-open)", () => {
+  const sb = mutantSandbox([], 'if (!payload || typeof payload !== "object" || Array.isArray(payload)) payload = {};', "");
+  const r = spawnSync(process.execPath, [join(sb, ".claude", "hooks", "protect-trusted-paths.cjs")], { input: "null", encoding: "utf8" });
+  assert.equal(r.status, 1, "the mutant MUST exit 1 — a non-blocking error, i.e. the write proceeds");
+  assert.equal(spawnSync(process.execPath, [HOOK], { input: "null", encoding: "utf8" }).status, 0);
+});
+
+test("✧ MUTANT: dropping the trailing dot/space strip lets the Windows spelling through", () => {
+  const sb = mutantSandbox(
+    ["pharn/CONSTITUTION.md"],
+    '    .map((s) => (s === "." || s === ".." ? s : s.replace(/[. ]+$/, "")))',
+    "    .map((s) => s)"
+  );
+  assert.equal(runIn(sb, { tool_name: "Write", tool_input: { file_path: "pharn/CONSTITUTION.md." } }).status, 0, "mutant MUST allow it");
+  assert.equal(run({ tool_name: "Write", tool_input: { file_path: "pharn/CONSTITUTION.md." } }).status, 2);
 });
