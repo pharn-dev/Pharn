@@ -2,13 +2,21 @@
 //
 // The hook reads a PreToolUse payload from stdin and exits 2 (deny) on a trusted path,
 // 0 (allow) otherwise. We drive it as a subprocess and assert on exit code + stderr.
+//
+// TWO HARNESSES, and the difference is load-bearing. The hook anchors its protected set to its OWN
+// location (<root>/.claude/hooks/<this file>), NOT to cwd. So:
+//   • run()    drives the REAL hook in this repo; relative paths resolve against cwd, which `npm test`
+//              sets to the repo root, and the anchor is this repo.
+//   • runIn()  drives a COPY installed into a throwaway sandbox at <sb>/.claude/hooks/. That is the only
+//              way to exercise a different root — symlink fixtures, subpath installs, cwd variation —
+//              and it mirrors how the hook actually ships.
 
 const { test } = require("node:test");
 const assert = require("node:assert/strict");
 const { spawnSync } = require("node:child_process");
 const fs = require("node:fs");
 const os = require("node:os");
-const { join } = require("node:path");
+const { join, dirname } = require("node:path");
 
 const HOOK = join(__dirname, "protect-trusted-paths.cjs");
 
@@ -21,11 +29,52 @@ function run(payload, cwd) {
 }
 
 function tmp() {
-  return fs.mkdtempSync(join(os.tmpdir(), "pharn-fix2-"));
+  return fs.realpathSync(fs.mkdtempSync(join(os.tmpdir(), "pharn-fix2-")));
 }
 
+// Build a throwaway repo with this hook INSTALLED at its real relative location, plus any listed files.
+function sandbox(files = []) {
+  const dir = tmp();
+  fs.mkdirSync(join(dir, ".claude", "hooks"), { recursive: true });
+  fs.copyFileSync(HOOK, join(dir, ".claude", "hooks", "protect-trusted-paths.cjs"));
+  for (const f of files) {
+    const p = join(dir, f);
+    fs.mkdirSync(dirname(p), { recursive: true });
+    fs.writeFileSync(p, "trusted\n");
+  }
+  return dir;
+}
+
+function runIn(dir, payload, cwd) {
+  return spawnSync(process.execPath, [join(dir, ".claude", "hooks", "protect-trusted-paths.cjs")], {
+    input: JSON.stringify(payload),
+    encoding: "utf8",
+    cwd: cwd || dir,
+  });
+}
+
+// Read the hook's own DEFAULT_PROTECTED so derived tests cannot go stale (L4).
+function declaredProtected() {
+  const src = fs.readFileSync(HOOK, "utf8").replace(/^[ \t]*\/\/.*$/gm, "");
+  const m = src.match(/^const DEFAULT_PROTECTED = \[([\s\S]*?)^\];/m);
+  assert.ok(m, "protect-trusted-paths.cjs must declare a top-level `const DEFAULT_PROTECTED = [ … ];`");
+  return (m[1].match(/"([^"]*)"/g) || []).map((s) => s.slice(1, -1));
+}
+
+// A copy of the hook with one source substitution applied, installed in its own sandbox (L4 mutants).
+function mutantSandbox(files, anchor, replacement) {
+  const dir = sandbox(files);
+  const target = join(dir, ".claude", "hooks", "protect-trusted-paths.cjs");
+  const src = fs.readFileSync(target, "utf8");
+  assert.ok(src.includes(anchor), `mutant anchor not found in source: ${anchor}`);
+  fs.writeFileSync(target, src.replace(anchor, replacement));
+  return dir;
+}
+
+const TRUSTED = ["pharn/CONSTITUTION.md", "pharn/ARCHITECTURE.md", "THREAT-MODEL.md", "LIMITS.md", ".github/CODEOWNERS"];
+
 test("blocks writes to a trusted spec doc", () => {
-  const r = run({ tool_name: "Write", tool_input: { file_path: "CONSTITUTION.md" } });
+  const r = run({ tool_name: "Write", tool_input: { file_path: "pharn/CONSTITUTION.md" } });
   assert.equal(r.status, 2);
   assert.match(r.stderr, /BLOCKED by PHARN floor/);
 });
@@ -41,40 +90,139 @@ test("allows writes to an ordinary file", () => {
   assert.equal(r.status, 0);
 });
 
-// --- Symlink escape (fix): a write to an innocent path that RESOLVES to a trusted doc is denied ---
+// --- Symlink escape: a write to an innocent path that RESOLVES to a trusted doc is denied. These run in
+// a sandbox INSTALL, because the guarded root is the hook's own location. ---
 
 test("blocks a Write to a committed symlink that resolves to a trusted doc (leaf symlink)", () => {
-  const cwd = tmp();
-  fs.writeFileSync(join(cwd, "CONSTITUTION.md"), "trusted\n");
-  fs.mkdirSync(join(cwd, "features"));
-  fs.symlinkSync(join("..", "CONSTITUTION.md"), join(cwd, "features", "notes.md"));
-  const r = run({ tool_name: "Write", tool_input: { file_path: "features/notes.md" } }, cwd);
+  const sb = sandbox(["pharn/CONSTITUTION.md"]);
+  fs.mkdirSync(join(sb, "features"));
+  fs.symlinkSync(join("..", "pharn", "CONSTITUTION.md"), join(sb, "features", "notes.md"));
+  const r = runIn(sb, { tool_name: "Write", tool_input: { file_path: "features/notes.md" } });
   assert.equal(r.status, 2);
   assert.match(r.stderr, /BLOCKED by PHARN floor/);
 });
 
 test("blocks a Write through a symlinked PARENT dir onto a trusted doc (ancestor resolves)", () => {
-  const cwd = tmp();
-  fs.writeFileSync(join(cwd, "CONSTITUTION.md"), "trusted\n");
-  fs.mkdirSync(join(cwd, "features"));
-  fs.symlinkSync("..", join(cwd, "features", "evil")); // features/evil -> repo root
-  const r = run({ tool_name: "Write", tool_input: { file_path: "features/evil/CONSTITUTION.md" } }, cwd);
+  const sb = sandbox(["pharn/CONSTITUTION.md"]);
+  fs.mkdirSync(join(sb, "features"));
+  fs.symlinkSync("..", join(sb, "features", "evil")); // features/evil -> repo root
+  const r = runIn(sb, { tool_name: "Write", tool_input: { file_path: "features/evil/pharn/CONSTITUTION.md" } });
   assert.equal(r.status, 2);
   assert.match(r.stderr, /BLOCKED by PHARN floor/);
 });
 
+test("blocks a deeply-nested symlink resolving onto pharn/CONSTITUTION.md, and reports the resolution", () => {
+  const sb = sandbox(["pharn/CONSTITUTION.md"]);
+  fs.mkdirSync(join(sb, "a", "b", "c"), { recursive: true });
+  fs.symlinkSync(join("..", "..", "..", "pharn", "CONSTITUTION.md"), join(sb, "a", "b", "c", "notes.md"));
+  const r = runIn(sb, { tool_name: "Write", tool_input: { file_path: "a/b/c/notes.md" } });
+  assert.equal(r.status, 2);
+  assert.match(r.stderr, /a\/b\/c\/notes\.md ->/);
+});
+
+test("blocks a Write to a committed symlink that resolves to .claude/settings.json", () => {
+  const sb = sandbox([".claude/settings.json"]);
+  fs.mkdirSync(join(sb, "features"));
+  fs.symlinkSync(join("..", ".claude", "settings.json"), join(sb, "features", "notes.md"));
+  const r = runIn(sb, { tool_name: "Write", tool_input: { file_path: "features/notes.md" } });
+  assert.equal(r.status, 2);
+});
+
 test("allows a real (non-symlink) file in a nested allowed dir (no false positive from realpath)", () => {
-  const cwd = tmp();
-  fs.mkdirSync(join(cwd, "features"));
-  fs.writeFileSync(join(cwd, "features", "notes.md"), "ordinary\n");
-  const r = run({ tool_name: "Write", tool_input: { file_path: "features/notes.md" } }, cwd);
+  const sb = sandbox(["features/notes.md"]);
+  const r = runIn(sb, { tool_name: "Write", tool_input: { file_path: "features/notes.md" } });
   assert.equal(r.status, 0);
 });
 
+// --- LEXICAL `..` AFTER A SYMLINKED DIRECTORY. path.resolve() collapses `..` lexically, which is NOT
+// what the filesystem does: with `a -> pharn/sub`, `a/../ARCHITECTURE.md` collapses to an unprotected
+// path while the OS opens pharn/ARCHITECTURE.md. Demonstrated by performing the write, so the fixture
+// asserts the guard denies it AND that the naive resolution would have hit the trusted file. ---
+
+test("✧ blocks `..` applied after a SYMLINKED directory (lexical collapse is not filesystem semantics)", () => {
+  const sb = sandbox(["pharn/ARCHITECTURE.md", "pharn/CONSTITUTION.md", "pharn/sub/keep.md"]);
+  fs.symlinkSync(join(sb, "pharn", "sub"), join(sb, "a"));
+  // Prove the vector is real the only honest way: PERFORM the write and see which file changed. Note
+  // that fs.realpathSync() cannot be used to show this — it resolves `..` lexically too (it calls
+  // path.resolve first), which is exactly why the hook resolves segment by segment instead.
+  assert.equal(require("node:path").resolve(sb, "a/../ARCHITECTURE.md"), join(sb, "ARCHITECTURE.md"));
+  fs.writeFileSync(sb + "/a/../ARCHITECTURE.md", "through-the-symlink\n");
+  assert.equal(fs.readFileSync(join(sb, "pharn", "ARCHITECTURE.md"), "utf8"), "through-the-symlink\n");
+  assert.ok(!fs.existsSync(join(sb, "ARCHITECTURE.md")), "the lexical target was never created");
+  for (const p of ["a/../ARCHITECTURE.md", "a/../CONSTITUTION.md", "a/../../pharn/ARCHITECTURE.md"]) {
+    assert.equal(runIn(sb, { tool_name: "Write", tool_input: { file_path: p } }).status, 2, p);
+  }
+  // and an ordinary write through the same symlink is still allowed
+  assert.equal(runIn(sb, { tool_name: "Write", tool_input: { file_path: "a/new.md" } }).status, 0);
+});
+
+test("✧ MUTANT: lexical `path.resolve` before realpath re-opens the symlink+`..` bypass", () => {
+  const anchorSrc = '  for (const seg of raw.split("/")) {';
+  const sb = mutantSandbox(["pharn/ARCHITECTURE.md", "pharn/sub/keep.md"], anchorSrc, "  return path.resolve(CWD, raw);\n" + anchorSrc);
+  fs.symlinkSync(join(sb, "pharn", "sub"), join(sb, "a"));
+  assert.equal(
+    runIn(sb, { tool_name: "Write", tool_input: { file_path: "a/../ARCHITECTURE.md" } }).status,
+    0,
+    "the lexical mutant MUST allow it — that is the bypass being reproduced"
+  );
+  const good = sandbox(["pharn/ARCHITECTURE.md", "pharn/sub/keep.md"]);
+  fs.symlinkSync(join(good, "pharn", "sub"), join(good, "a"));
+  assert.equal(runIn(good, { tool_name: "Write", tool_input: { file_path: "a/../ARCHITECTURE.md" } }).status, 2);
+});
+
+// --- THE ANCHOR. The protected set is relative to the hook's OWN location, never cwd. Anchoring to cwd
+// silently disabled the entire guard whenever the agent ran from a subdirectory, and left PHARN
+// unprotected when installed at a subpath of a larger project. Both are pinned here. ---
+
+test("✧ still blocks every trusted path when cwd is a SUBDIRECTORY, not the repo root", () => {
+  const sb = sandbox(TRUSTED.concat([".claude/settings.json", "pharn/floor/x.mjs", "docs/keep.md"]));
+  for (const cwd of [join(sb, "pharn"), join(sb, "pharn", "floor"), join(sb, "docs")]) {
+    for (const f of TRUSTED) {
+      const r = runIn(sb, { tool_name: "Write", tool_input: { file_path: join(sb, f) } }, cwd);
+      assert.equal(r.status, 2, `${f} must stay denied with cwd=${cwd}`);
+    }
+  }
+});
+
+test("✧ still blocks a RELATIVE trusted path resolved from a subdirectory cwd", () => {
+  const sb = sandbox(["pharn/CONSTITUTION.md"]);
+  // cwd = <sb>/pharn, so "CONSTITUTION.md" resolves to <sb>/pharn/CONSTITUTION.md.
+  const r = runIn(sb, { tool_name: "Write", tool_input: { file_path: "CONSTITUTION.md" } }, join(sb, "pharn"));
+  assert.equal(r.status, 2);
+});
+
+test("✧ guards its own root when PHARN is installed at a SUBPATH of a larger project", () => {
+  const outer = tmp();
+  const inner = join(outer, "vendor", "pharn-oss");
+  fs.mkdirSync(join(inner, ".claude", "hooks"), { recursive: true });
+  fs.copyFileSync(HOOK, join(inner, ".claude", "hooks", "protect-trusted-paths.cjs"));
+  fs.mkdirSync(join(inner, "pharn"), { recursive: true });
+  fs.writeFileSync(join(inner, "pharn", "CONSTITUTION.md"), "trusted\n");
+  fs.writeFileSync(join(outer, "LIMITS.md"), "the USER's own file\n");
+  const hook = join(inner, ".claude", "hooks", "protect-trusted-paths.cjs");
+  const at = (file_path, cwd) =>
+    spawnSync(process.execPath, [hook], { input: JSON.stringify({ tool_name: "Write", tool_input: { file_path } }), encoding: "utf8", cwd })
+      .status;
+  // cwd is the OUTER project, as it would be for an agent working on the user's repo.
+  assert.equal(at(join(inner, "pharn", "CONSTITUTION.md"), outer), 2, "PHARN's own doc must stay guarded");
+  assert.equal(at(join(outer, "LIMITS.md"), outer), 0, "the USER's own root LIMITS.md must NOT be guarded");
+});
+
+test("✧ blocks an ABSOLUTE path whose ROOT prefix is spelled in a different case", () => {
+  // path.relative() compares case-SENSITIVELY, so a differently-cased root relativizes to a `../` escape
+  // while naming the very same file on a case-insensitive volume. Folding the prefix is what closes it.
+  const sb = sandbox(["pharn/CONSTITUTION.md", "THREAT-MODEL.md"]);
+  const i = [...sb].findIndex((c) => /[a-z]/i.test(c));
+  assert.ok(i !== -1, "sandbox path must contain a letter to flip");
+  const c = sb[i];
+  const varied = sb.slice(0, i) + (c === c.toLowerCase() ? c.toUpperCase() : c.toLowerCase()) + sb.slice(i + 1);
+  assert.notEqual(varied, sb);
+  for (const f of ["pharn/CONSTITUTION.md", "THREAT-MODEL.md"]) {
+    assert.equal(runIn(sb, { tool_name: "Write", tool_input: { file_path: join(varied, f) } }).status, 2, f);
+  }
+});
+
 // --- F3: the guard's own control surface (settings.json + the three hook scripts) ---
-// Each hook file is re-read fresh on every tool call, so a write to one disarms that guard on the very
-// next write; settings.json can unwire both. The entries are `.claude/`-qualified FRAGMENTS, so the
-// negative block below pins that they did not widen onto a user's own files.
 
 for (const p of [
   ".claude/settings.json",
@@ -102,19 +250,7 @@ test("blocks a MultiEdit whose edits[] reaches a control file", () => {
   assert.equal(r.status, 2);
 });
 
-test("blocks a Write to a committed symlink that resolves to .claude/settings.json", () => {
-  const cwd = tmp();
-  fs.mkdirSync(join(cwd, ".claude"));
-  fs.writeFileSync(join(cwd, ".claude", "settings.json"), "{}\n");
-  fs.mkdirSync(join(cwd, "features"));
-  fs.symlinkSync(join("..", ".claude", "settings.json"), join(cwd, "features", "notes.md"));
-  const r = run({ tool_name: "Write", tool_input: { file_path: "features/notes.md" } }, cwd);
-  assert.equal(r.status, 2);
-  assert.match(r.stderr, /BLOCKED by PHARN floor/);
-});
-
-// --- Negative / anti-widening: the fragment form must NOT reach a user's own files. A bare-basename
-// protect list would deny every one of these, which is why the entries carry their `.claude/` prefix. ---
+// --- Negative / anti-widening: the entries must NOT reach a user's own files. ---
 
 for (const p of [
   "settings.json",
@@ -125,28 +261,101 @@ for (const p of [
   "vendor/protect-trusted-paths.cjs",
 ]) {
   test(`allows a user's own file that only SHARES a basename with a control file: ${p}`, () => {
-    const r = run({ tool_name: "Write", tool_input: { file_path: p } });
-    assert.equal(r.status, 0);
+    assert.equal(run({ tool_name: "Write", tool_input: { file_path: p } }).status, 0);
   });
 }
 
-// The hooks' own tests stay editable — a guard that froze its own tests would be unmaintainable, and this
-// very increment edits both. Deliberately outside the protected set, pinned so it stays that way.
 for (const p of [".claude/hooks/protect-trusted-paths.test.cjs", ".claude/hooks/set-writes-scope.test.cjs"]) {
   test(`allows the hooks' own test files: ${p}`, () => {
-    const r = run({ tool_name: "Write", tool_input: { file_path: p } });
-    assert.equal(r.status, 0);
+    assert.equal(run({ tool_name: "Write", tool_input: { file_path: p } }).status, 0);
   });
 }
 
-// Commands are the methodology this repo edits every increment (46 of 104 historical plans write one);
-// freezing them would break the self-hosting loop. Deliberately unprotected.
 test("allows writes to .claude/commands/* (not part of the guarded control surface)", () => {
-  const r = run({ tool_name: "Write", tool_input: { file_path: ".claude/commands/pharn-dev-plan.md" } });
-  assert.equal(r.status, 0);
+  assert.equal(run({ tool_name: "Write", tool_input: { file_path: ".claude/commands/pharn-dev-plan.md" } }).status, 0);
 });
 
-// --- F4: path-fragment matching must not over-block suffixed names (e.g. `.bak` backups). ---
+// --- F4 (a): must not OVER-BLOCK a user's own file that merely shares a trusted doc's name. Before the
+// repo-relative-exact matcher every one of these exited 2. ---
+
+for (const p of [
+  "app/user-docs/ARCHITECTURE.md",
+  "some/dir/CONSTITUTION.md",
+  "docs/THREAT-MODEL.md",
+  "docs/ARCHITECTURE.md",
+  "vendor/LIMITS.md",
+  "app/docs/architecture.md",
+  "packages/ui/docs/CONSTITUTION.md",
+]) {
+  test(`allows a user's OWN doc that only shares a trusted doc's name: ${p}`, () => {
+    assert.equal(run({ tool_name: "Write", tool_input: { file_path: p } }).status, 0);
+  });
+}
+
+// --- F4 (b): must not UNDER-BLOCK a case variant of a real trusted doc. On a case-insensitive volume
+// these open the very same bytes, and realpath returns the spelling as given rather than normalizing. ---
+
+for (const p of [
+  "pharn/constitution.md",
+  "pharn/Architecture.MD",
+  "pharn/ARCHITECTURE.MD",
+  "threat-model.md",
+  "Limits.MD",
+  ".github/codeowners",
+  ".CLAUDE/settings.json",
+]) {
+  test(`blocks a case variant of a real trusted path: ${p}`, () => {
+    const r = run({ tool_name: "Write", tool_input: { file_path: p } });
+    assert.equal(r.status, 2);
+    assert.match(r.stderr, /BLOCKED by PHARN floor/);
+  });
+}
+
+// FULL case folding, not simple case mapping: `ſ` (U+017F) lowercases to ITSELF, yet the filesystem
+// opens the real file through that spelling. Verified by reading the file, not by consulting a table.
+for (const p of ["pharn/CONſTITUTION.md", "LIMITſ.md", "pharn/ARCHITECTURE.md".replace("S", "ſ")]) {
+  test(`blocks a full-case-fold variant that a bare toLowerCase() would miss: ${p}`, () => {
+    assert.equal(run({ tool_name: "Write", tool_input: { file_path: p } }).status, 2);
+  });
+}
+
+// --- F4 (c): CODEOWNERS at all three GitHub-recognized locations. ---
+
+for (const p of ["CODEOWNERS", ".github/CODEOWNERS", "docs/CODEOWNERS"]) {
+  test(`blocks CODEOWNERS at a GitHub-recognized location: ${p}`, () => {
+    assert.equal(run({ tool_name: "Write", tool_input: { file_path: p } }).status, 2);
+  });
+}
+
+test("allows a CODEOWNERS at a location GitHub does not honor", () => {
+  assert.equal(run({ tool_name: "Write", tool_input: { file_path: "config/CODEOWNERS" } }).status, 0);
+});
+
+// --- F4 (d): lexical re-spellings must not walk past the exact test; outside the guarded root is never
+// protected. ---
+
+for (const p of ["./pharn/ARCHITECTURE.md", "pharn/../pharn/ARCHITECTURE.md", "features/../LIMITS.md"]) {
+  test(`blocks a lexical re-spelling of a protected path: ${p}`, () => {
+    assert.equal(run({ tool_name: "Write", tool_input: { file_path: p } }).status, 2);
+  });
+}
+
+test("blocks an ABSOLUTE path naming a trusted doc inside the guarded root", () => {
+  assert.equal(run({ tool_name: "Write", tool_input: { file_path: join(process.cwd(), "pharn", "ARCHITECTURE.md") } }).status, 2);
+});
+
+test("allows a path outside the guarded root (not a file this hook guards)", () => {
+  assert.equal(run({ tool_name: "Write", tool_input: { file_path: "/etc/passwd" } }).status, 0);
+});
+
+test("allows a same-named trusted doc in a DIFFERENT repo", () => {
+  const other = sandbox([]); // has its own hook, but we drive THIS repo's hook against its files
+  fs.mkdirSync(join(other, "pharn"), { recursive: true });
+  fs.writeFileSync(join(other, "pharn", "CONSTITUTION.md"), "someone else's\n");
+  assert.equal(run({ tool_name: "Write", tool_input: { file_path: join(other, "pharn", "CONSTITUTION.md") } }).status, 0);
+});
+
+// --- F4 (e): suffixed names are a different key and must not be over-blocked. ---
 
 for (const p of [
   ".claude/settings.json.bak",
@@ -154,19 +363,20 @@ for (const p of [
   "backup/.claude/settings.json.bak",
   "features/CONSTITUTION.md.bak",
   ".claude/hooks/protect-trusted-paths.cjs.bak",
+  "docs/ARCHITECTURE.mdx",
+  "backup/LIMITS.md.bak",
+  "pharn/ARCHITECTURE.md.bak",
 ]) {
   test(`allows a suffixed path that only shares a protected fragment prefix: ${p}`, () => {
-    const r = run({ tool_name: "Write", tool_input: { file_path: p } });
-    assert.equal(r.status, 0);
+    assert.equal(run({ tool_name: "Write", tool_input: { file_path: p } }).status, 0);
   });
 }
 
-// --- Regression: the pre-existing protected set is untouched by the widening ---
+// --- Regression: the pre-existing protected set still blocks ---
 
-for (const p of ["CONSTITUTION.md", "pharn/ARCHITECTURE.md", "THREAT-MODEL.md", "LIMITS.md", ".github/CODEOWNERS"]) {
+for (const p of TRUSTED) {
   test(`still blocks the pre-existing trusted path: ${p}`, () => {
-    const r = run({ tool_name: "Write", tool_input: { file_path: p } });
-    assert.equal(r.status, 2);
+    assert.equal(run({ tool_name: "Write", tool_input: { file_path: p } }).status, 2);
   });
 }
 
@@ -176,31 +386,131 @@ test("malformed stdin JSON is not treated as a write (allow, no crash)", () => {
 });
 
 test("a non-write tool is ignored even when its input names a control file", () => {
-  const r = run({ tool_name: "Read", tool_input: { file_path: ".claude/settings.json" } });
-  assert.equal(r.status, 0);
+  assert.equal(run({ tool_name: "Read", tool_input: { file_path: ".claude/settings.json" } }).status, 0);
 });
 
-// ✧ Derived, not restated: every `.claude/` entry the hook actually declares must be denied. The deny
-// block above lists the four paths as literals, which by construction passes even if a FIFTH entry were
-// added and never tested (L4). This reads DEFAULT_PROTECTED from the source and drives the hook with it,
-// so the coverage cannot go stale. The set-equality of this list with the setter's CONTROL_SURFACE is
-// pinned in set-writes-scope.test.cjs's ✧ cross-copy guard.
+test("a toolName-less payload carrying a path is still treated as a write", () => {
+  assert.equal(run({ tool_input: { path: "pharn/ARCHITECTURE.md" } }).status, 2);
+});
+
+test("a non-string file_path does not crash the hook", () => {
+  for (const file_path of [42, null, ["pharn/ARCHITECTURE.md"], { toString: () => "x" }]) {
+    const r = run({ tool_name: "Write", tool_input: { file_path } });
+    assert.ok(r.status === 0 || r.status === 2, `unexpected exit ${r.status} for ${JSON.stringify(file_path)}`);
+  }
+});
+
+// ✧ Derived, not restated: every `.claude/` entry the hook declares must be denied (L4).
 test("✧ every `.claude/` entry declared in DEFAULT_PROTECTED is actually denied (derived from source)", () => {
-  const src = fs.readFileSync(HOOK, "utf8").replace(/^[ \t]*\/\/.*$/gm, "");
-  const m = src.match(/^const DEFAULT_PROTECTED = \[([\s\S]*?)^\];/m);
-  assert.ok(m, "protect-trusted-paths.cjs must declare a top-level `const DEFAULT_PROTECTED = [ … ];`");
-  const claudeEntries = (m[1].match(/"([^"]*)"/g) || []).map((s) => s.slice(1, -1)).filter((p) => p.startsWith(".claude/"));
+  const claudeEntries = declaredProtected().filter((p) => p.startsWith(".claude/"));
   assert.ok(claudeEntries.length >= 4, "the guards' own control surface must be in the protected set");
   for (const p of claudeEntries) {
     assert.equal(run({ tool_name: "Write", tool_input: { file_path: p } }).status, 2, `${p} must be denied`);
   }
 });
 
-test("PHARN_PROTECTED still extends the list on top of the widened default", () => {
+// ✧ Derived: the same coverage over the WHOLE declared set, so an entry added later is exercised the day
+// it lands rather than the day someone remembers to add a literal here (L4).
+test("✧ every entry declared in DEFAULT_PROTECTED is denied at its declared path (derived from source)", () => {
+  const entries = declaredProtected();
+  assert.ok(entries.length >= 11, "the declared set must cover the four docs, CODEOWNERS x3, and the control surface");
+  for (const p of entries) {
+    assert.equal(run({ tool_name: "Write", tool_input: { file_path: p } }).status, 2, `${p} must be denied`);
+  }
+});
+
+// ✧ Derived: THE F4 INVARIANT. For every declared entry, a user's own file that merely shares its
+// basename, at a path the hook does not declare, must be ALLOWED.
+test("✧ no declared entry over-blocks the same basename at depth (the F4 invariant, derived from source)", () => {
+  const entries = declaredProtected();
+  const declared = new Set(entries.map((e) => e.toLowerCase()));
+  for (const p of entries) {
+    const nested = `vendor/third-party/${p.split("/").pop()}`;
+    if (declared.has(nested.toLowerCase())) continue;
+    assert.equal(
+      run({ tool_name: "Write", tool_input: { file_path: nested } }).status,
+      0,
+      `${nested} must be ALLOWED — a user's own file that merely shares a basename with the declared ${p}`
+    );
+  }
+});
+
+// --- ✧ MEASURED REJECTING MUTANTS (L4 — an authored assertion passes by construction). Each mutation is
+// applied to a sandbox copy and confirmed to flip the behavior the corresponding test pins. ---
+
+test("✧ MUTANT: re-introducing the basename branch flips the F4 over-block case back to a deny", () => {
+  const anchor = "  const rel = key.slice(prefix.length);";
+  const sb = mutantSandbox(
+    [],
+    anchor,
+    "  const mutantBase = key.split('/').pop();\n" +
+      "  for (const k of PROTECTED_KEYS) if (k.split('/').pop() === mutantBase) return true;\n" +
+      anchor
+  );
+  const payload = { tool_name: "Write", tool_input: { file_path: "app/user-docs/ARCHITECTURE.md" } };
+  assert.equal(runIn(sb, payload).status, 2, "the mutant MUST block — otherwise the row-3 assertion proves nothing");
+  assert.equal(run(payload).status, 0, "the real hook must allow it");
+});
+
+test("✧ MUTANT: dropping the case fold lets a case variant of a trusted doc through", () => {
+  const sb = mutantSandbox(["pharn/CONSTITUTION.md"], ".toUpperCase().toLowerCase();", ";");
+  const payload = { tool_name: "Write", tool_input: { file_path: "pharn/constitution.md" } };
+  assert.equal(runIn(sb, payload).status, 0, "the un-folded mutant MUST allow it — the F4 under-block, reproduced");
+  assert.equal(run(payload).status, 2, "the real hook must block it");
+});
+
+test("✧ MUTANT: a bare toLowerCase() fold lets the U+017F spelling through", () => {
+  const sb = mutantSandbox(["pharn/CONSTITUTION.md"], ".toUpperCase().toLowerCase();", ".toLowerCase();");
+  const payload = { tool_name: "Write", tool_input: { file_path: "pharn/CONſTITUTION.md" } };
+  assert.equal(runIn(sb, payload).status, 0, "simple case mapping MUST miss it — that is why the fold upper-cases first");
+  assert.equal(run(payload).status, 2, "the real hook must block it");
+});
+
+test("✧ MUTANT: anchoring ROOT to cwd disables the guard from a subdirectory", () => {
+  const anchor = 'const ROOT = realpathOr(path.resolve(__dirname, "..", ".."));';
+  const sb = mutantSandbox(["pharn/CONSTITUTION.md"], anchor, "const ROOT = realpathOr(process.cwd());");
+  const payload = { tool_name: "Write", tool_input: { file_path: join(sb, "pharn", "CONSTITUTION.md") } };
+  assert.equal(runIn(sb, payload, join(sb, "pharn")).status, 0, "the cwd-anchored mutant MUST allow it from a subdirectory");
+  const good = sandbox(["pharn/CONSTITUTION.md"]);
+  assert.equal(
+    runIn(good, { tool_name: "Write", tool_input: { file_path: join(good, "pharn", "CONSTITUTION.md") } }, join(good, "pharn")).status,
+    2
+  );
+});
+
+// --- PHARN_PROTECTED: an operator extension. A bare name keeps its ORIGINAL basename semantics, so an
+// existing setting does not silently stop protecting; a slashed entry is an exact repo-relative path. ---
+
+test("PHARN_PROTECTED still extends the list on top of the default", () => {
   const r = spawnSync(process.execPath, [HOOK], {
     input: JSON.stringify({ tool_name: "Write", tool_input: { file_path: "custom/extra.md" } }),
     encoding: "utf8",
     env: { ...process.env, PHARN_PROTECTED: "extra.md" },
   });
   assert.equal(r.status, 2);
+});
+
+test("PHARN_PROTECTED: a BARE name keeps basename semantics (backward compatible, fails closed)", () => {
+  const at = (file_path) =>
+    spawnSync(process.execPath, [HOOK], {
+      input: JSON.stringify({ tool_name: "Write", tool_input: { file_path } }),
+      encoding: "utf8",
+      env: { ...process.env, PHARN_PROTECTED: "extra.md" },
+    }).status;
+  assert.equal(at("extra.md"), 2);
+  assert.equal(at("docs/deep/extra.md"), 2, "a bare entry still matches at any depth, as it always did");
+  assert.equal(at("EXTRA.MD"), 2, "and it folds case like every other entry");
+  assert.equal(at("docs/other.md"), 0);
+});
+
+test("PHARN_PROTECTED: a SLASHED entry is an exact repo-relative path", () => {
+  const at = (file_path) =>
+    spawnSync(process.execPath, [HOOK], {
+      input: JSON.stringify({ tool_name: "Write", tool_input: { file_path } }),
+      encoding: "utf8",
+      env: { ...process.env, PHARN_PROTECTED: "custom/extra.md" },
+    }).status;
+  assert.equal(at("custom/extra.md"), 2);
+  assert.equal(at("CUSTOM/Extra.MD"), 2);
+  assert.equal(at("other/custom/extra.md"), 0, "an exact entry does NOT over-block the same name at depth");
 });
