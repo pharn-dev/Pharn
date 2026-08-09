@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // .claude/hooks/protect-trusted-paths.cjs — pre-write floor (CONSTITUTION P2, fix #2).
 //
-// Deterministic, non-LLM. A Claude Code PreToolUse hook that BLOCKS any Write/Edit/MultiEdit to a
+// Deterministic, non-LLM. A Claude Code PreToolUse hook that BLOCKS any Write/Edit/MultiEdit/NotebookEdit to a
 // trusted file. Trust-by-location is only real if the location is write-protected at the floor —
 // otherwise an injected instruction that gets a Write to pharn/CONSTITUTION.md rewrites the trusted layer.
 //
@@ -74,7 +74,7 @@
 // unless --allow-claude-dir is passed. The two are independent: this denylist holds no matter what scope
 // was set, so neutering the setter's refusal still does not make a control file writable.
 //
-// Wired via .claude/settings.json (PreToolUse matcher: Write|Edit|MultiEdit).
+// Wired via .claude/settings.json (PreToolUse matcher: Write|Edit|MultiEdit|NotebookEdit).
 
 "use strict";
 
