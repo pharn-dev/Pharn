@@ -153,15 +153,22 @@ test("scope set: other .pharn/ runtime files remain ALLOWED (bootstrap)", () => 
 // --- Composition with fix #2 (additive, never replacing) ---
 
 test("fix #2 still denies a trusted doc regardless of scope (scope-independent backstop)", () => {
-  // The fix #2 hook denies the trusted doc on its own — no scope file involved.
-  assert.equal(hook(tmp(), "ARCHITECTURE.md", FIX2).status, 2);
+  // The fix #2 hook denies the trusted doc on its own — no scope file involved. It anchors the protected
+  // set to its OWN location rather than cwd, so the trusted doc is named at its real repo-relative path
+  // and the call runs from this repo; a throwaway cwd would name a file in some OTHER tree, which this
+  // guard deliberately does not protect.
+  assert.equal(hook(process.cwd(), "pharn/ARCHITECTURE.md", FIX2).status, 2);
+  // ...and it is genuinely scope-independent: an empty scope changes nothing.
+  const cwd = tmp();
+  setScope(cwd, []);
+  assert.equal(hook(process.cwd(), "pharn/ARCHITECTURE.md", FIX2).status, 2);
 });
 
 test("fix #7 is scope-only: a scope naming a trusted doc is ALLOWED by fix #7 (fix #2 is the backstop)", () => {
   const cwd = tmp();
-  setScope(cwd, ["ARCHITECTURE.md"]);
+  setScope(cwd, ["pharn/ARCHITECTURE.md"]);
   // fix #7 allows it (scope says so); fix #2, run in parallel by the same matcher, is what denies it.
-  assert.equal(hook(cwd, "ARCHITECTURE.md").status, 0);
+  assert.equal(hook(cwd, "pharn/ARCHITECTURE.md").status, 0);
 });
 
 // --- Deny message is instruction-shaped ---

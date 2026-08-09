@@ -70,18 +70,21 @@ never evaluates a `judge` string (no LLM).
 
 Two `PreToolUse` hooks are wired in `.claude/settings.json` (committed), both on
 `Write|Edit|MultiEdit`; a deny from **either** blocks. **`protect-trusted-paths.cjs` (fix #2)** blocks
-any write to a protected path. The default set is the four trusted
-spec docs (`CONSTITUTION.md`, `ARCHITECTURE.md`, `THREAT-MODEL.md`, `LIMITS.md`), `CODEOWNERS` — the
-GitHub-layer write-guard itself — and **the two pre-write guards' own control surface**:
-`.claude/settings.json` (which wires both hooks) plus the three hook scripts
+any write to a protected path. Paths are matched **repo-relative and exact**, case-folded, against the
+guard's own location — never by bare basename, so a user's own `docs/ARCHITECTURE.md` stays writable.
+The default set is the four trusted spec docs (`pharn/CONSTITUTION.md`, `pharn/ARCHITECTURE.md`,
+`THREAT-MODEL.md`, `LIMITS.md`), `CODEOWNERS` at each of the three locations GitHub honors (root,
+`.github/`, `docs/`) — the GitHub-layer write-guard itself — and **the two pre-write guards' own control
+surface**: `.claude/settings.json` (which wires both hooks) plus the three hook scripts
 (`protect-trusted-paths.cjs`, `enforce-writes-scope.cjs`, `set-writes-scope.cjs`). Each hook is re-read
 fresh on every tool call, so a write to one would disarm that guard on the very next write. Extend the
-set further with the `PHARN_PROTECTED` env var (comma-separated). Confirm it works:
+set further with the `PHARN_PROTECTED` env var (comma-separated; an entry containing `/` is an exact
+repo-relative path, a bare name still matches that basename at any depth). Confirm it works:
 
 ```bash
-echo '{"tool_name":"Edit","tool_input":{"file_path":"CONSTITUTION.md"}}' | node .claude/hooks/protect-trusted-paths.cjs   # → exit 2, denied
+echo '{"tool_name":"Edit","tool_input":{"file_path":"pharn/CONSTITUTION.md"}}' | node .claude/hooks/protect-trusted-paths.cjs   # → exit 2, denied
 echo '{"tool_name":"Write","tool_input":{"file_path":".claude/settings.json"}}' | node .claude/hooks/protect-trusted-paths.cjs  # → exit 2, denied
-echo '{"tool_name":"Write","tool_input":{"file_path":"pharn-core/rules/x.md"}}' | node .claude/hooks/protect-trusted-paths.cjs  # → exit 0, allowed
+echo '{"tool_name":"Write","tool_input":{"file_path":"docs/ARCHITECTURE.md"}}' | node .claude/hooks/protect-trusted-paths.cjs  # → exit 0, allowed (a user's OWN doc)
 ```
 
 **`enforce-writes-scope.cjs` (fix #7)** is the runtime scope-enforcement hook: it denies any write
