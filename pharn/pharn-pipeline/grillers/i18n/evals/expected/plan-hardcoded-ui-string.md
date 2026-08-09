@@ -5,7 +5,7 @@ purpose: "Expected output for plan-hardcoded-ui-string: the deterministic scanne
 
 # Expected — plan-hardcoded-ui-string
 
-The griller runs `.dev/floor/scan-plan-i18n.mjs` over the plan; it reports
+The griller runs `pharn/floor/scan-plan-i18n.mjs` over the plan; it reports
 `{"found":true,"hits":[{"line":13,"kind":"jsx-text-literal"}]}`. The griller must emit **exactly one**
 finding, in the `pharn/pharn-contracts/finding-shape` object, with the enum-gated / free-text split honored.
 

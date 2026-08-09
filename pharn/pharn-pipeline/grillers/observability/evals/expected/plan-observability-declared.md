@@ -5,7 +5,7 @@ purpose: "Expected output for plan-observability-declared: the scanner reports o
 
 # Expected — plan-observability-declared
 
-The griller runs `.dev/floor/scan-plan-observability.mjs` over the plan; it reports `mentions:true` with hits across the plan body's `## Observability` section (structured logging, a metric + a failure counter, a trace span, an alert). The griller judges (advisory) that the payout processor is operationally significant AND that the declared observability is real and adequate for what it builds → it emits **no** finding.
+The griller runs `pharn/floor/scan-plan-observability.mjs` over the plan; it reports `mentions:true` with hits across the plan body's `## Observability` section (structured logging, a metric + a failure counter, a trace span, an alert). The griller judges (advisory) that the payout processor is operationally significant AND that the declared observability is real and adequate for what it builds → it emits **no** finding.
 
 ## The expected output
 

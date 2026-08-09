@@ -30,7 +30,8 @@ docs) from **the apparatus used to build it** (under `.dev/`):
   (`THREAT-MODEL.md`, `LIMITS.md`), `README`/`LICENSE`/`CHANGELOG`/`SECURITY`, `pharn.config.json`, and a
   root-level `features/` for **product-pipeline** artifacts (`SPEC.md`, …) sit at the root. This is what a user clones.
 - **Build apparatus (`.dev/`):** `.dev/floor/` (dev-only checkers — `check-provenance`, `check-variance`,
-  `check-config`, and the `scan-plan-*` grill-scanners — with their tests), `.dev/features/` (build-loop audit
+  `check-config` — with their tests; the `scan-plan-*` grill-scanners **moved to `pharn/floor/` in 2.4.0**,
+  because the grillers that invoke them ship), `.dev/features/` (build-loop audit
   trails — building PHARN itself), `.dev/memory-bank/` (lessons/patterns learned while building). Committed
   (contributors use it), but **not** what a user receives. `.dev/` is excluded **wholesale** by
   `pharn/floor/validate.mjs` — it scans the product surface only.
@@ -110,9 +111,10 @@ file). It does **not** version the build apparatus.
 # intentional dev-refs + the deliberately-RED fixtures), NOT `.dev/`, and NOT the root docs — CLAUDE.md
 # and CHANGELOG.md correctly cite the DEV copy of a deliberate copy-pair (check-provenance,
 # check-lessons-index, gen-lessons-index, lessons-index-core live in BOTH floors on purpose), so a
-# repo-wide walk would report those correct sentences as drift. Existence-gated, so it structurally
-# CANNOT flag the five `scan-plan-*` scanners resident only in `.dev/floor/` (no twin — a separate
-# relocation defect, pinned as deliberate by a test) or the never-built `scan-plan-*` ghosts.
+# repo-wide walk would report those correct sentences as drift. Existence-gated, and that gate cuts
+# both ways: it FORCED the 2.4.0 `scan-plan-*` relocation (moving the five scanners to `pharn/floor/`
+# is what made their canon cites flag here, driving the move to completion), while it still
+# structurally CANNOT flag the never-built `scan-plan-*` ghosts — no twin, no flag, no name list.
 # NARROWED, and stated: it proves the cited file EXISTS, never that the body invokes it correctly; a
 # stale ref appearing inside pharn/floor is not caught (indistinguishable there from an intentional
 # dev-ref); it is GREEN when the target has no pharn/floor at all; and its scope is silently empty when

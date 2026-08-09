@@ -5,7 +5,7 @@ purpose: "Expected output for plan-needs-observability-none: the scanner finds n
 
 # Expected — plan-needs-observability-none
 
-The griller runs `.dev/floor/scan-plan-observability.mjs`; it reports `{"mentions":false,"hits":[]}` — **no observability vocabulary anywhere**. The griller's **ADVISORY** layer (judgment) then surfaces **exactly one** concern in the `finding-shape` object.
+The griller runs `pharn/floor/scan-plan-observability.mjs`; it reports `{"mentions":false,"hits":[]}` — **no observability vocabulary anywhere**. The griller's **ADVISORY** layer (judgment) then surfaces **exactly one** concern in the `finding-shape` object.
 
 ## The expected finding
 

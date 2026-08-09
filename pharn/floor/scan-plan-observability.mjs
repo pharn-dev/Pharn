@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// .dev/floor/scan-plan-observability.mjs — deterministic observability-VOCABULARY presence scanner over a
+// pharn/floor/scan-plan-observability.mjs — deterministic observability-VOCABULARY presence scanner over a
 // plan file (CONSTITUTION P0/P5).
 //
 // Answers ONE structural question for the observability griller's FLOOR sub-check: which lines of the plan
@@ -7,7 +7,7 @@
 // alerting, dashboards, instrumentation, "observability" itself, or SLO/SLI? Detection is a FIXED,
 // word-boundary-anchored REGEX SET over the file's lines — non-LLM, no judgment. It reduces to
 // ARCHITECTURE §2 primitive #3 (regex / enum check). MIRRORS the fail-closed contract + shape of
-// .dev/floor/scan-plan-secrets.mjs (cite, don't restate — P4).
+// pharn/floor/scan-plan-secrets.mjs (cite, don't restate — P4).
 //
 // HONEST BOUND (P0 — the crux; this is why the observability griller is a PARTIAL floor, not security's):
 // this detects a vocabulary TOKEN's PRESENCE + line. It does NOT decide (a) that the plan NEEDS
@@ -25,10 +25,10 @@
 // disease P0 forbids (the error-handling griller rejects precisely that). See observability.md's guarantee
 // audit for the full reconciliation.
 //
-// Non-LLM, stdlib-only, fail-closed. MIRRORS the fail-closed contract of .dev/floor/scan-plan-secrets.mjs:
+// Non-LLM, stdlib-only, fail-closed. MIRRORS the fail-closed contract of pharn/floor/scan-plan-secrets.mjs:
 // a missing / non-file target is an ERROR (nonzero exit, NOTHING on stdout), never a silent "no mentions".
 //
-// Usage:  node .dev/floor/scan-plan-observability.mjs <plan-file>
+// Usage:  node pharn/floor/scan-plan-observability.mjs <plan-file>
 // Output: {"mentions":<bool>,"hits":[{"line":<int>,"term":"<term-kind>"},...]} on stdout; exit 0 on a
 //         successful scan (whatever the result). `mentions` === (hits.length > 0); hits sorted by line, then
 //         term. Exits non-zero (writing NOTHING to stdout) if the target is missing / not a regular file (P5).

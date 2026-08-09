@@ -5,7 +5,7 @@ purpose: "Expected output for plan-unsafe-migration: a migration + rollback ARE 
 
 # Expected — plan-unsafe-migration
 
-The griller runs `.dev/floor/scan-plan-migrations.mjs`; it reports `{"mentions":true,...}` — a migration and a rollback **are** declared. The griller does **not** auto-suppress on that; its **ADVISORY safety judgment** (the bulk of the axis) recognizes the migration is **unsafe** and surfaces **exactly one** finding.
+The griller runs `pharn/floor/scan-plan-migrations.mjs`; it reports `{"mentions":true,...}` — a migration and a rollback **are** declared. The griller does **not** auto-suppress on that; its **ADVISORY safety judgment** (the bulk of the axis) recognizes the migration is **unsafe** and surfaces **exactly one** finding.
 
 ## The expected finding
 

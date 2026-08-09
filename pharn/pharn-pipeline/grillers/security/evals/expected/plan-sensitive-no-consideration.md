@@ -5,7 +5,7 @@ purpose: "Expected output for plan-sensitive-no-consideration: the scanner finds
 
 # Expected — plan-sensitive-no-consideration
 
-The griller runs `.dev/floor/scan-plan-secrets.mjs`; it reports `{"found":false,"hits":[]}` — **no floor
+The griller runs `pharn/floor/scan-plan-secrets.mjs`; it reports `{"found":false,"hits":[]}` — **no floor
 finding**. The griller's **ADVISORY** layer (judgment) then surfaces **exactly one** concern in the
 `finding-shape` object.
 

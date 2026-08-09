@@ -163,21 +163,34 @@ test("CHECK 8: a canon cite of a RELOCATED floor checker (twin exists) is RED an
   );
 });
 
-// Pins the F2 boundary as a DECISION, not an oversight. The five scan-plan-* grill-scanners live only
-// in .dev/floor/ and are therefore dead in every user install (which ships pharn/ without .dev/) — a
-// real defect, but a RELOCATION one, fixed by moving the file, not by rewriting the cite. With no twin
-// there is nothing to point at, so CHECK 8 stays silent. The day a scan-plan-* gains a pharn/floor
-// twin, this same check starts flagging its canon cites and forces the rewrite.
-test("CHECK 8: a canon cite with NO twin in pharn/floor is NOT flagged — the F2 boundary is deliberate", () => {
-  withRepo({ "pharn/pharn-pipeline/grillers/g/g.md": CANON_DOC(".dev/floor/scan-plan-secrets.mjs") }, (root) => {
-    const r = run(root);
-    assert.equal(r.status, 0);
-    assert.match(r.stdout, /FLOOR: GREEN/);
-  });
+// The F2 boundary is CLOSED, and this pins that it stays closed. The five scan-plan-* grill-scanners
+// used to live only in .dev/floor/ — dead in every user install, which ships pharn/ without .dev/ —
+// and CHECK 8 stayed silent because with no twin there was nothing to point at. F2 relocated all five
+// (plus their tests) to pharn/floor/, which is exactly the event that made this check start flagging
+// their canon cites and forced the rewrite. So the assertion INVERTS: a griller cite of the old path
+// is now a RED, and this test is the regression guard against re-introducing a dead scan-plan cite.
+test("CHECK 8: a griller cite of a RELOCATED scan-plan scanner is RED — the F2 boundary is closed", () => {
+  withRepo(
+    {
+      "pharn/pharn-pipeline/grillers/g/g.md": CANON_DOC(".dev/floor/scan-plan-secrets.mjs"),
+      "pharn/floor/scan-plan-secrets.mjs": "// relocated by F2 — the twin now ships with the product\n",
+    },
+    (root) => {
+      const r = run(root);
+      assert.equal(r.status, 1);
+      assert.match(r.stdout, /FLOOR: RED/);
+      assert.match(r.stdout, /P6\/floor-path/);
+      assert.match(r.stdout, /pharn\/pharn-pipeline\/grillers\/g\/g\.md/);
+      assert.match(r.stdout, /cites \.dev\/floor\/scan-plan-secrets\.mjs/);
+      assert.match(r.stdout, /now lives at pharn\/floor\/scan-plan-secrets\.mjs/);
+    }
+  );
 });
 
 // A scanner resident NOWHERE — griller prose names these as scanners that are not built. No twin, so
-// no match; the existence gate handles ghosts and F2 by the same mechanism.
+// no match. This is the half of the existence gate F2 did NOT close: the five relocated scan-plan-*
+// now have twins and are flagged (above), while a ghost stays silent because there is still nothing
+// to point it at. One mechanism, two outcomes, decided solely by whether the file exists.
 test("CHECK 8: a GHOST cite (resident in neither floor) is NOT flagged", () => {
   withRepo({ "pharn/pharn-pipeline/grillers/g/g.md": CANON_DOC(".dev/floor/scan-plan-a11y.mjs") }, (root) => {
     const r = run(root);

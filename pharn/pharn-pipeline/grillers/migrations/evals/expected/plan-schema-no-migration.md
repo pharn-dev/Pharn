@@ -5,7 +5,7 @@ purpose: "Expected output for plan-schema-no-migration: the scanner finds no mig
 
 # Expected — plan-schema-no-migration
 
-The griller runs `.dev/floor/scan-plan-migrations.mjs`; it reports `{"mentions":false,"hits":[]}` — **no migration/rollback vocabulary anywhere**. The griller's **ADVISORY** layer (judgment) then surfaces **exactly one** concern in the `finding-shape` object.
+The griller runs `pharn/floor/scan-plan-migrations.mjs`; it reports `{"mentions":false,"hits":[]}` — **no migration/rollback vocabulary anywhere**. The griller's **ADVISORY** layer (judgment) then surfaces **exactly one** concern in the `finding-shape` object.
 
 ## The expected finding
 

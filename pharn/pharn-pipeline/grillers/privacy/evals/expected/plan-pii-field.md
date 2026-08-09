@@ -5,7 +5,7 @@ purpose: "Expected output for plan-pii-field: the deterministic scanner detects 
 
 # Expected — plan-pii-field
 
-The griller runs `.dev/floor/scan-plan-pii.mjs` over the plan; it reports
+The griller runs `pharn/floor/scan-plan-pii.mjs` over the plan; it reports
 `{"found":true,"hits":[{"line":13,"kind":"pii-typed-field"}]}`. The griller must emit **exactly one**
 finding, in the `pharn/pharn-contracts/finding-shape` object, with the enum-gated / free-text split honored.
 

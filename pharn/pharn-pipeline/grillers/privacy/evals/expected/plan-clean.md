@@ -5,7 +5,7 @@ purpose: "Expected output for plan-clean: the scanner is clean and no privacy co
 
 # Expected — plan-clean
 
-The griller runs `.dev/floor/scan-plan-pii.mjs`; it reports `{"found":false,"hits":[]}`. No PII shape,
+The griller runs `pharn/floor/scan-plan-pii.mjs`; it reports `{"found":false,"hits":[]}`. No PII shape,
 and a pure helper with no personal data warrants **no** advisory concern.
 
 ## The expected result

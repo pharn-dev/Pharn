@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // pharn/floor/scan-code-secrets.mjs — deterministic secret-literal SCANNER over a CODE file (CONSTITUTION P0/P5).
 //
-// The CODE-side twin of .dev/floor/scan-plan-secrets.mjs. Where that scanner backs the security GRILLER's
+// The CODE-side twin of pharn/floor/scan-plan-secrets.mjs. Where that scanner backs the security GRILLER's
 // FLOOR sub-check over a PLAN, this one backs the `secrets-in-code` LENS's FLOOR sub-check over CODE under
 // review (pharn-review/secrets-in-code/). Same question, different target: does the CODE TEXT contain a
 // secret-SHAPED literal — an AWS access-key id, a private-key block header, a well-known token prefix, or a
@@ -22,7 +22,7 @@
 // A multi-file / directory sweep is a FUTURE increment (P7 — not built speculatively); the lens applies
 // this scanner per file today.
 //
-// Non-LLM, stdlib-only, fail-closed. MIRRORS the fail-closed contract of .dev/floor/scan-plan-secrets.mjs:
+// Non-LLM, stdlib-only, fail-closed. MIRRORS the fail-closed contract of pharn/floor/scan-plan-secrets.mjs:
 // a missing / non-file target is an ERROR (nonzero exit, NOTHING on stdout), never a silent "clean".
 //
 // Usage:  node pharn/floor/scan-code-secrets.mjs <code-file>

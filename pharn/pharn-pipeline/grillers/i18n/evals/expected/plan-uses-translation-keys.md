@@ -5,7 +5,7 @@ purpose: "Expected output for plan-uses-translation-keys: the deterministic scan
 
 # Expected — plan-uses-translation-keys
 
-The griller runs `.dev/floor/scan-plan-i18n.mjs` over the plan; it reports `{"found":false,"hits":[]}`.
+The griller runs `pharn/floor/scan-plan-i18n.mjs` over the plan; it reports `{"found":false,"hits":[]}`.
 The clean, translation-key path is **not flagged**: the griller emits the empty finding array `[]`.
 
 ## The expected output
