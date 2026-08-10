@@ -38,7 +38,11 @@
 // No child process, no network. No guaranteed decision rests on a tainted field.
 //
 // Usage:
-//   node pharn/floor/check-regress.mjs scope   --changed <list> --declared <list> [--tests <list>] [--eval-pairs <list>]
+//   node pharn/floor/check-regress.mjs scope   --changed <list> --declared <list> [--tests <list>] [--eval-pairs <list>] [--feature <name>]
+//     --feature    : the increment's slug. Exempts THIS feature's own pipeline artifacts (PLAN.md,
+//                    GRILL.md, …) from the escape set — they are written by their own stages, not by the
+//                    build (the L17 floor check). Omit it and nothing is exempt on that axis (fail-closed).
+//                    Exemptions are always REPORTED in `escape_exempt`, never silently dropped.
 //   node pharn/floor/check-regress.mjs verdict <base-results.json> <head-results.json> [--base <ref>] [--inside <list>]
 //     <list>       : comma/whitespace-separated repo-relative paths
 //     <eval-pairs> : comma/whitespace-separated "EXPECTED::ACTUAL" tokens (the committed eval pairs)
@@ -48,6 +52,61 @@
 //   2 inconclusive / bad input — FAIL-CLOSED (P5), never a silent pass.
 
 import { readFileSync, existsSync } from "node:fs";
+
+// --- The ESCAPE-EXEMPT sets (the floor check for lessons-learned L17). -----------------------------
+// `scope` computes `escaped` over `git diff <base>`, which answers "what CHANGED since base" — but it is
+// REPORTED as "what the BUILD wrote". With `base = HEAD` on a working-tree dogfood those two questions
+// diverge, and every sibling stage's own artifact lands in `escaped` as a BLOCKING P0 fix#7 finding on
+// the correct, designed workflow. That is worse than a missing check: it trains an operator to wave
+// through the one finding that must never be waved through. Measured before this fix: 11 recorded runs
+// applied the exclusion BY HAND (`grep -rl 'L17' .dev/features/*/REGRESSION.md` → 12 files, one of which
+// records the class not firing). L20's rule — a lesson whose only remedy is discipline WILL recur, and
+// the SECOND occurrence is the trigger to give it a floor check — was 9 occurrences past due.
+//
+// Both exemptions are CLOSED ENUMS (ARCHITECTURE §2 primitive #3 — exact membership, no glob, no
+// judgment), and neither is silent: every exempted path is reported in `escape_exempt`.
+//
+// NOT taken: L17's other suggested remedy — deriving "written by the build" from
+// `.pharn/writes-scope.json` — is UNIMPLEMENTABLE as stated, which is a discovery, not a preference.
+// That file is a single MUTABLE record every stage's Step 0 overwrites, so by the time /pharn-dev-regress
+// runs it holds the regress stage's own scope, not the build's (verified live). It would require a
+// durable per-build scope record, which does not exist.
+//
+// The pipeline's own audit artifacts, by EXACT filename. Each is written by ITS OWN stage under that
+// stage's own Step-0 writes-scope — never by /pharn-dev-build — so finding one in the diff is evidence the
+// PIPELINE ran, not that the build escaped its `## Files`. Exact names, deliberately NOT a `**` glob over
+// the feature dir: a stray or unexpected file under the same directory is still REPORTED as an escape.
+const PIPELINE_ARTIFACTS = [
+  "PLAN.md",
+  "GRILL.md",
+  "REGRESSION.md",
+  "regression-report.json",
+  "VERIFY.md",
+  "verify-report.json",
+  "REVIEW.md",
+  "SHIP.md",
+  "ship-record.json",
+  "LOOP.md",
+];
+
+// The four hook-protected trusted docs. `protect-trusted-paths.cjs` DENIES every Write|Edit|MultiEdit to
+// them (exit 2), so the build cannot have produced the change — the denial is the disproof, not an
+// assumption. BOUNDED, and stated: the hook gates the Write-tool surface only, so a Bash-tool write
+// bypasses both it and this exemption (the L19 escape). The claim is "the build could not have written
+// this WITH THE WRITE TOOL", never "no process changed it".
+const TRUSTED_DOCS = ["pharn/CONSTITUTION.md", "pharn/ARCHITECTURE.md", "THREAT-MODEL.md", "LIMITS.md"];
+
+// Is `file` one of THIS feature's own pipeline artifacts? Requires an explicit `--feature <name>`: with no
+// feature named, nothing is exempt on this axis (fail-closed — the exemption is opt-in, never inferred).
+// Literal `startsWith` + exact membership, never a glob, so a crafted `--feature` (`..`, `*`) widens
+// nothing — it just yields a prefix that matches no path.
+function isPipelineArtifact(file, feature) {
+  if (!feature) return false;
+  for (const root of [`.dev/features/${feature}/`, `features/${feature}/`]) {
+    if (file.startsWith(root) && PIPELINE_ARTIFACTS.includes(file.slice(root.length))) return true;
+  }
+  return false;
+}
 
 // --- emit one JSON document to stdout, then exit. The command captures this verbatim. ---
 function emit(obj, code) {
@@ -189,7 +248,16 @@ function runScope(args) {
 
   // fix #7 cross-check: every changed file must be covered by a declared `writes:` pattern. A changed
   // path matching none means the build wrote OUTSIDE its declared `## Files` — a blocking escape.
-  const escaped = inside.filter((f) => !matchesAny(f, declared));
+  //
+  // ...EXCEPT the two closed exempt sets above (the L17 floor check): this feature's own pipeline
+  // artifacts, and the hook-protected trusted docs. Neither can be a build escape, and reporting them as
+  // one is a false BLOCKING finding on the correct workflow. The exemption is SUBTRACTIVE and REPORTED —
+  // `escape_exempt` is always emitted, so a suppressed path is visible, never silently dropped.
+  const feature = flag(args, "--feature");
+  const undeclared = inside.filter((f) => !matchesAny(f, declared));
+  const escapeExempt = undeclared.filter((f) => TRUSTED_DOCS.includes(f) || isPipelineArtifact(f, feature));
+  const exemptSet = new Set(escapeExempt);
+  const escaped = undeclared.filter((f) => !exemptSet.has(f));
 
   // Derive the OUTSIDE gate inputs by path membership (NOT classification, P5): a test/eval is "inside"
   // iff its file is in the changed set; everything else is outside and must not regress.
@@ -208,10 +276,31 @@ function runScope(args) {
       file: f,
       problem: `changed file '${f}' is outside the declared writes-scope (fix #7) — the build escaped its plan's \`## Files\``,
     }));
-    emit({ inside, declared, escaped, findings, outside_tests: outsideTests, outside_eval_pairs: outsideEvalPairs }, 1);
+    emit(
+      {
+        inside,
+        declared,
+        escaped,
+        escape_exempt: escapeExempt,
+        findings,
+        outside_tests: outsideTests,
+        outside_eval_pairs: outsideEvalPairs,
+      },
+      1
+    );
   }
 
-  emit({ inside, declared, escaped: [], outside_tests: outsideTests, outside_eval_pairs: outsideEvalPairs }, 0);
+  emit(
+    {
+      inside,
+      declared,
+      escaped: [],
+      escape_exempt: escapeExempt,
+      outside_tests: outsideTests,
+      outside_eval_pairs: outsideEvalPairs,
+    },
+    0
+  );
 }
 
 // ---------------------------------------------------------------------------------------------------

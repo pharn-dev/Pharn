@@ -167,8 +167,18 @@ node pharn/floor/check-plan-spec-agree.mjs features/<name>/PLAN.md features/<nam
      --changed "<inside, comma-separated>" \
      --declared "<PLAN.md ## Files paths>" \
      --tests "<the project's test files, expanded to real paths — comma-separated>" \
-     --eval-pairs "<EXPECTED::ACTUAL committed eval pairs, if any>"
+     --eval-pairs "<EXPECTED::ACTUAL committed eval pairs, if any>" \
+     --feature "<name>"
    ```
+
+   **Pass `--feature <name>`.** `scope` derives `escaped` from `git diff <base>` — "what CHANGED since
+   base", not "what the BUILD wrote" — so on a working-tree run this feature's own `features/<name>/`
+   pipeline artifacts (`PLAN.md`, `GRILL.md`, an earlier `VERIFY.md`, …) appear in the diff even though
+   each was written by its own stage under that stage's own writes-scope. `--feature` exempts exactly
+   that closed set of artifact filenames under this feature's directory; the four hook-protected trusted
+   docs are exempt unconditionally, since the agent cannot write them. Everything else — a stray file in
+   the feature dir, another feature's artifacts, every source path — is still a blocking escape, and each
+   exemption is reported in the returned **`escape_exempt`** rather than silently dropped.
 
    It returns `inside`, `outside_tests`, and `outside_eval_pairs` (the file-addressable gates to run over
    outside files). If a changed path is **outside** the declared writes, `scope` exits **1** with a

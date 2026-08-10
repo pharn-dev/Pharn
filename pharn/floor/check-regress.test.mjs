@@ -83,6 +83,114 @@ test("scope: a glob in declared (features/regress/**) covers nested changed file
   assert.deepEqual(json(r).escaped, []);
 });
 
+// --- escape-exempt: the L17 floor check (the pipeline's own artifacts + the trusted docs) ------------
+//
+// The first case IS the live defect, as a regression test: with `base = HEAD` on a working-tree dogfood,
+// the feature's own PLAN.md / GRILL.md land in `git diff` and were reported as a BLOCKING P0 fix#7
+// "the build escaped its scope" — provably false, since each is written by its OWN stage under that
+// stage's own Step-0 scope. Measured 11 times before this fix, hand-excluded every time.
+
+test("★ escape-exempt: the feature's OWN pipeline artifacts are not escapes (the L17 defect, fixed)", () => {
+  const r = run([
+    "scope",
+    "--changed",
+    ".dev/features/my-feat/PLAN.md, .dev/features/my-feat/GRILL.md, pharn/floor/check-spec.mjs",
+    "--declared",
+    "pharn/floor/check-spec.mjs",
+    "--feature",
+    "my-feat",
+  ]);
+  assert.equal(r.status, 0);
+  const j = json(r);
+  assert.deepEqual(j.escaped, []);
+  // Reported, never silently dropped — the operator can still see what was suppressed.
+  assert.deepEqual(j.escape_exempt.sort(), [".dev/features/my-feat/GRILL.md", ".dev/features/my-feat/PLAN.md"]);
+});
+
+test("escape-exempt: the PRODUCT features/<name>/ root is exempt too, not only .dev/", () => {
+  const r = run(["scope", "--changed", "features/my-feat/VERIFY.md", "--declared", "src/a.ts", "--feature", "my-feat"]);
+  assert.equal(r.status, 0);
+  assert.deepEqual(json(r).escape_exempt, ["features/my-feat/VERIFY.md"]);
+});
+
+test("escape-exempt is NARROW: a stray file in the feature dir is STILL an escape (exact names, not a glob)", () => {
+  const r = run(["scope", "--changed", ".dev/features/my-feat/notes.md", "--declared", "src/a.ts", "--feature", "my-feat"]);
+  assert.equal(r.status, 1);
+  assert.deepEqual(json(r).escaped, [".dev/features/my-feat/notes.md"]);
+  assert.deepEqual(json(r).escape_exempt, []);
+});
+
+test("escape-exempt is PER-FEATURE: another feature's PLAN.md is STILL an escape", () => {
+  const r = run(["scope", "--changed", ".dev/features/other/PLAN.md", "--declared", "src/a.ts", "--feature", "my-feat"]);
+  assert.equal(r.status, 1);
+  assert.deepEqual(json(r).escaped, [".dev/features/other/PLAN.md"]);
+});
+
+test("escape-exempt is FAIL-CLOSED: with no --feature, an artifact is NOT exempt", () => {
+  const r = run(["scope", "--changed", ".dev/features/my-feat/PLAN.md", "--declared", "src/a.ts"]);
+  assert.equal(r.status, 1);
+  assert.deepEqual(json(r).escaped, [".dev/features/my-feat/PLAN.md"]);
+});
+
+test("escape-exempt: an EMPTY-segment path is not exempt — the `!feature` guard is load-bearing, not decorative", () => {
+  // Without the early `if (!feature) return false`, an absent --feature would build the prefix
+  // `.dev/features//` and this crafted path (an untrusted --changed operand; git never emits it) would
+  // be silently exempted. This is the one input where the guard changes the answer, so it is the one
+  // that pins it.
+  for (const args of [
+    ["scope", "--changed", ".dev/features//PLAN.md", "--declared", "src/a.ts"],
+    ["scope", "--changed", "features//PLAN.md", "--declared", "src/a.ts", "--feature", ""],
+  ]) {
+    const r = run(args);
+    assert.equal(r.status, 1, `must not exempt: ${args[2]}`);
+    assert.deepEqual(json(r).escape_exempt, []);
+  }
+});
+
+test("escape-exempt: a crafted --feature cannot widen the exemption (literal prefix, never a glob)", () => {
+  for (const feature of ["*", "..", "../..", "my-feat/../other"]) {
+    const r = run(["scope", "--changed", ".dev/features/other/PLAN.md", "--declared", "src/a.ts", "--feature", feature]);
+    assert.equal(r.status, 1, `--feature ${JSON.stringify(feature)} must not exempt another feature`);
+    assert.deepEqual(json(r).escaped, [".dev/features/other/PLAN.md"]);
+  }
+});
+
+test("escape-exempt: a hook-protected trusted doc is exempt, and needs no --feature", () => {
+  const r = run(["scope", "--changed", "pharn/ARCHITECTURE.md, THREAT-MODEL.md", "--declared", "src/a.ts"]);
+  assert.equal(r.status, 0);
+  assert.deepEqual(json(r).escape_exempt.sort(), ["THREAT-MODEL.md", "pharn/ARCHITECTURE.md"]);
+});
+
+test("escape-exempt: a NON-protected doc at the root is still an escape (the enum is the four, exactly)", () => {
+  const r = run(["scope", "--changed", "README.md, CHANGELOG.md", "--declared", "src/a.ts"]);
+  assert.equal(r.status, 1);
+  assert.deepEqual(json(r).escaped.sort(), ["CHANGELOG.md", "README.md"]);
+});
+
+test("escape-exempt does NOT suppress a genuine escape alongside exempt paths", () => {
+  const r = run([
+    "scope",
+    "--changed",
+    ".dev/features/my-feat/PLAN.md, pharn/floor/evil.mjs",
+    "--declared",
+    "src/a.ts",
+    "--feature",
+    "my-feat",
+  ]);
+  assert.equal(r.status, 1);
+  assert.deepEqual(json(r).escaped, ["pharn/floor/evil.mjs"]);
+  assert.deepEqual(json(r).escape_exempt, [".dev/features/my-feat/PLAN.md"]);
+  assert.equal(json(r).findings.length, 1);
+  assert.equal(json(r).findings[0].rule_id, "P0");
+  assert.equal(json(r).findings[0].severity, "blocking");
+});
+
+test("escape_exempt is emitted on the CLEAN path too (always present, so absence is never ambiguous)", () => {
+  const r = run(["scope", "--changed", "src/a.ts", "--declared", "src/a.ts"]);
+  assert.equal(r.status, 0);
+  assert.deepEqual(json(r).escape_exempt, []);
+});
+
 test("scope: a glob in --tests → inconclusive exit 2 (expand it first, fail-closed)", () => {
   const r = run(["scope", "--changed", "floor/check-regress.mjs", "--declared", "floor/check-regress.mjs", "--tests", "floor/*.test.mjs"]);
   assert.equal(r.status, 2);
