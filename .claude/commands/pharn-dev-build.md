@@ -40,9 +40,17 @@ setter** — never bypass the hook.
 ## Step 1 — Verify, then refuse-or-proceed (P6, fix #4)
 
 1. Read `PLAN.md`. If it has unresolved `## Open questions (HALT)` → **HALT**; it is not approved.
-2. Recompute the content-hash of `pharn/ARCHITECTURE.md` and compare to `PLAN.md`'s `spec_content_hash`.
+2. Recompute the content-hash of `pharn/ARCHITECTURE.md` and compare to `PLAN.md`'s `spec_content_hash`:
+
+   ```bash
+   node .dev/floor/hash-doc.mjs pharn/ARCHITECTURE.md
+   ```
+
    **If they differ → HALT** — the spec drifted after planning; re-plan. Do not build against a
-   moved spec (this is fix #4 enforced at build time).
+   moved spec (this is fix #4 enforced at build time). Recompute with the **same tool `/pharn-dev-plan`
+   pinned with**, never an inline `node -e`: that one-liner is byte-exact over line endings, so on a CRLF
+   checkout it disagrees with a folded pin and this gate HALTs a build whose spec never moved.
+
 3. Inspect the live target repo. Confirm the plan's preconditions hold. If not → HALT and ask.
 
 ## Step 2 — Build the increment
