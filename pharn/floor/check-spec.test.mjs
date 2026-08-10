@@ -45,12 +45,12 @@ function makeSpec({ spec_id = "my-feature", state = "Draft", hash, body = BODY, 
 }
 
 // Write the SPEC to a fresh temp dir, run the checker (default or --hash), clean up, return the spawn result.
-function runWith(specText, { hashMode = false } = {}) {
+function runWith(specText, { hashMode = false, specIdMode = false } = {}) {
   const dir = mkdtempSync(join(tmpdir(), "pharn-spec-"));
   try {
     const specPath = join(dir, "SPEC.md");
     writeFileSync(specPath, specText);
-    const argv = hashMode ? ["--hash", specPath] : [specPath];
+    const argv = hashMode ? ["--hash", specPath] : specIdMode ? ["--spec-id", specPath] : [specPath];
     return spawnSync(process.execPath, [CHECK, ...argv], { encoding: "utf8" });
   } finally {
     rmSync(dir, { recursive: true, force: true });
@@ -203,4 +203,105 @@ test("fold: a lone `\\r` is NOT folded — only CRLF is (the widening stays boun
   const r2 = runWith(makeSpec({ state: "Approved", hash: bodyHash(BODY), body: withCR2 }));
   assert.equal(r2.status, 1);
   assert.match(r2.stdout, /drifted/);
+});
+
+// --- --spec-id: the SPEC's declared identity, from the single SPEC parser ------------------------
+//
+// The mode mirrors --hash exactly, and exists for the same P4 reason: check-plan-spec-agree.mjs must
+// compare the PLAN's declared spec_id against the SPEC's WITHOUT re-parsing the SPEC itself, or the two
+// could drift about what the field is. These tests pin the contract that wrapper depends on.
+
+test("--spec-id: prints the frontmatter spec_id and exits 0", () => {
+  const r = runWith(makeSpec({ spec_id: "my-feature" }), { specIdMode: true });
+  assert.equal(r.status, 0);
+  assert.equal(r.stdout.trim(), "my-feature");
+});
+
+test("--spec-id: a frontmatter with NO spec_id prints an EMPTY line at exit 0 (the caller REDs on empty)", () => {
+  const r = runWith(makeSpec({ omitSpecId: true }), { specIdMode: true });
+  assert.equal(r.status, 0);
+  assert.equal(r.stdout, "\n");
+});
+
+test("--spec-id (fail-closed): a file with no frontmatter exits 1", () => {
+  const r = runWith("## Intent\n\njust markdown, no frontmatter\n", { specIdMode: true });
+  assert.equal(r.status, 1);
+  assert.match(r.stderr, /no YAML frontmatter/);
+});
+
+test("--spec-id (fail-closed): an unreadable path exits 1", () => {
+  const r = spawnSync(process.execPath, [CHECK, "--spec-id", join(tmpdir(), "pharn-no-such-dir-xyz", "SPEC.md")], {
+    encoding: "utf8",
+  });
+  assert.equal(r.status, 1);
+});
+
+test("--spec-id: a missing path argument prints usage and exits 1", () => {
+  const r = spawnSync(process.execPath, [CHECK, "--spec-id"], { encoding: "utf8" });
+  assert.equal(r.status, 1);
+  assert.match(r.stderr, /usage/);
+});
+
+test("--hash is unchanged by the new mode: the two read-only modes do not interfere", () => {
+  const spec = makeSpec({ spec_id: "my-feature" });
+  assert.equal(runWith(spec, { hashMode: true }).stdout.trim(), bodyHash(BODY));
+  assert.equal(runWith(spec, { specIdMode: true }).stdout.trim(), "my-feature");
+});
+
+// --- Inline YAML comments in frontmatter field VALUES --------------------------------------------
+//
+// The command templates document their machine fields with a trailing `# …` note, and a YAML scalar's
+// whitespace-preceded `#` opens a comment. parseSpec stores EVERY field, so the strip must be
+// quote-aware: a QUOTED value containing ` # ` is CONTENT, not a comment, and must survive intact.
+
+test("comment: an Approved spec whose spec_content_hash carries a trailing note is GREEN, not 'malformed'", () => {
+  const r = runWith(makeSpec({ state: "Approved", hash: `${bodyHash(BODY)} # fix #4 — carried forward` }));
+  assert.equal(r.status, 0, r.stdout + r.stderr);
+  assert.match(r.stdout, /GREEN/);
+});
+
+test("comment: a state value with a trailing note still passes the enum ('Approved # ratified')", () => {
+  const r = runWith(makeSpec({ state: "Approved # ratified by the owner", hash: bodyHash(BODY) }));
+  assert.equal(r.status, 0, r.stdout + r.stderr);
+  assert.match(r.stdout, /GREEN — spec valid; state "Approved"/);
+});
+
+test("comment: --spec-id strips the template's own note ('<name> # carried from the Approved SPEC')", () => {
+  const r = runWith(makeSpec({ spec_id: "my-feature # carried from the Approved SPEC" }), { specIdMode: true });
+  assert.equal(r.status, 0);
+  assert.equal(r.stdout.trim(), "my-feature");
+});
+
+test("comment: a '#' with NO preceding whitespace is NOT a comment — 'feat#3' survives byte-exact", () => {
+  const r = runWith(makeSpec({ spec_id: "feat#3" }), { specIdMode: true });
+  assert.equal(r.status, 0);
+  assert.equal(r.stdout.trim(), "feat#3");
+});
+
+test("comment: a value with no '#' at all is untouched (the strip is inert on the ordinary case)", () => {
+  const r = runWith(makeSpec({ spec_id: "my-feature" }), { specIdMode: true });
+  assert.equal(r.status, 0);
+  assert.equal(r.stdout.trim(), "my-feature");
+});
+
+test("comment (quote-aware): a QUOTED value containing ' # ' is preserved, not truncated", () => {
+  // The regression the WRONG order would introduce: stripping the comment before the quotes turns
+  // `"a # b"` into `a`. Order is stripQuotes-only for a quoted scalar.
+  const r = runWith(makeSpec({ spec_id: '"a # b"' }), { specIdMode: true });
+  assert.equal(r.status, 0);
+  assert.equal(r.stdout.trim(), "a # b");
+});
+
+test("comment (single quotes too): 'a # b' in single quotes is preserved", () => {
+  const r = runWith(makeSpec({ spec_id: "'a # b'" }), { specIdMode: true });
+  assert.equal(r.status, 0);
+  assert.equal(r.stdout.trim(), "a # b");
+});
+
+test("comment TIGHTENS: a value that is ONLY a comment parses EMPTY, so 'spec_id: # todo' now REDs", () => {
+  // Before the strip this read as the non-empty string "# todo: name this" and PASSED the presence
+  // check — a spec with no real identity going GREEN. The strip makes the absence visible. Fail-closed.
+  const r = runWith(makeSpec({ spec_id: "# todo: name this" }));
+  assert.equal(r.status, 1);
+  assert.match(r.stdout, /RED — spec_id failed/);
 });

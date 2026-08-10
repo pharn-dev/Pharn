@@ -50,10 +50,10 @@ function makeSpec({ spec_id = "my-feature", state = "Approved", hash, body = bod
 // Assemble a product PLAN.md (the /pharn-plan output shape: spec_content_hash in YAML frontmatter).
 // `hash === undefined` omits the carried-hash line; `fm: false` omits the frontmatter block entirely;
 // `bodyText` lets a test inject a needle into the (untrusted) plan prose.
-function makePlan({ spec_id = "my-feature", hash, fm = true, bodyText = "## Approach\n\nimplement it.\n" } = {}) {
+function makePlan({ spec_id = "my-feature", hash, fm = true, omitSpecId = false, bodyText = "## Approach\n\nimplement it.\n" } = {}) {
   if (fm === false) return bodyText;
   let f = "---\n";
-  f += `spec_id: ${spec_id}\n`;
+  if (!omitSpecId) f += `spec_id: ${spec_id}\n`;
   if (hash !== undefined) f += `spec_content_hash: ${hash}\n`;
   f += "---\n";
   return f + "\n" + bodyText;
@@ -181,4 +181,183 @@ test("RED: missing argument(s) prints usage and exits 1", () => {
   const r = spawnSync(process.execPath, [CHECKER], { encoding: "utf8" });
   assert.equal(r.status, 1);
   assert.match(r.stdout, /usage/);
+});
+
+// --- The IDENTITY assertion: a PLAN must NAME the spec it is pinned to --------------------------
+//
+// The content pin alone proves the plan was made against SOME current approved spec; it does not prove
+// it was made against THE one the plan claims. These cases are the difference — and the wrong-id case
+// is a FALSE GREEN before the assertion exists.
+
+test("RED: PLAN names a DIFFERENT spec_id but carries the RIGHT hash → identity mismatch, exit 1", () => {
+  const body = bodyFrom();
+  const h = bodyHash(body);
+  const r = runWith(
+    makePlan({ spec_id: "some-other-feature", hash: h }),
+    makeSpec({ spec_id: "my-feature", state: "Approved", hash: h, body })
+  );
+  assert.equal(r.status, 1);
+  assert.match(r.stdout, /RED/);
+  assert.match(r.stdout, /IDENTITY mismatch/);
+  assert.match(r.stdout, /"some-other-feature"/); // the message NAMES both ids, so the fix is obvious
+  assert.match(r.stdout, /"my-feature"/);
+});
+
+test("RED: PLAN carries the SPEC's id but a DRIFTED hash → the content assertion still fires, exit 1", () => {
+  const body = bodyFrom();
+  const r = runWith(
+    makePlan({ spec_id: "my-feature", hash: "a".repeat(64) }),
+    makeSpec({ spec_id: "my-feature", state: "Approved", hash: bodyHash(body), body })
+  );
+  assert.equal(r.status, 1);
+  assert.match(r.stdout, /chain BROKEN/); // a matching id does NOT let body drift through
+});
+
+test("RED (fail-closed): PLAN carries no spec_id at all → identity UNPINNED, exit 1", () => {
+  const body = bodyFrom();
+  const h = bodyHash(body);
+  const r = runWith(makePlan({ omitSpecId: true, hash: h }), makeSpec({ state: "Approved", hash: h, body }));
+  assert.equal(r.status, 1);
+  assert.match(r.stdout, /no spec_id|UNPINNED/i);
+});
+
+test("RED (fail-closed): PLAN's spec_id is ONLY a comment → parses empty → identity UNPINNED, exit 1", () => {
+  const body = bodyFrom();
+  const h = bodyHash(body);
+  const r = runWith(makePlan({ spec_id: "# TODO name the spec", hash: h }), makeSpec({ state: "Approved", hash: h, body }));
+  assert.equal(r.status, 1);
+  assert.match(r.stdout, /no spec_id|UNPINNED/i);
+});
+
+test("GREEN: matching id AND matching hash → the chain holds on both axes (exit 0)", () => {
+  const body = bodyFrom();
+  const h = bodyHash(body);
+  const r = runWith(makePlan({ spec_id: "my-feature", hash: h }), makeSpec({ spec_id: "my-feature", state: "Approved", hash: h, body }));
+  assert.equal(r.status, 0, r.stdout + r.stderr);
+  assert.match(r.stdout, /GREEN — spec→plan hash chain holds/);
+  assert.match(r.stdout, /declares the SPEC's own spec_id \("my-feature"\)/);
+});
+
+// --- The template-faithful PLAN: what /pharn-plan actually documents emitting -------------------
+
+test("GREEN: a PLAN faithful to the template — inline '#' notes on BOTH machine fields — holds the chain", () => {
+  // The cold start. Before the comment strip this RED'd with "spec_content_hash is not a sha256",
+  // because the documented note was being read as part of the 64-hex value: a false RED on a file
+  // written exactly the way the command says to write it.
+  const body = bodyFrom();
+  const h = bodyHash(body);
+  const r = runWith(
+    makePlan({
+      spec_id: "my-feature # carried from the Approved SPEC — the §6 root identity",
+      hash: `${h} # fix #4 — carried forward; the next stage re-verifies spec↔plan`,
+    }),
+    makeSpec({ spec_id: "my-feature", state: "Approved", hash: h, body })
+  );
+  assert.equal(r.status, 0, r.stdout + r.stderr);
+  assert.match(r.stdout, /GREEN — spec→plan hash chain holds/);
+});
+
+test("the comment strip does NOT weaken the content pin: a noted-but-WRONG hash still REDs", () => {
+  // The strip must widen what parses, never what PASSES. A trailing note on a drifted hash is still drift.
+  const body = bodyFrom();
+  const r = runWith(
+    makePlan({ hash: `${"a".repeat(64)} # fix #4 — carried forward` }),
+    makeSpec({ state: "Approved", hash: bodyHash(body), body })
+  );
+  assert.equal(r.status, 1);
+  assert.match(r.stdout, /chain BROKEN/);
+});
+
+test("quote-aware on the PLAN side too: a QUOTED id containing ' # ' compares equal across both parses", () => {
+  // Cross-parser agreement: the SPEC's id comes back through `check-spec --spec-id` (parseSpec) and the
+  // PLAN's through this file's local readValue. If either truncated `"a # b"` at the hash, they would
+  // disagree and this would RED.
+  const body = bodyFrom();
+  const h = bodyHash(body);
+  const r = runWith(makePlan({ spec_id: '"a # b"', hash: h }), makeSpec({ spec_id: '"a # b"', state: "Approved", hash: h, body }));
+  assert.equal(r.status, 0, r.stdout + r.stderr);
+  assert.match(r.stdout, /GREEN/);
+});
+
+test("★ P0/P2: a control character in the PLAN's spec_id is ESCAPED in the RED, never emitted raw", () => {
+  // ESC is the control character that actually SURVIVES the per-line frontmatter parse (JS `.` excludes
+  // only the four line terminators), so an ANSI sequence is the real shape an untrusted field would use
+  // to repaint the terminal and make a RED LOOK like a GREEN. The VERDICT is the exit code and was never
+  // at risk; rendering both ids through JSON.stringify keeps the human-facing text honest too.
+  //
+  // ESC is built with fromCharCode, never written as a literal escape or a raw byte: a raw control byte
+  // in a source file survives copy/paste and tooling badly, which is exactly how this fixture was first
+  // written wrong.
+  const ESC = String.fromCharCode(27);
+  const body = bodyFrom();
+  const h = bodyHash(body);
+  const r = runWith(
+    makePlan({ spec_id: `evil${ESC}[1A${ESC}[2KGREEN — spec→plan hash chain holds`, hash: h }),
+    makeSpec({ spec_id: "my-feature", state: "Approved", hash: h, body })
+  );
+  assert.equal(r.status, 1);
+  assert.match(r.stdout, /IDENTITY mismatch/);
+  assert.ok(!r.stdout.includes(ESC), "the ESC must not reach stdout raw");
+  assert.match(r.stdout, /\\u001b/); // escaped, as JSON.stringify renders it
+});
+
+test("duplicate spec_id in the PLAN is LAST-wins, matching parseSpec and YAML — a shadowed first line cannot pass", () => {
+  // The hole a first-wins read left open: the PLAN names the right spec on line one and a DIFFERENT spec on
+  // line two. parseSpec (and every other reader) sees the second; a first-wins chain check would compare the
+  // first and GREEN an id that is not the plan's effective one.
+  const body = bodyFrom();
+  const h = bodyHash(body);
+  const plan = `---\nspec_id: my-feature\nspec_id: some-other-feature\nspec_content_hash: ${h}\n---\n\n## Approach\n\nx.\n`;
+  const r = runWith(plan, makeSpec({ spec_id: "my-feature", state: "Approved", hash: h, body }));
+  assert.equal(r.status, 1);
+  assert.match(r.stdout, /IDENTITY mismatch/);
+  assert.match(r.stdout, /"some-other-feature"/); // the EFFECTIVE (last) value is what was compared
+});
+
+test("the id comparison is symmetric under padding: byte-identical quoted ids with edge spaces are GREEN", () => {
+  // The SPEC's id crosses a stdout boundary and must be trimmed there; trimming only that side made two
+  // files carrying the IDENTICAL line disagree. Both sides are trimmed, so padding is not identity — and
+  // trimming cannot merge two DISTINCT ids, which the next test pins.
+  const body = bodyFrom();
+  const h = bodyHash(body);
+  const r = runWith(
+    makePlan({ spec_id: '"  FEAT-1  "', hash: h }),
+    makeSpec({ spec_id: '"  FEAT-1  "', state: "Approved", hash: h, body })
+  );
+  assert.equal(r.status, 0, r.stdout + r.stderr);
+  assert.match(r.stdout, /GREEN/);
+});
+
+test("the symmetric trim does NOT merge distinct ids: 'FEAT-1' vs 'FEAT-2' still REDs however padded", () => {
+  const body = bodyFrom();
+  const h = bodyHash(body);
+  const r = runWith(makePlan({ spec_id: '"  FEAT-1  "', hash: h }), makeSpec({ spec_id: "FEAT-2", state: "Approved", hash: h, body }));
+  assert.equal(r.status, 1);
+  assert.match(r.stdout, /IDENTITY mismatch/);
+});
+
+test("ordering is deliberate: when BOTH id and hash are wrong, the IDENTITY mismatch is what is reported", () => {
+  // Pins the documented "identity before content" ordering, which is otherwise exit-code-invariant and so
+  // invisible to every other test. A plan naming a different spec is not "stale" — reporting a broken hash
+  // chain first would send the reader to re-plan against the wrong spec.
+  const body = bodyFrom();
+  const r = runWith(
+    makePlan({ spec_id: "some-other-feature", hash: "a".repeat(64) }),
+    makeSpec({ spec_id: "my-feature", state: "Approved", hash: bodyHash(body), body })
+  );
+  assert.equal(r.status, 1);
+  assert.match(r.stdout, /IDENTITY mismatch/);
+  assert.doesNotMatch(r.stdout, /chain BROKEN/);
+});
+
+test("fail-closed: a CR inside a frontmatter value makes the LINE unparseable → the field reads as ABSENT", () => {
+  // The companion to the ★ case above, and the reason it uses ESC. JS `.` excludes \r, so the key/value
+  // match fails outright rather than yielding a truncated value: the field is treated as MISSING and the
+  // checker REDs, never silently comparing a half-read id. Pinned because it is the SAFE direction and it
+  // is easy to assume the value is merely truncated.
+  const body = bodyFrom();
+  const h = bodyHash(body);
+  const r = runWith(makePlan({ spec_id: "evil\rGREEN", hash: h }), makeSpec({ state: "Approved", hash: h, body }));
+  assert.equal(r.status, 1);
+  assert.match(r.stdout, /no spec_id|UNPINNED/i);
 });
