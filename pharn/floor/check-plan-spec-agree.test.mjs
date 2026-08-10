@@ -161,6 +161,22 @@ test("★ P0/P2: a needle in the SPEC prose is opaque bytes (the hash covers it)
   assert.match(r.stdout, /GREEN/);
 });
 
+// A whole-file CRLF checkout — what `core.autocrlf=true` actually produces, frontmatter included.
+const toCRLF = (s) => s.replace(/\n/g, "\r\n");
+
+test("chain: a CRLF-checked-out SPEC + a PLAN carrying the LF hash → the chain holds (exit 0)", () => {
+  // The end-to-end proof that the fold reaches the OUTERMOST consumer: this checker shells BOTH
+  // check-spec-approved.mjs and check-spec.mjs --hash and computes no hash of its own, so a CRLF spec
+  // must satisfy the gate AND re-emit the LF digest the plan carries. `bodyHash` stays byte-exact over
+  // the LF spelling, so this cannot pass by mirroring the fold. The PLAN stays LF — its carried hash is
+  // a field, never itself hashed.
+  const body = bodyFrom();
+  const h = bodyHash(body); // the LF-authored pin, as /pharn-spec would have written it
+  const r = runWith(makePlan({ hash: h }), toCRLF(makeSpec({ state: "Approved", hash: h, body })));
+  assert.equal(r.status, 0, r.stdout + r.stderr);
+  assert.match(r.stdout, /GREEN — spec→plan hash chain holds/);
+});
+
 test("RED: missing argument(s) prints usage and exits 1", () => {
   const r = spawnSync(process.execPath, [CHECKER], { encoding: "utf8" });
   assert.equal(r.status, 1);

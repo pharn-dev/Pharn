@@ -64,8 +64,12 @@ to **declare the path in `writes:` and re-run this setter (with `--target`)** �
    `sha256(pharn/ARCHITECTURE.md)` and compare to the plan's `spec_content_hash`:
 
    ```bash
-   node -e "console.log(require('crypto').createHash('sha256').update(require('fs').readFileSync('pharn/ARCHITECTURE.md')).digest('hex'))"
+   node .dev/floor/hash-doc.mjs pharn/ARCHITECTURE.md
    ```
+
+   Use the tool, not an inline `node -e`: it folds `\r\n` → `\n` first, so a CRLF checkout does not read
+   as drift (the same fold `/pharn-dev-plan` used to produce the pin — a byte-exact recompute here would
+   disagree with a folded pin and manufacture the finding).
 
    If it differs, the plan was built against a moved spec. Record it as a finding (`rule_id` `P6`,
    `severity` `blocking`) — but respect the division of labor (fix #3, `pharn/ARCHITECTURE.md §7`): the

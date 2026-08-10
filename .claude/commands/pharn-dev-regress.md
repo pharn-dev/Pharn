@@ -88,12 +88,32 @@ re-run this setter** — never bypass the hook.
      --changed "<inside, comma-separated>" \
      --declared "<PLAN.md ## Files paths>" \
      --tests "$(git ls-files '*.test.mjs' '*.test.cjs' | paste -sd, -)" \
-     --eval-pairs "<EXPECTED::ACTUAL committed eval pairs, comma-separated>"
+     --eval-pairs "<EXPECTED::ACTUAL committed eval pairs, comma-separated>" \
+     --feature "<name>"
    ```
 
    It returns `inside`, `outside_tests`, and `outside_eval_pairs` (the gates to run). If a changed path
    is **outside** the declared writes, `scope` exits **1** with a **blocking P0 fix#7 finding** (the
    build escaped its `## Files`) — surface it and **stop**; that is a scope breach, not a regression.
+
+   **Pass `--feature <name>`; do not hand-exclude.** `scope` computes `escaped` from `git diff <base>`,
+   which answers "what CHANGED since base" — so with `base = HEAD` on a working-tree dogfood, THIS
+   feature's own `PLAN.md` / `GRILL.md` / earlier artifacts land in the diff and used to be reported as
+   the build escaping its scope. They are not: each is written by its own stage under that stage's own
+   Step-0 writes-scope. `--feature` exempts exactly those (a closed filename enum under
+   `.dev/features/<name>/` and `features/<name>/`, plus `lenses/<lens>/findings.json`), as do the four
+   hook-protected trusted docs, which the agent cannot write at all. Every exemption is listed in the
+   returned **`escape_exempt`** — read it, the same way you read the setter's path count. A **stray** file
+   in the feature dir, another feature's artifact, and every real source path are all still escapes, and a
+   `--feature` that is not a plain slug is **refused** (exit 2). This replaces the by-hand `--changed`
+   filtering that `.dev/memory-bank/lessons-learned.md` **L17** documents and **L20** demanded be given a
+   floor check (cited, not restated — P4).
+
+   > **The one detection it gives up (P0).** A build that rewrites its own `PLAN.md` `## Files` to
+   > retroactively authorize a path it wrote is no longer caught here, and nothing else catches it —
+   > `check-plan-spec-agree.mjs` reads only `spec_content_hash`, which a `## Files` edit does not move.
+   > If the PLAN itself is in the diff, read that diff. The deterministic remedy is named as a follow-up
+   > in `check-regress.mjs`'s honest-scope block.
 
    _(Committed eval pairs are discovered by convention — each `<cap>/evals/expected/<x>.json` with its
    committed actual findings; today the one pair is trust-fence's expected ↔ `.dev/features/trust-fence/findings.json`,

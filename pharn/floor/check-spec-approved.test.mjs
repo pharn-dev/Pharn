@@ -98,6 +98,18 @@ test("★ P0/P2: an instruction-looking needle in the intent does NOT flip the g
   assert.match(r.stdout, /GREEN/);
 });
 
+// A whole-file CRLF checkout — what `core.autocrlf=true` actually produces, frontmatter included.
+const toCRLF = (s) => s.replace(/\n/g, "\r\n");
+
+test("chain: a CRLF checkout of an Approved spec pinned from its LF form passes the gate (exit 0)", () => {
+  // Proves the gate INHERITS check-spec's line-ending fold rather than computing a hash of its own: it
+  // holds zero createHash calls and shells check-spec.mjs, so the fold reaches it for free. `bodyHash`
+  // here stays byte-exact over the LF spelling, so this cannot pass by mirroring the fold.
+  const r = runWith(toCRLF(makeSpec({ state: "Approved", hash: bodyHash(BODY) })));
+  assert.equal(r.status, 0, r.stdout + r.stderr);
+  assert.match(r.stdout, /GREEN — spec Approved and un-drifted/);
+});
+
 test("RED: no argument prints usage and exits 1", () => {
   const r = spawnSync(process.execPath, [GATE], { encoding: "utf8" });
   assert.equal(r.status, 1);

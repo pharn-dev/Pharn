@@ -136,3 +136,71 @@ test("--hash then validate-Approved agree: pinning the --hash output yields GREE
   assert.equal(r.status, 0);
   assert.match(r.stdout, /GREEN/);
 });
+
+// --- The line-ending fold: a CRLF working tree is not "drifted" -----------------------------------
+//
+// Note what these fixtures deliberately do NOT do: the local `bodyHash` helper above stays BYTE-EXACT
+// over the LF spelling, so no case here can pass by agreeing with a copy of the fold. Every expectation
+// is "the checker accepts the LF-derived pin", never "the checker agrees with our re-implementation".
+
+// A whole-file CRLF checkout — what `core.autocrlf=true` actually produces, frontmatter included.
+const toCRLF = (s) => s.replace(/\n/g, "\r\n");
+
+test("fold: --hash prints the SAME digest for a CRLF checkout and its LF spelling", () => {
+  const lf = runWith(makeSpec({ body: BODY }), { hashMode: true });
+  const crlf = runWith(toCRLF(makeSpec({ body: BODY })), { hashMode: true });
+  assert.equal(lf.status, 0);
+  assert.equal(crlf.status, 0);
+  assert.match(lf.stdout.trim(), /^[0-9a-f]{64}$/);
+  assert.equal(crlf.stdout, lf.stdout);
+});
+
+test("fold: a complete Approved spec checked out CRLF, pinned from the LF form, is GREEN — not 'drifted'", () => {
+  // The exact cold-start the fix rescues: an LF-authored pin, a CRLF working tree, nothing actually
+  // changed. Complete + Approved on purpose — the pin is only compared after the section checks, so a
+  // Draft or a section-short fixture would accumulate other REDs and the assertion would stop isolating it.
+  const r = runWith(toCRLF(makeSpec({ state: "Approved", hash: bodyHash(BODY), body: BODY })));
+  assert.equal(r.status, 0, r.stdout + r.stderr);
+  assert.match(r.stdout, /GREEN/);
+  assert.doesNotMatch(r.stdout, /drifted/);
+});
+
+test("fold: a MIXED-line-ending body (alternating CRLF and LF) still matches the LF pin", () => {
+  // The half-renormalized working tree — the shape a file takes mid-edit, which neither the all-LF nor
+  // the all-CRLF case covers.
+  const lines = BODY.split("\n");
+  let mixed = lines[0];
+  for (let i = 1; i < lines.length; i++) mixed += (i % 2 === 0 ? "\r\n" : "\n") + lines[i];
+  assert.notEqual(mixed, BODY); // the fixture really is mixed, not accidentally LF
+  const r = runWith(makeSpec({ state: "Approved", hash: bodyHash(BODY), body: mixed }));
+  assert.equal(r.status, 0, r.stdout + r.stderr);
+  assert.match(r.stdout, /GREEN/);
+});
+
+test("fold: a body differing in actual TEXT (not only line endings) still REDs as drifted", () => {
+  // The equivalence class widens by exactly the LF/CRLF axis and by nothing else.
+  const changed = bodyFrom(undefined, "a genuinely different intent");
+  const r = runWith(toCRLF(makeSpec({ state: "Approved", hash: bodyHash(BODY), body: changed })));
+  assert.equal(r.status, 1);
+  assert.match(r.stdout, /RED/);
+  assert.match(r.stdout, /drifted/);
+});
+
+test("fold: a lone `\\r` is NOT folded — only CRLF is (the widening stays bounded)", () => {
+  // The minimal `/\r\n/g` form was chosen deliberately, and BOTH fixtures below exist to pin that choice
+  // against a WIDER fold. Each must place the lone `\r` where a wider fold would reconstruct BODY exactly —
+  // a fixture that merely swaps some other character for the `\r` differs from BODY in real text under every
+  // fold width, so it REDs for a reason unrelated to boundedness and pins nothing. Two are needed because no
+  // single string maps back to BODY under both candidate widenings.
+  //
+  // `\r` WHERE an `\n` was → an over-wide `/\r\n?/g` would restore BODY and wrongly GREEN.
+  const withCR = BODY.replace("## Intent\n\nwhat", "## Intent\n\rwhat");
+  const r = runWith(makeSpec({ state: "Approved", hash: bodyHash(BODY), body: withCR }));
+  assert.equal(r.status, 1);
+  assert.match(r.stdout, /drifted/);
+  // `\r` INSERTED mid-line → a CR-stripping `/\r/g → ""` would restore BODY and wrongly GREEN.
+  const withCR2 = BODY.replace("what and why", "what and \rwhy");
+  const r2 = runWith(makeSpec({ state: "Approved", hash: bodyHash(BODY), body: withCR2 }));
+  assert.equal(r2.status, 1);
+  assert.match(r2.stdout, /drifted/);
+});

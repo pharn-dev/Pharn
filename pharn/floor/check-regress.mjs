@@ -38,7 +38,11 @@
 // No child process, no network. No guaranteed decision rests on a tainted field.
 //
 // Usage:
-//   node pharn/floor/check-regress.mjs scope   --changed <list> --declared <list> [--tests <list>] [--eval-pairs <list>]
+//   node pharn/floor/check-regress.mjs scope   --changed <list> --declared <list> [--tests <list>] [--eval-pairs <list>] [--feature <name>]
+//     --feature    : the increment's slug. Exempts THIS feature's own pipeline artifacts (PLAN.md,
+//                    GRILL.md, …) from the escape set — they are written by their own stages, not by the
+//                    build (the L17 floor check). Omit it and nothing is exempt on that axis (fail-closed).
+//                    Exemptions are always REPORTED in `escape_exempt`, never silently dropped.
 //   node pharn/floor/check-regress.mjs verdict <base-results.json> <head-results.json> [--base <ref>] [--inside <list>]
 //     <list>       : comma/whitespace-separated repo-relative paths
 //     <eval-pairs> : comma/whitespace-separated "EXPECTED::ACTUAL" tokens (the committed eval pairs)
@@ -49,17 +53,116 @@
 
 import { readFileSync, existsSync } from "node:fs";
 
+// --- The ESCAPE-EXEMPT sets (the floor check for lessons-learned L17). -----------------------------
+// `scope` computes `escaped` over `git diff <base>`, which answers "what CHANGED since base" — but it is
+// REPORTED as "what the BUILD wrote". With `base = HEAD` on a working-tree dogfood those two questions
+// diverge, and every sibling stage's own artifact lands in `escaped` as a BLOCKING P0 fix#7 finding on
+// the correct, designed workflow. That is worse than a missing check: it trains an operator to wave
+// through the one finding that must never be waved through. Measured before this fix: 11 recorded runs
+// applied the exclusion BY HAND (`grep -rl 'L17' .dev/features/*/REGRESSION.md` → 12 files, one of which
+// records the class not firing). L20's rule — a lesson whose only remedy is discipline WILL recur, and
+// the SECOND occurrence is the trigger to give it a floor check — was 9 occurrences past due.
+//
+// Both exemptions are CLOSED ENUMS (ARCHITECTURE §2 primitive #3 — exact membership, no glob, no
+// judgment), and neither is silent: every exempted path is reported in `escape_exempt`.
+//
+// NOT taken: L17's other suggested remedy — deriving "written by the build" from
+// `.pharn/writes-scope.json` — is UNIMPLEMENTABLE as stated, which is a discovery, not a preference.
+// That file is a single MUTABLE record every stage's Step 0 overwrites, so by the time /pharn-dev-regress
+// runs it holds the regress stage's own scope, not the build's (verified live). It would require a
+// durable per-build scope record, which does not exist.
+//
+// The pipeline's own audit artifacts, by EXACT filename. Each is written by ITS OWN stage under that
+// stage's own Step-0 writes-scope — never by /pharn-dev-build — so finding one in the diff is evidence the
+// PIPELINE ran, not that the build escaped its `## Files`. Exact names, deliberately NOT a `**` glob over
+// the feature dir: a stray or unexpected file under the same directory is still REPORTED as an escape.
+// DERIVED, not recalled: this list must cover every `features/<name>/<artifact>` any command declares.
+//   grep -hoE 'features/<name>/[A-Za-z0-9._-]+' .claude/commands/*.md | sort -u
+// A test pins enum ⊇ that enumeration, so a newly-added artifact fails a TEST rather than REDding a
+// user's pipeline. The first cut of this enum was written from the dev loop's artifacts alone and omitted
+// BUILD.md / SPEC.md / findings.json — which made /pharn-regress RED on 100% of PRODUCT runs, because
+// /pharn-build writes features/<name>/BUILD.md under a SEPARATE re-scope and `--declared` is the plan's
+// `## Files`, so that artifact is STRUCTURALLY never declared.
+const PIPELINE_ARTIFACTS = [
+  "SPEC.md",
+  "PLAN.md",
+  "GRILL.md",
+  "BUILD.md",
+  "REGRESSION.md",
+  "regression-report.json",
+  "VERIFY.md",
+  "verify-report.json",
+  "REVIEW.md",
+  "findings.json",
+  "SHIP.md",
+  "ship-record.json",
+  "LOOP.md",
+];
+
+// /pharn-review writes one findings.json per lens, NESTED: features/<name>/lenses/<lens>/findings.json.
+// An exact-filename enum structurally cannot express that, so it gets its own narrow shape: exactly one
+// path segment for the lens name, and the filename must still be `findings.json`. Anything deeper, or any
+// other filename under lenses/, is still an escape.
+const LENS_FINDINGS_RE = /^lenses\/[A-Za-z0-9._-]+\/findings\.json$/;
+
+// A `--feature` must be a plain slug. REJECTED fail-closed otherwise (exit 2) rather than reasoned about:
+// the previous code claimed a crafted value "yields a prefix that matches no path", but `--feature ..`
+// builds `.dev/features/../`, which DOES match and exempted a path outside every feature directory.
+// Refusing the value is what makes the claim true instead of nearly true.
+// The negative lookahead is LOAD-BEARING, not decoration: `.` is inside the character class, so a bare
+// `^[A-Za-z0-9._-]+$` happily admits `.` and `..` — which is the exact traversal this gate exists to
+// refuse. Caught by re-running the reproduction against the "fix" instead of trusting the regex.
+const FEATURE_SLUG_RE = /^(?!\.\.?$)[A-Za-z0-9._-]+$/;
+
+// The four hook-protected trusted docs. `protect-trusted-paths.cjs` DENIES every Write|Edit|MultiEdit to
+// them (exit 2), so the build cannot have produced the change — the denial is the disproof, not an
+// assumption. BOUNDED, and stated: the hook gates the Write-tool surface only, so a Bash-tool write
+// bypasses both it and this exemption (the L19 escape). The claim is "the build could not have written
+// this WITH THE WRITE TOOL", never "no process changed it".
+const TRUSTED_DOCS = ["pharn/CONSTITUTION.md", "pharn/ARCHITECTURE.md", "THREAT-MODEL.md", "LIMITS.md"];
+
+// THE NARROWING THIS EXEMPTION INTRODUCES — the honest cost, stated because it is not obvious (P0/P7).
+// A build that rewrites its OWN `features/<name>/PLAN.md` `## Files` to retroactively authorize a path it
+// already wrote is NO LONGER DETECTED here: the plan edit is exempt, and the added path then reads as
+// declared. Before the exemption, the plan edit itself was the tell and `scope` exited 1. Nothing else
+// catches it — check-plan-spec-agree.mjs reads only `spec_content_hash` from the PLAN, and a `## Files`
+// edit does not move that. This matters most for a Bash-tool write, which bypasses enforce-writes-scope.cjs
+// entirely (L19) and leaves this check as the last detector. It is an ADVISORY GAP, not a guarantee.
+// FOLLOW-UP (the deterministic remedy, deliberately not smuggled into this increment): have `scope` compare
+// `git show <base>:features/<name>/PLAN.md`'s `## Files` against HEAD's and RED on any difference —
+// primitive #3, and it restores the tell without re-opening the false positives this exemption removes.
+//
+// Is `file` one of THIS feature's own pipeline artifacts? Requires an explicit `--feature <name>`: with no
+// feature named, nothing is exempt on this axis (fail-closed — the exemption is opt-in, never inferred).
+// The slug is SHAPE-GATED before use (FEATURE_SLUG_RE), so a crafted value cannot build a traversing
+// prefix; matching is then literal `startsWith` + exact membership, never a glob.
+function isPipelineArtifact(file, feature) {
+  if (!feature || !FEATURE_SLUG_RE.test(feature)) return false;
+  for (const root of [`.dev/features/${feature}/`, `features/${feature}/`]) {
+    if (!file.startsWith(root)) continue;
+    const rest = file.slice(root.length);
+    if (PIPELINE_ARTIFACTS.includes(rest) || LENS_FINDINGS_RE.test(rest)) return true;
+  }
+  return false;
+}
+
 // --- emit one JSON document to stdout, then exit. The command captures this verbatim. ---
 function emit(obj, code) {
   console.log(JSON.stringify(obj, null, 2));
   process.exit(code);
 }
 
-// --- comma/whitespace list -> normalized, de-duplicated path array. ---
+// --- comma/newline list -> normalized, de-duplicated path array. -----------------------------------
+// Split on COMMA or NEWLINE only, never on spaces. A space is a legal filename character and
+// `git diff --name-only` does NOT quote it, so a whitespace split turns ONE real path into TWO tokens.
+// That is not cosmetic: composed with the escape-exempt sets it LAUNDERS an escape — a single undeclared
+// file named `THREAT-MODEL.md LIMITS.md` split into two tokens that are each separately exempt, and
+// `scope` exited 0 where it had exited 1 before the exemption existed. `normPath` already trims each
+// token, so surrounding spaces around a comma are still tolerated (`a.ts, b.ts`).
 function parseList(s) {
   if (s === undefined || s === null) return [];
   const out = [];
-  for (const tok of String(s).split(/[\s,]+/)) {
+  for (const tok of String(s).split(/[,\n\r]+/)) {
     const p = normPath(tok);
     if (p && !out.includes(p)) out.push(p);
   }
@@ -167,7 +270,7 @@ function runScope(args) {
   // fail closed (P5, exit 2) rather than silently dropping it from the outside-gate set — a dropped
   // pair would silently shrink coverage, the exact silent pass this core forbids.
   const evalPairTokens = (flag(args, "--eval-pairs") || "")
-    .split(/[\s,]+/)
+    .split(/[,\n\r]+/) // comma/newline only — a space is a legal filename char (see parseList)
     .map((t) => t.trim())
     .filter(Boolean);
   const malformedPair = evalPairTokens.find((tok) => !tok.includes("::"));
@@ -189,7 +292,25 @@ function runScope(args) {
 
   // fix #7 cross-check: every changed file must be covered by a declared `writes:` pattern. A changed
   // path matching none means the build wrote OUTSIDE its declared `## Files` — a blocking escape.
-  const escaped = inside.filter((f) => !matchesAny(f, declared));
+  //
+  // ...EXCEPT the two closed exempt sets above (the L17 floor check): this feature's own pipeline
+  // artifacts, and the hook-protected trusted docs. Neither can be a build escape, and reporting them as
+  // one is a false BLOCKING finding on the correct workflow. The exemption is SUBTRACTIVE and REPORTED —
+  // `escape_exempt` is always emitted, so a suppressed path is visible, never silently dropped.
+  const feature = flag(args, "--feature");
+  if (feature !== undefined && !FEATURE_SLUG_RE.test(feature)) {
+    emit(
+      {
+        verdict: "inconclusive",
+        reason: `--feature must be a plain slug matching ${FEATURE_SLUG_RE} (no '/', no '..', no glob): got ${JSON.stringify(feature)}`,
+      },
+      2
+    );
+  }
+  const undeclared = inside.filter((f) => !matchesAny(f, declared));
+  const escapeExempt = undeclared.filter((f) => TRUSTED_DOCS.includes(f) || isPipelineArtifact(f, feature));
+  const exemptSet = new Set(escapeExempt);
+  const escaped = undeclared.filter((f) => !exemptSet.has(f));
 
   // Derive the OUTSIDE gate inputs by path membership (NOT classification, P5): a test/eval is "inside"
   // iff its file is in the changed set; everything else is outside and must not regress.
@@ -208,10 +329,31 @@ function runScope(args) {
       file: f,
       problem: `changed file '${f}' is outside the declared writes-scope (fix #7) — the build escaped its plan's \`## Files\``,
     }));
-    emit({ inside, declared, escaped, findings, outside_tests: outsideTests, outside_eval_pairs: outsideEvalPairs }, 1);
+    emit(
+      {
+        inside,
+        declared,
+        escaped,
+        escape_exempt: escapeExempt,
+        findings,
+        outside_tests: outsideTests,
+        outside_eval_pairs: outsideEvalPairs,
+      },
+      1
+    );
   }
 
-  emit({ inside, declared, escaped: [], outside_tests: outsideTests, outside_eval_pairs: outsideEvalPairs }, 0);
+  emit(
+    {
+      inside,
+      declared,
+      escaped: [],
+      escape_exempt: escapeExempt,
+      outside_tests: outsideTests,
+      outside_eval_pairs: outsideEvalPairs,
+    },
+    0
+  );
 }
 
 // ---------------------------------------------------------------------------------------------------

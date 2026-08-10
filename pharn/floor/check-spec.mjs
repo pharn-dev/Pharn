@@ -12,7 +12,8 @@
 // NON-LLM, dependency-free (Node stdlib only). No network, no child_process, no eval, no dynamic import.
 //
 // Honest scope (P0): it guarantees a SPEC.md carries the REQUIRED SECTIONS, a VALID state enum, a present
-// spec_id, and — when Approved — a spec_content_hash that EQUALS sha256(body). It does NOT — cannot — judge
+// spec_id, and — when Approved — a spec_content_hash that EQUALS sha256(body), taken with line endings folded
+// to LF (see bodyHash). It does NOT — cannot — judge
 // whether the INTENT is clear, complete, or wise: that is the human's advisory call, owned by the approval
 // halt in /pharn-spec. "passed check-spec" must NEVER read as "the intent is sound" — that conflation is the
 // P0 disease this repo exists to prevent.
@@ -23,10 +24,11 @@
 //
 // Usage:
 //   node pharn/floor/check-spec.mjs <SPEC.md>           validate → exit 1 on any RED (prints each), else 0 + GREEN
-//   node pharn/floor/check-spec.mjs --hash <SPEC.md>    print sha256(body) to stdout — the value /pharn-spec pins
+//   node pharn/floor/check-spec.mjs --hash <SPEC.md>    print sha256(body) to stdout (line endings folded to
+//                                                      LF — see bodyHash) — the value /pharn-spec pins
 //                                                      into spec_content_hash on approval. SINGLE source of
-//                                                      body-extraction, so the pin and the validate-time
-//                                                      recompute can never disagree.
+//                                                      body-extraction AND of the fold, so the pin and the
+//                                                      validate-time recompute can never disagree.
 //
 // Exit: 1 on any RED (validate) / on unreadable | no-frontmatter (--hash); 0 otherwise.
 
@@ -68,8 +70,25 @@ function parseSpec(text) {
   return { fm, body: text.slice(m[0].length) };
 }
 
+// The body's SHA-256, with line endings FOLDED (`\r\n` → `\n`) before hashing. LF vs CRLF is the same
+// intent, not a content change: a Windows clone (`core.autocrlf=true`), or a Windows editor rewriting the
+// working tree between git operations, would otherwise make this recompute diverge from an LF-authored pin
+// and RED as "the approved intent drifted" on a repo where nothing drifted. Folding HERE — the single
+// body-hash implementation, which check-spec-approved.mjs and check-plan-spec-agree.mjs both delegate to
+// (neither computes a hash of its own) — makes the pin line-ending-agnostic for the whole chain.
+//
+// Honest bounds (P0). The COMPARISON is floor (content-hash, ARCHITECTURE §2 primitive #2). That no second
+// hash implementation is ever added is DISCIPLINE, not a floor op — the chain tests DETECT a divergent
+// re-implementation, they do not PREVENT one. The fold is the identity map on an LF body, so an LF-authored
+// pin is byte-unchanged and no LF-authored stored hash moves. Only line endings are folded — no trailing- or
+// interior-whitespace normalization — so two bodies can share a pin only by differing in CR bytes
+// immediately before an LF; a lone `\r` is left byte-exact. The cost, stated: a pure CRLF-for-LF rewrite
+// of the body is no longer DETECTED as drift. Nothing downstream is line-ending-sensitive today (FM_RE
+// and headingsOf both split on /\r?\n/), but a future consumer that is would need its own check.
+// The converse cost, also stated: a pin COMPUTED FROM a CRLF working tree (--hash run against the file as
+// it sits on disk) was self-consistent before and REDs now until re-approved — the remedy the RED prints.
 function bodyHash(body) {
-  return createHash("sha256").update(body).digest("hex");
+  return createHash("sha256").update(body.replace(/\r\n/g, "\n")).digest("hex");
 }
 
 // The lowercased text of each `## ` (exactly h2) heading in the body — the first-match parse mechanism from
@@ -151,7 +170,7 @@ function validate(specPath) {
     if (!HASH_RE.test(h)) {
       red("pin", `an Approved spec needs spec_content_hash matching ${HASH_RE} (a sha256), got ${JSON.stringify(h)}`);
     } else if (h !== bodyHash(body)) {
-      red("pin", "spec_content_hash does not equal sha256(body) — the approved intent drifted (re-approve to re-pin)");
+      red("pin", "spec_content_hash does not equal the body hash — the approved intent drifted (re-approve to re-pin)");
     }
   }
 

@@ -53,7 +53,20 @@ chosen by a model. If a later write is blocked with the `writes-scope guard` mes
 2. Inspect the **live** target repo (the repo where PHARN is being built). List what exists. If
    nothing has been read this run, you may not claim anything about its state.
 3. Compute and record the **content-hash of `pharn/ARCHITECTURE.md`** (the spec this plan is built
-   against): `node -e "console.log(require('crypto').createHash('sha256').update(require('fs').readFileSync('pharn/ARCHITECTURE.md')).digest('hex'))"`. This pins the spec by content, not by name (fix #4). `/pharn-dev-build` will refuse if the hash has drifted.
+   against):
+
+   ```bash
+   node .dev/floor/hash-doc.mjs pharn/ARCHITECTURE.md
+   ```
+
+   This pins the spec by content, not by name (fix #4). `/pharn-dev-build` will refuse if the hash has
+   drifted. **Use the tool, not an inline `node -e`:** `hash-doc.mjs` folds `\r\n` → `\n` before hashing,
+   so the pin survives a `core.autocrlf=true` clone or a Windows editor rewriting the working tree — a
+   byte-exact one-liner makes `/pharn-dev-build` refuse with "the spec drifted" on a repo where nothing
+   drifted. The fold is the identity map on this all-LF repo, so no committed PLAN's pin moves. That the
+   three dev stages share one implementation is a **convention** (advisory), not a floor guarantee — only
+   the hash comparison itself is floor.
+
 4. **Lessons sweep (mandatory — the `applied_lessons` input). Two steps: SELECT from the index, then
    READ the full entries from canon.**
    1. **Select candidates** from `docs/lessons-index.md` — the generated one-line-per-lesson index
