@@ -5,7 +5,7 @@ actually _guarantees_ anything (`CONSTITUTION.md` P0). It is non-LLM, dependency
 and cannot be talked out of its verdict by prompt injection. Everything else — the commands, the
 review lenses — is **advisory orchestration** that _invokes_ the floor.
 
-**All three** of the floor primitives in `ARCHITECTURE.md §2` are files here or in `../.claude/hooks/`.
+**All three** of the floor primitives in `ARCHITECTURE.md §2` are files here or in `../../.claude/hooks/`.
 The table below names the ones this page documents in depth — it is a **reading guide, not an
 inventory**. For the live count of checkers in this directory, see the generated `## Current state`
 block in the root `README.md`: it is rendered from the tree and held to byte-equality by
@@ -13,20 +13,20 @@ block in the root `README.md`: it is rendered from the tree and held to byte-equ
 number — a hand-maintained second copy is exactly what drifted here before (it read "three files" long
 after the directory passed forty).
 
-| file                                         | primitive                                | enforces                                      |
-| -------------------------------------------- | ---------------------------------------- | --------------------------------------------- |
-| `validate.mjs`                               | enum / regex / structural check          | P1, P3, P4; fixes #1, #5, #6                  |
-| `check-structural.mjs`                       | enum / regex-substring / path-resolution | `structural[]` of an eval `expected` (P0, P1) |
-| `check-spec.mjs`                             | content-hash (+ enum / presence)         | the approved-intent pin, fix #4               |
-| `../.claude/hooks/protect-trusted-paths.cjs` | pre-write hook                           | P2; fix #2                                    |
-| `../.claude/hooks/enforce-writes-scope.cjs`  | pre-write hook                           | P2, P5; fix #7                                |
+| file                                            | primitive                                | enforces                                      |
+| ----------------------------------------------- | ---------------------------------------- | --------------------------------------------- |
+| `validate.mjs`                                  | enum / regex / structural check          | P1, P3, P4; fixes #1, #5, #6                  |
+| `check-structural.mjs`                          | enum / regex-substring / path-resolution | `structural[]` of an eval `expected` (P0, P1) |
+| `check-spec.mjs`                                | content-hash (+ enum / presence)         | the approved-intent pin, fix #4               |
+| `../../.claude/hooks/protect-trusted-paths.cjs` | pre-write hook                           | P2; fix #2                                    |
+| `../../.claude/hooks/enforce-writes-scope.cjs`  | pre-write hook                           | P2, P5; fix #7                                |
 
 **Content-hash is a file primitive too.** `check-spec.mjs` owns the product spec pin
 (`spec_content_hash`): `--hash` emits the digest `/pharn-spec` pins on approval, and the default mode
 re-verifies it, with `check-spec-approved.mjs` and `check-plan-spec-agree.mjs` shelling it rather than
 re-implementing the hash. The digest is taken over the SPEC **body** with line endings folded to LF, so
 a CRLF checkout does not read as drift — see `bodyHash()` for the exact bound. (The dev loop's own pin
-over `pharn/ARCHITECTURE.md` uses the same fold via `../.dev/floor/hash-doc.mjs`, which ships to nobody.)
+over `pharn/ARCHITECTURE.md` uses the same fold via `../../.dev/floor/hash-doc.mjs`, which ships to nobody.)
 
 ## Run the validator
 
@@ -35,7 +35,7 @@ node pharn/floor/validate.mjs <pharn-repo-dir>     # default: current dir
 ```
 
 Point it at the PHARN repo being built. It exits **non-zero on any RED finding**. It deliberately
-ignores this repo's own tooling (`.claude/commands/`, `.dev/`) — those are advisory, not built
+ignores this repo's own tooling (`.claude/commands/`, `.dev/`, `pharn/floor/`) — those are advisory, not built
 PHARN capabilities. `/pharn-dev-build` runs it automatically and halts on RED; you can also run it yourself.
 
 What it checks (all deterministic):
@@ -45,7 +45,9 @@ What it checks (all deterministic):
 3. every `enforces` rule_id is produced by ≥1 eval fixture (P1, **fix #6** — semantic binding, not just namespace)
 4. finding templates separate enum-gated from free-text/untrusted fields (**fix #1**)
 5. no sibling reference in `reads:` across `pharn-stack-*` / `pharn-skills-*` modules (P3)
-6. the four archetype maps agree, _if_ `pharn-contracts/archetype-maps.json` exists (**fix #5**)
+6. the four archetype maps agree, _if_ `pharn/pharn-contracts/archetype-maps.json` exists (**fix #5**)
+7. `applies` is present and its values are archetype-enum members (`ARCHITECTURE §5`)
+8. no capability-canon file cites a **relocated** floor checker — a literal `.dev/floor/<x>` where `pharn/floor/<x>` exists, which would ENOENT and silently degrade that command's deterministic sub-check (P6)
 
 ## Run the structural checker
 
@@ -53,7 +55,7 @@ What it checks (all deterministic):
 node pharn/floor/check-structural.mjs <expected.json> <actual.json> [repoDir]
 ```
 
-`check-structural.mjs` **executes** the `structural[]` reduction that `pharn-contracts/eval-format.md`
+`check-structural.mjs` **executes** the `structural[]` reduction that `pharn/pharn-contracts/eval-format.md`
 documents. Given an eval's `expected` (normalized to JSON) and a skill's already-produced finding
 output (a JSON array of `finding-shape` objects), it evaluates the four structural kinds —
 `finding_count`, `field_equals`, `file_resolves`, `needle_absent_from_enum_gated` — plus the one

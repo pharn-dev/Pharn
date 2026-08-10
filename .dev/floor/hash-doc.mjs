@@ -28,6 +28,12 @@
 // edit to the trusted doc is still detected. This makes the pin survive a CRLF CHECKOUT; it does not make
 // the trusted doc tamper-proof.
 //
+// The bound is LINE ENDINGS, and nothing else. A BOM-adding editor still moves the pin (the BOM is
+// content to this tool), and `readFileSync(…, "utf8")` decodes invalid byte sequences to U+FFFD, so two
+// files differing only in invalid UTF-8 bytes collide here where `shasum` would not. Neither matters for
+// the artifact this pins — pharn/ARCHITECTURE.md is valid, BOM-free UTF-8 — but "survives a Windows
+// editor" is narrower than it sounds: it survives one that rewrites line endings, not one that adds a BOM.
+//
 // TRUST (P2): the target's bytes are opaque DATA. This tool reads, folds `\r\n`, hashes, and prints a
 // 64-hex digest — it never parses, executes, imports, or interprets the content, and no free text reaches
 // any caller. NON-LLM, dependency-free (Node stdlib). No network, no child_process, no eval.
@@ -64,4 +70,14 @@ function main() {
 }
 
 // Run only as a CLI, so the test suite can import hashDoc() without the process exiting under it.
-if (process.argv[1] && process.argv[1].endsWith("hash-doc.mjs")) process.exit(main());
+// `import.meta.main` (Node >= 24.2) is true exactly when THIS module is the entry point. The obvious
+// alternatives both fail, and both failures were reproduced rather than reasoned about:
+//   • `process.argv[1].endsWith("hash-doc.mjs")` — a SUFFIX match. It misses a differently-cased argv[1]
+//     (on a case-insensitive filesystem `node .dev/floor/Hash-Doc.mjs <file>` opens the real file, the
+//     guard is false, and the tool prints NOTHING at exit 0 — the silent empty digest this file's own
+//     "Exit:" contract forbids) and it misses a symlink under another name; conversely it FIRES when an
+//     unrelated module named `my-hash-doc.mjs` imports this one, exiting the importer.
+//   • `import.meta.url === \`file://${process.argv[1]}\`` — the repo's older sibling idiom. It fixes the
+//     casing and importer cases but still breaks through a symlink, because import.meta.url is the
+//     resolved real path while argv[1] is the link.
+if (import.meta.main) process.exit(main());

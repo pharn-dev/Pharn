@@ -15,7 +15,7 @@ import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
-import { mkdtempSync, writeFileSync, rmSync } from "node:fs";
+import { mkdtempSync, writeFileSync, rmSync, readdirSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -137,22 +137,100 @@ test("escape-exempt: an EMPTY-segment path is not exempt — the `!feature` guar
   // `.dev/features//` and this crafted path (an untrusted --changed operand; git never emits it) would
   // be silently exempted. This is the one input where the guard changes the answer, so it is the one
   // that pins it.
-  for (const args of [
-    ["scope", "--changed", ".dev/features//PLAN.md", "--declared", "src/a.ts"],
-    ["scope", "--changed", "features//PLAN.md", "--declared", "src/a.ts", "--feature", ""],
-  ]) {
-    const r = run(args);
-    assert.equal(r.status, 1, `must not exempt: ${args[2]}`);
-    assert.deepEqual(json(r).escape_exempt, []);
+  const r = run(["scope", "--changed", ".dev/features//PLAN.md", "--declared", "src/a.ts"]);
+  assert.equal(r.status, 1);
+  assert.deepEqual(json(r).escape_exempt, []);
+  // An explicitly EMPTY --feature is refused outright by the shape gate — stronger than merely inert.
+  const empty = run(["scope", "--changed", "features//PLAN.md", "--declared", "src/a.ts", "--feature", ""]);
+  assert.equal(empty.status, 2);
+  assert.match(empty.stdout, /inconclusive/);
+});
+
+test("escape-exempt: a crafted --feature is REJECTED fail-closed (exit 2), not merely ineffective", () => {
+  // The first cut only asserted "does not exempt ANOTHER feature", which a crafted value satisfies while
+  // still exempting something else: `--feature ..` builds the prefix `.dev/features/../` and DID exempt
+  // `.dev/features/../PLAN.md` (i.e. `.dev/PLAN.md`), outside every feature dir. Refuse the value instead.
+  for (const feature of ["*", "**", "..", "../..", "my-feat/../other", "a/b", "/abs", "with space"]) {
+    const r = run(["scope", "--changed", ".dev/features/other/PLAN.md", "--declared", "src/a.ts", "--feature", feature]);
+    assert.equal(r.status, 2, `--feature ${JSON.stringify(feature)} must be refused`);
+    assert.match(r.stdout, /inconclusive/);
+  }
+  // The exact traversal that used to slip through:
+  const r = run(["scope", "--changed", ".dev/features/../PLAN.md", "--declared", "src/a.ts", "--feature", ".."]);
+  assert.equal(r.status, 2);
+});
+
+// --- D1 (BLOCKING): the enum was written from the DEV loop's artifacts and omitted the PRODUCT ones, so
+// /pharn-regress RED'd on every product run. BUILD.md is the sharp case: /pharn-build writes it under a
+// SEPARATE re-scope, and `--declared` is the plan's `## Files`, so it is STRUCTURALLY never declared.
+
+test("★ escape-exempt covers the PRODUCT artifacts too — BUILD.md / SPEC.md / findings.json", () => {
+  const r = run([
+    "scope",
+    "--changed",
+    "features/my-feat/SPEC.md,features/my-feat/BUILD.md,features/my-feat/findings.json,src/impl.ts",
+    "--declared",
+    "src/impl.ts",
+    "--feature",
+    "my-feat",
+  ]);
+  assert.equal(r.status, 0, r.stdout);
+  assert.deepEqual(json(r).escaped, []);
+  assert.equal(json(r).escape_exempt.length, 3);
+});
+
+test("escape-exempt covers a lens's NESTED findings.json, and only that shape", () => {
+  const ok = run(["scope", "--changed", "features/f/lenses/security/findings.json", "--declared", "src/a.ts", "--feature", "f"]);
+  assert.equal(ok.status, 0);
+  assert.deepEqual(ok.escape_exempt ?? json(ok).escape_exempt, ["features/f/lenses/security/findings.json"]);
+  // deeper nesting, and any other filename under lenses/, are STILL escapes
+  for (const p of ["features/f/lenses/a/b/findings.json", "features/f/lenses/security/notes.md"]) {
+    const bad = run(["scope", "--changed", p, "--declared", "src/a.ts", "--feature", "f"]);
+    assert.equal(bad.status, 1, `${p} must still be an escape`);
   }
 });
 
-test("escape-exempt: a crafted --feature cannot widen the exemption (literal prefix, never a glob)", () => {
-  for (const feature of ["*", "..", "../..", "my-feat/../other"]) {
-    const r = run(["scope", "--changed", ".dev/features/other/PLAN.md", "--declared", "src/a.ts", "--feature", feature]);
-    assert.equal(r.status, 1, `--feature ${JSON.stringify(feature)} must not exempt another feature`);
-    assert.deepEqual(json(r).escaped, [".dev/features/other/PLAN.md"]);
+test("★ recurrence guard: the enum covers EVERY features/<name>/ artifact the commands declare", () => {
+  // The defect this pins is not "a name is missing" but "the list was written from memory". Derive the
+  // truth from the commands themselves; a newly-added artifact now fails HERE instead of REDding a
+  // user's pipeline. Files (not directories) only — `lenses` is a dir, covered by its own nested shape.
+  const cmdDir = join(here, "..", "..", ".claude", "commands");
+  const declared = new Set();
+  for (const f of readdirSync(cmdDir).filter((n) => n.endsWith(".md"))) {
+    const text = readFileSync(join(cmdDir, f), "utf8");
+    for (const m of text.matchAll(/features\/<name>\/([A-Za-z0-9._-]+)/g)) {
+      if (m[1].includes(".")) declared.add(m[1]); // has an extension => a file, not a directory
+    }
   }
+  assert.ok(declared.size >= 10, `expected to discover the artifact set, found ${declared.size}`);
+  const missing = [...declared].filter((name) => {
+    const r = run(["scope", "--changed", `features/probe/${name}`, "--declared", "src/a.ts", "--feature", "probe"]);
+    return r.status !== 0;
+  });
+  assert.deepEqual(missing, [], `PIPELINE_ARTIFACTS is missing artifact(s) the commands declare: ${missing}`);
+});
+
+// --- D3: a space is a legal filename character and `git diff --name-only` does not quote it. Splitting
+// --changed on whitespace turned ONE real path into TWO tokens which the exempt sets then absorbed.
+
+test("★ a space-containing path is ONE path, not two exempt tokens (escape laundering)", () => {
+  // Before the fix this exited 0 with escape_exempt naming two trusted docs that were never touched.
+  const r = run(["scope", "--changed", "THREAT-MODEL.md LIMITS.md", "--declared", "src/a.ts"]);
+  assert.equal(r.status, 1, r.stdout);
+  assert.deepEqual(json(r).escaped, ["THREAT-MODEL.md LIMITS.md"]);
+  assert.deepEqual(json(r).escape_exempt, []);
+});
+
+test("a space-containing path cannot be laundered through the feature exemption either", () => {
+  const r = run(["scope", "--changed", "src/a.ts features/f/PLAN.md", "--declared", "src/a.ts", "--feature", "f"]);
+  assert.equal(r.status, 1);
+  assert.deepEqual(json(r).escaped, ["src/a.ts features/f/PLAN.md"]);
+});
+
+test("comma lists still tolerate spaces AROUND the separator (normPath trims)", () => {
+  const r = run(["scope", "--changed", "src/a.ts, src/b.ts", "--declared", "src/a.ts, src/b.ts"]);
+  assert.equal(r.status, 0);
+  assert.deepEqual(json(r).inside, ["src/a.ts", "src/b.ts"]);
 });
 
 test("escape-exempt: a hook-protected trusted doc is exempt, and needs no --feature", () => {

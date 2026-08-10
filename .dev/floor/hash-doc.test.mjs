@@ -14,7 +14,7 @@ import { spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { fileURLToPath } from "node:url";
 import { dirname, join, resolve } from "node:path";
-import { mkdtempSync, writeFileSync, rmSync, readFileSync } from "node:fs";
+import { mkdtempSync, writeFileSync, rmSync, readFileSync, symlinkSync } from "node:fs";
 import { tmpdir } from "node:os";
 
 import { hashDoc } from "./hash-doc.mjs";
@@ -87,6 +87,55 @@ test("CLI: a missing argument exits 1 with usage — never a silent empty digest
   assert.equal(r.status, 1);
   assert.equal(r.stdout, "");
   assert.match(r.stderr, /usage/);
+});
+
+test("CLI: a differently-CASED argv[1] still prints a digest — never a silent empty digest", () => {
+  // On a case-insensitive filesystem `node .dev/floor/Hash-Doc.mjs <file>` opens the real module while
+  // argv[1] keeps the typed casing. Under the original `endsWith("hash-doc.mjs")` guard this printed
+  // NOTHING at exit 0 — a silent empty digest, which a caller would have recorded as the pin.
+  const miscased = join(here, "Hash-Doc.mjs");
+  const dir = mkdtempSync(join(tmpdir(), "pharn-hashdoc-case-"));
+  try {
+    const p = join(dir, "doc.md");
+    writeFileSync(p, LF);
+    const r = spawnSync(process.execPath, [miscased, p], { encoding: "utf8" });
+    if (r.status === 1 && /Cannot find module/i.test(r.stderr)) return; // case-SENSITIVE fs: not applicable
+    assert.equal(r.status, 0, r.stderr);
+    assert.equal(r.stdout.trim(), hashDoc(LF));
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("CLI: invoked through a SYMLINK under another name, it still prints a digest", () => {
+  const dir = mkdtempSync(join(tmpdir(), "pharn-hashdoc-link-"));
+  try {
+    const link = join(dir, "hd.mjs");
+    symlinkSync(TOOL, link);
+    const p = join(dir, "doc.md");
+    writeFileSync(p, LF);
+    const r = spawnSync(process.execPath, [link, p], { encoding: "utf8" });
+    assert.equal(r.status, 0, r.stderr);
+    assert.equal(r.stdout.trim(), hashDoc(LF));
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("importing the module does NOT run the CLI (an importer named *hash-doc.mjs is not hijacked)", () => {
+  // The mirror failure of the suffix guard: a module whose own name ends in `hash-doc.mjs` importing this
+  // one used to trip the guard and exit the IMPORTER before its own code ran.
+  const dir = mkdtempSync(join(tmpdir(), "pharn-hashdoc-import-"));
+  try {
+    const importer = join(dir, "my-hash-doc.mjs");
+    writeFileSync(importer, `import { hashDoc } from ${JSON.stringify(TOOL)};\nconsole.log("IMPORTER_RAN", hashDoc("a\\r\\nb"));\n`);
+    const r = spawnSync(process.execPath, [importer], { encoding: "utf8" });
+    assert.equal(r.status, 0, r.stderr);
+    assert.match(r.stdout, /IMPORTER_RAN [0-9a-f]{64}/);
+    assert.doesNotMatch(r.stdout + r.stderr, /usage/);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
 });
 
 test("CLI: an unreadable path exits 1 and names the file — never a silent empty digest", () => {

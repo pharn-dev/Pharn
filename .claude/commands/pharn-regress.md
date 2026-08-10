@@ -173,12 +173,25 @@ node pharn/floor/check-plan-spec-agree.mjs features/<name>/PLAN.md features/<nam
 
    **Pass `--feature <name>`.** `scope` derives `escaped` from `git diff <base>` — "what CHANGED since
    base", not "what the BUILD wrote" — so on a working-tree run this feature's own `features/<name>/`
-   pipeline artifacts (`PLAN.md`, `GRILL.md`, an earlier `VERIFY.md`, …) appear in the diff even though
-   each was written by its own stage under that stage's own writes-scope. `--feature` exempts exactly
-   that closed set of artifact filenames under this feature's directory; the four hook-protected trusted
-   docs are exempt unconditionally, since the agent cannot write them. Everything else — a stray file in
-   the feature dir, another feature's artifacts, every source path — is still a blocking escape, and each
-   exemption is reported in the returned **`escape_exempt`** rather than silently dropped.
+   pipeline artifacts appear in the diff even though each was written by its own stage under that stage's
+   own writes-scope. **`BUILD.md` is the sharp case:** `/pharn-build` writes it under a _separate_
+   re-scope, and `--declared` is the plan's `## Files`, so it is **structurally never declared** — without
+   `--feature` every product run REDs on the artifact the build itself just wrote. `--feature` exempts the
+   closed set `SPEC.md`, `PLAN.md`, `GRILL.md`, `BUILD.md`, `REGRESSION.md`, `regression-report.json`,
+   `VERIFY.md`, `verify-report.json`, `REVIEW.md`, `findings.json`, `SHIP.md`, `ship-record.json`,
+   `LOOP.md`, plus `lenses/<lens>/findings.json`; the four hook-protected trusted docs are exempt
+   unconditionally, since the agent cannot write them. Everything else — a stray file in the feature dir,
+   another feature's artifacts, every source path — is still a blocking escape, and each exemption is
+   reported in the returned **`escape_exempt`** rather than silently dropped. A `--feature` that is not a
+   plain slug is **refused** (exit 2), never silently ignored.
+
+   > **The one detection this exemption gives up, stated (P0).** A build that rewrites its own
+   > `features/<name>/PLAN.md` `## Files` to retroactively authorize a path it already wrote is **no
+   > longer caught here** — the plan edit is exempt, and the added path then reads as declared. Nothing
+   > else catches it either: `check-plan-spec-agree.mjs` reads only `spec_content_hash` from the PLAN, and
+   > a `## Files` edit does not move that. If you are reviewing a run where the PLAN itself changed, read
+   > that diff yourself. The deterministic remedy — comparing the base and HEAD `## Files` — is named as a
+   > follow-up in `check-regress.mjs`'s own honest-scope block.
 
    It returns `inside`, `outside_tests`, and `outside_eval_pairs` (the file-addressable gates to run over
    outside files). If a changed path is **outside** the declared writes, `scope` exits **1** with a
