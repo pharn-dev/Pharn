@@ -1,0 +1,11 @@
+# Normalize line endings in the working tree to LF on every platform.
+#
+# ADVISORY hygiene (P0): this is git configuration, not one of the three floor primitives
+# (hook / content-hash / enum-regex). The load-bearing guarantee is the line-ending fold inside
+# pharn/floor/check-spec.mjs's bodyHash(), which holds even when an editor writes CRLF into the
+# working tree between git operations — something .gitattributes cannot govern, since it controls
+# only what git stores and checks out. This file just reduces how often the input arrives as CRLF.
+#
+# NOTE: the tree is 100% text today (git's own binary test: 1348 text / 0 binary). Add an explicit
+# `<pattern> binary` line here if a binary file is ever committed.
+* text=auto eol=lf
