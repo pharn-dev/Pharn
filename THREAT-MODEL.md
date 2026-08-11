@@ -67,8 +67,8 @@ Every answer reduces to the floor (P0) or is labeled a limit (`LIMITS.md`).
 | memory poisoning        | promotion to canon is a **gated write** with per-entry provenance                                                           | pre-write hook              |
 | reviewed-code injection | finding is computed from enum-gated fields; injected comment reaches only free-text (fix #1)                                | enum check                  |
 | seam-record poisoning   | content-hash on resolution; drift is loud, not silent                                                                       | content-hash                |
-| community Capability    | `kind` is a **privilege level**: community = markdown-only, no `.cjs`; cannot declare trusted-write or off-allowlist egress | pre-write + pre-egress hook |
-| cross-model response    | egress-fenced + response returns in an untrusted fence + advisory-only (never gates ship)                                   | pre-egress hook + enum gate |
+| community Capability    | `kind` is a **privilege level**: community = markdown-only, no `.cjs`; cannot declare trusted-write or off-allowlist egress | pre-write hook + pre-egress (specified; ships with the guarded surface) |
+| cross-model response    | egress-fenced + response returns in an untrusted fence + advisory-only (never gates ship)                                   | pre-egress (specified; ships with the guarded surface) + enum gate |
 
 ---
 
@@ -88,7 +88,7 @@ The red-team's verdict: a **single disease in five places — "written in the co
    invariants from actual content) vs advisory-gate (reads LLM severity, never sole basis for a
    guaranteed block) (fix #3). _Closed by separation; the advisory half is labeled, not "fixed."_
 4. **spec_id binds identity not content** — plan pins `spec_content_hash` (fix #4). _Closed._
-5. **Archetype maps drift** — `validate` checks the four maps agree (fix #5). _Closed._
+5. **Archetype maps drift** — `validate` checks the four maps agree (fix #5). _Specified; the check is conditional and no manifest exists, so it never fires._
 6. **CI checks namespace not meaning** — `validate` requires every `enforces` rule*id to be
    produced by ≥1 eval (fix #6). \_Closed for the rule_id↔eval binding; full semantic equivalence
    between a rule's text and a lens's behavior remains a judgment — labeled.*

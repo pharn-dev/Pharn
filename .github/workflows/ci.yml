@@ -36,6 +36,9 @@ jobs:
       - name: Docs drift check
         if: ${{ always() && steps.install.outcome == 'success' }}
         run: npm run docs:check
+      - name: Specified-marker check
+        if: ${{ always() && steps.install.outcome == 'success' }}
+        run: npm run check:markers
       - name: Test
         if: ${{ always() && steps.install.outcome == 'success' }}
         run: npm test

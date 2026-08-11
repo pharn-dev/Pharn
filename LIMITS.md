@@ -26,7 +26,7 @@ thing whose purpose is to be executed as instructions.
 
 - **Struck claim:** "markdown-only = safe."
 - **Backstop (floor):** `kind: community` cannot declare trusted-write or off-allowlist egress
-  (`ARCHITECTURE.md §5`, pre-write + pre-egress hooks). Safety comes from the floor, not from the
+  (`ARCHITECTURE.md §5`, pre-write hook; pre-egress specified, ships with the guarded surface). Safety comes from the floor, not from the
   absence of `.cjs`.
 
 ### 1b. The fence is enforced by the model that may be compromised
@@ -49,7 +49,7 @@ frontmatter cannot express).
 
 - **Struck claim:** "`est_tokens` = cost."
 - **True statement:** `est_tokens` is an estimate with a confidence band; the real number is the
-  **measured runtime cost** (the system already observes it). `/pharn-estimate` reports a range,
+  **measured runtime cost** (the system already observes it). `/pharn-estimate` _(specified; ships with the guarded surface)_ reports a range,
   not a promise. The 2.0 cost-per-feature metric is built on _measured_ cost, not the declared
   field.
 
@@ -72,7 +72,7 @@ but the gate's integrity here rests on _who may write the enum field_, and in pu
   (the post-verify decision) and every between-stage proceed: _invoking and obeying_ the checker is
   advisory orchestration, not a floor primitive (the "two clocks," stated in the checkers themselves).
 - **Backstop (floor):** a forged approval moves only the advisory _intent-approval_ signal; it unlocks
-  no floor-gated capability — the pre-write / writes-scope and pre-egress hooks re-gate every downstream
+  no floor-gated capability — the pre-write / writes-scope hooks (and pre-egress, specified; ships with the guarded surface) re-gate every downstream
   write and network call regardless of `state`, and the human GATE-2 decision still stands between a
   built increment and merge. Closing the gate itself needs an out-of-band approval signal the Write tool
   cannot forge (e.g. a `PreToolUse` hook admitting the Draft→Approved transition only against a
@@ -105,7 +105,7 @@ the largest practical token problem and it is not yet solved.
 ### 3b. Rule overlap × stages
 
 The same rule file (`security.md`) is loaded into context 3–4× across a feature's life (security
-griller, security-secrets lens, security-review auditors) — each fresh sub-agent re-pays. Tiered
+griller, secrets-in-code lens, security-review auditors — specified; ships with the guarded surface) — each fresh sub-agent re-pays. Tiered
 loading does not cache between stages (fresh contexts naively cannot). Real cost ≈
 `diff_size × (validators + verifiers + lenses + auditors) + rule_overlap` — both terms large,
 neither touched by tiered loading.

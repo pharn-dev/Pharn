@@ -38,7 +38,7 @@ small, explicit, and non-LLM. Nothing else is a guarantee.
 
 1. **Hooks** — non-LLM programs run by Claude Code at tool boundaries.
    - `pre-write` — blocks a write to a protected path (e.g. trusted files; out-of-`writes`-scope paths).
-   - `pre-egress` — blocks a network call to a domain not on a hardcoded allowlist.
+   - `pre-egress` _(specified; ships with the guarded surface)_ — blocks a network call to a domain not on a hardcoded allowlist.
 2. **Content-hash** — identity of _content_, not identity of _id_. Detects silent mutation of a
    pinned artifact (spec, seam resolution, fetched doc).
 3. **Enum / regex check** — set membership or pattern match, in `validate` and at gates
@@ -236,7 +236,7 @@ Three moments, all reading **typed fields** (never model prose):
 
 - **pre-write** — hooks; block before a bad edit lands. Hosts the **pre-egress allowlist** (a
   network call to a non-allowlisted domain does not execute, regardless of whether the model was
-  fooled) and the **constitution/trusted-file write-guard** (fix #2) and the **`writes`-scope
+  fooled — specified; ships with the guarded surface) and the **constitution/trusted-file write-guard** (fix #2) and the **`writes`-scope
   guard** (fix #7).
 - **in-build** — validators; per-phase, gate a wave.
 - **post-build** — lenses (at review), verifiers (at verify), auditors (on-demand). A lens cannot
@@ -255,7 +255,7 @@ is now labeled correctly (`LIMITS.md`).
 
 `floor/validate.mjs` (the `validate` step) enforces, deterministically: capability frontmatter
 present; evals present (P1); **every `enforces` rule_id produced by ≥1 eval** (P1, fix #6);
-`coupling` enum membership; the four archetype maps agree (fix #5); finding templates separate
+`coupling` enum membership; the four archetype maps agree (fix #5 — conditional; specified, ships with the guarded surface); finding templates separate
 enum-gated from free-text fields (fix #1); no forbidden sibling reference (P3, best-effort grep).
 
 ---

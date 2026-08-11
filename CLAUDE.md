@@ -179,6 +179,23 @@ node .dev/floor/check-provenance.mjs <candidate.json> <canon-file.md>
 # ran under that model (the platform applies model/effort; that binding is advisory). Exits non-zero on RED.
 node .dev/floor/check-config.mjs [validate | resolve <stage> | agreement]
 
+# Bind PHARN's own "(specified; ships with the guarded surface)" annotations to reality, BOTH ways.
+# The four trusted docs asserted floor primitives that do not exist as running checks (no pre-egress
+# hook; no archetype-maps manifest, so validate CHECK 7 never fires; no /pharn-estimate) and NOTHING
+# detected it — they are .prettierignore'd AND markdownlint-excluded, and no checker reads their prose.
+# FLOOR (enum/regex, primitive #3), two directions: (1) a primitive that SHIPS while its markers remain
+# → RED naming every site (the doc now UNDERSTATES a live protection — it fires exactly when the repo
+# gets BETTER, which is when nobody is looking); (2) a marker DELETED while the primitive is still
+# absent → RED (a silent return to overclaiming). Also checks `named_artifacts`: a doc citing a shipped
+# artifact by a name it does not have (the `security-secrets` → `secrets-in-code` drift).
+# Membership comes from the STRUCTURED .dev/floor/specified-primitives.json, never from scanning prose
+# — L6, whose defect recurred inside this very increment's REVIEW.md.
+# NARROWED, and stated: it CANNOT DISCOVER a new overclaim (the manifest is a hand-maintained address
+# book — "the manifest checked out" NEVER means "the docs are true"), and the probe tests file
+# EXISTENCE, never that a hook is WIRED in settings.json or works. Apparatus: no SKILLS_VERSION bump.
+# Wired into `npm run check` as `check:markers`. Exits non-zero on RED; exit 2 on an unusable manifest.
+node .dev/floor/check-specified-markers.mjs [target-dir] [--manifest <path>]
+
 # Regenerate / drift-check the derived one-line index over .dev/memory-bank/lessons-learned.md.
 # Both are folded into `npm run docs:generate` / `npm run docs:check` (the latter inside `npm run check`),
 # so promoting a lesson without regenerating is a loud RED. FLOOR: byte-equality (committed == recomputed)
@@ -254,7 +271,7 @@ either blocks.
 three deterministic, non-LLM primitives — every guarantee in the system must reduce to one:
 
 1. **Hooks** — `pre-write` (block writes to protected paths / out-of-`writes`-scope), `pre-egress`
-   (block non-allowlisted network calls).
+   _(specified; ships with the guarded surface)_ (block non-allowlisted network calls).
 2. **Content-hash** — detects silent mutation of a pinned artifact (the spec, a seam resolution).
 3. **Enum / regex check** — set membership or pattern match (`validate.mjs` and at gates).
 

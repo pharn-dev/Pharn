@@ -1,0 +1,22 @@
+{
+  "feature": "trusted-doc-accuracy",
+  "commit": "working tree on c93ca61",
+  "gates": {
+    "test": 0,
+    "validate": 0,
+    "lint": 0,
+    "format:check": 0,
+    "lint:md": 0
+  },
+  "verdict": "PASS",
+  "failing_gates": [],
+  "structural_gates": "none — this increment ships no capability and therefore no eval pair (P1 binds a role:-bearing file; there is none here)",
+  "verifiers": {
+    "registered": 0,
+    "findings": [],
+    "note": "count-verifiers.mjs reports 0 (P7 — none authored). Advisory layer is empty; it could not have flipped the verdict either way (fix #3)."
+  },
+  "aggregate": {
+    "npm run check": 0
+  }
+}
