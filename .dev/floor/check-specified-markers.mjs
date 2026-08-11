@@ -123,6 +123,44 @@ function isLive(probe, id) {
   throw new Error(`primitive ${id}: unknown probe type ${JSON.stringify(probe.type)}`);
 }
 
+function validatePrimitive(p) {
+  if (!p || typeof p !== "object") throw new Error("primitive record must be an object");
+  if (typeof p.id !== "string") throw new Error("primitive record lacks string `id`");
+  if (!Array.isArray(p.sites)) throw new Error(`primitive ${p.id}: \`sites\` must be an array`);
+  for (const site of p.sites) {
+    if (!site || typeof site !== "object") {
+      throw new Error(`primitive ${p.id}: each site must be an object`);
+    }
+    if (typeof site.file !== "string" || typeof site.marker !== "string") {
+      throw new Error(`primitive ${p.id}: each site needs string \`file\` and \`marker\` fields`);
+    }
+  }
+}
+
+function validateNamedArtifact(a) {
+  if (!a || typeof a !== "object") throw new Error("named-artifact record must be an object");
+  if (typeof a.id !== "string") throw new Error("named-artifact record lacks string `id`");
+  if (typeof a.cited_in !== "string") {
+    throw new Error(`named-artifact ${a.id}: \`cited_in\` must be a string`);
+  }
+  if (typeof a.citation !== "string") {
+    throw new Error(`named-artifact ${a.id}: \`citation\` must be a string`);
+  }
+  if (typeof a.must_exist !== "string") {
+    throw new Error(`named-artifact ${a.id}: \`must_exist\` must be a string`);
+  }
+  if (a.forbidden !== undefined) {
+    if (!Array.isArray(a.forbidden)) {
+      throw new Error(`named-artifact ${a.id}: \`forbidden\` must be an array`);
+    }
+    for (const entry of a.forbidden) {
+      if (typeof entry !== "string") {
+        throw new Error(`named-artifact ${a.id}: each \`forbidden\` entry must be a string`);
+      }
+    }
+  }
+}
+
 const fileCache = new Map();
 function readDoc(rel) {
   if (!fileCache.has(rel)) {
@@ -140,10 +178,10 @@ let liveCount = 0;
 
 try {
   for (const p of primitives) {
+    validatePrimitive(p);
     const live = isLive(p.probe, p.id);
     if (live) liveCount++;
-    const sites = Array.isArray(p.sites) ? p.sites : [];
-    for (const site of sites) {
+    for (const site of p.sites) {
       siteCount++;
       const src = readDoc(site.file);
       if (src === null) {
@@ -170,7 +208,7 @@ try {
   }
 
   for (const a of named) {
-    if (typeof a.must_exist !== "string" || typeof a.citation !== "string") continue;
+    validateNamedArtifact(a);
     const src = readDoc(a.cited_in);
     if (src === null) {
       red(`${a.cited_in}: named-artifact citation for \`${a.id}\` — the file could not be read`);
@@ -178,6 +216,16 @@ try {
     }
     if (!src.includes(a.citation)) {
       red(`${a.cited_in}: no longer cites \`${a.id}\` as ${JSON.stringify(a.citation)} — the name drifted`);
+    }
+    if (a.forbidden) {
+      for (const forbidden of a.forbidden) {
+        if (src.includes(forbidden)) {
+          red(
+            `${a.cited_in}: still cites \`${a.id}\` by the obsolete name ${JSON.stringify(forbidden)} — ` +
+              "remove the legacy citation"
+          );
+        }
+      }
     }
     if (!existsSync(join(TARGET, a.must_exist))) {
       red(`${a.cited_in} cites \`${a.id}\`, but ${a.must_exist} does not exist — the doc names a missing artifact`);

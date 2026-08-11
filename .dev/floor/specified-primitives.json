@@ -93,6 +93,7 @@
       "id": "secrets-in-code",
       "cited_in": "LIMITS.md",
       "citation": "secrets-in-code lens",
+      "forbidden": ["security-secrets lens"],
       "must_exist": "pharn/pharn-review/secrets-in-code"
     },
     {

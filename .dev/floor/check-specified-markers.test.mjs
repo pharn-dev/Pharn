@@ -147,6 +147,44 @@ test("✧ exit 2 — a manifest with no specified_primitives array fails CLOSED"
   assert.equal(r.code, 2, r.out);
 });
 
+test("✧ exit 2 — a primitive with non-array sites fails CLOSED", () => {
+  const f = fixture();
+  writeFileSync(
+    f.mPath,
+    JSON.stringify({
+      specified_primitives: [{ id: "pre-egress", probe: { type: "path", path: "DOC.md" }, sites: "DOC.md" }],
+    })
+  );
+  const r = run(f.dir, f.mPath);
+  f.cleanup();
+  assert.equal(r.code, 2, r.out);
+  assert.match(r.out, /sites.*must be an array/);
+});
+
+test("✧ exit 2 — a site lacking string file/marker fields fails CLOSED", () => {
+  const f = fixture();
+  writeFileSync(
+    f.mPath,
+    JSON.stringify({
+      specified_primitives: [
+        { id: "pre-egress", probe: { type: "path", path: "DOC.md" }, sites: [{ file: "DOC.md" }] },
+      ],
+    })
+  );
+  const r = run(f.dir, f.mPath);
+  f.cleanup();
+  assert.equal(r.code, 2, r.out);
+  assert.match(r.out, /string `file` and `marker`/);
+});
+
+test("✧ exit 2 — a named-artifact lacking required string fields fails CLOSED", () => {
+  const f = fixture({ named: [{ id: "ghost", cited_in: "DOC.md" }] });
+  const r = run(f.dir, f.mPath);
+  f.cleanup();
+  assert.equal(r.code, 2, r.out);
+  assert.match(r.out, /citation.*must be a string/);
+});
+
 // ------------------------------------------------------------------------------ named-artifact half
 
 test("✧ RED — a doc citing an artifact that does not exist (the security-secrets name-drift class)", () => {
@@ -167,6 +205,44 @@ test("✧ RED — the citation itself drifting out of the doc is caught", () => 
   f.cleanup();
   assert.equal(r.code, 1, r.out);
   assert.match(r.out, /name drifted/);
+});
+
+test("✧ RED — obsolete legacy citation coexisting with the corrected name is caught", () => {
+  const f = fixture({
+    docBody: "intro\nsecrets-in-code lens and security-secrets lens\noutro\n",
+    named: [
+      {
+        id: "secrets-in-code",
+        cited_in: "DOC.md",
+        citation: "secrets-in-code lens",
+        forbidden: ["security-secrets lens"],
+        must_exist: ".claude",
+      },
+    ],
+  });
+  const r = run(f.dir, f.mPath);
+  f.cleanup();
+  assert.equal(r.code, 1, r.out);
+  assert.match(r.out, /obsolete name/);
+  assert.match(r.out, /remove the legacy citation/);
+});
+
+test("✧ exit 2 — a named-artifact with non-array forbidden fails CLOSED", () => {
+  const f = fixture({
+    named: [
+      {
+        id: "secrets-in-code",
+        cited_in: "DOC.md",
+        citation: "secrets-in-code lens",
+        forbidden: "security-secrets lens",
+        must_exist: ".claude",
+      },
+    ],
+  });
+  const r = run(f.dir, f.mPath);
+  f.cleanup();
+  assert.equal(r.code, 2, r.out);
+  assert.match(r.out, /forbidden.*must be an array/);
 });
 
 // ------------------------------------------------------------------------------------- integration
