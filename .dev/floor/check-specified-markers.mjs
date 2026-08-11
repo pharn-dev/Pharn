@@ -220,10 +220,7 @@ try {
     if (a.forbidden) {
       for (const forbidden of a.forbidden) {
         if (src.includes(forbidden)) {
-          red(
-            `${a.cited_in}: still cites \`${a.id}\` by the obsolete name ${JSON.stringify(forbidden)} — ` +
-              "remove the legacy citation"
-          );
+          red(`${a.cited_in}: still cites \`${a.id}\` by the obsolete name ${JSON.stringify(forbidden)} — ` + "remove the legacy citation");
         }
       }
     }

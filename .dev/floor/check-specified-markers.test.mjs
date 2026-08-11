@@ -166,9 +166,7 @@ test("✧ exit 2 — a site lacking string file/marker fields fails CLOSED", () 
   writeFileSync(
     f.mPath,
     JSON.stringify({
-      specified_primitives: [
-        { id: "pre-egress", probe: { type: "path", path: "DOC.md" }, sites: [{ file: "DOC.md" }] },
-      ],
+      specified_primitives: [{ id: "pre-egress", probe: { type: "path", path: "DOC.md" }, sites: [{ file: "DOC.md" }] }],
     })
   );
   const r = run(f.dir, f.mPath);
