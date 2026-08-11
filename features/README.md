@@ -5,7 +5,7 @@ Each increment a **PHARN user** runs through the product pipeline gets one folde
 
 - `SPEC.md` — intent (Draft → Approved), the root artifact every downstream stage carries `spec_id` from
   (`ARCHITECTURE.md §6`)
-- the downstream product-pipeline artifacts as those stages are built (`spec → plan → grill → build →
+- the downstream product-pipeline artifacts as the user runs each stage (`spec → plan → grill → build →
 regress → verify → ship`)
 
 This mirrors `.dev/features/` — but for the **product loop**, not the build loop. The split is the
@@ -15,6 +15,6 @@ dev/product boundary made structural:
 - **`.dev/features/`** = the audit trail of **building PHARN itself**, with the `pharn-dev-*` commands
   (contributor apparatus — see `.dev/features/README.md`).
 
-`/pharn-spec` (a later increment) writes the first `SPEC.md` here. Until then this directory is the
-declared, empty home for product-pipeline artifacts — so every product capability lands on the product
-side of the boundary from the start, never needing a later migration.
+`/pharn-spec` writes the first `SPEC.md` here. Until a user runs it this directory is empty — the
+declared home for product-pipeline artifacts, so every product capability lands on the product side of
+the boundary from the start, never needing a later migration.

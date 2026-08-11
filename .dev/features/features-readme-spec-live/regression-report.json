@@ -1,0 +1,26 @@
+{
+  "base": "2b4fec89cbd68e03544b9bad4254360ee029f040",
+  "inside": [
+    "CHANGELOG.md",
+    "features/README.md",
+    ".dev/features/features-readme-spec-live/GRILL.md",
+    ".dev/features/features-readme-spec-live/PLAN.md"
+  ],
+  "outside_gates": {
+    "structural:expected-injection-comment": {
+      "base": 0,
+      "head": 0
+    },
+    "tests": {
+      "base": 0,
+      "head": 0
+    },
+    "validate": {
+      "base": 0,
+      "head": 0
+    }
+  },
+  "regressions": [],
+  "pre_existing": [],
+  "verdict": "no-regressions"
+}
