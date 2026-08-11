@@ -1,0 +1,105 @@
+{
+  "$comment": [
+    "The address book for PHARN's own 'specified; ships with the guarded surface' annotations.",
+    "Read by .dev/floor/check-specified-markers.mjs. STRUCTURED on purpose (lessons-learned L6): a",
+    "membership fact is read from here, never by scanning doc prose for what looks like a marker.",
+    "",
+    "ADDING AN ENTRY is what makes a new annotation guarded. Nothing discovers annotations; this file",
+    "is a hand-maintained list, so an unlisted overclaim is invisible to the checker. Stated in the",
+    "checker's header as its central limit."
+  ],
+
+  "specified_primitives": [
+    {
+      "id": "pre-egress",
+      "what": "a PreToolUse hook blocking a network call to a domain not on a hardcoded allowlist",
+      "probe": { "type": "dir-contains", "dir": ".claude/hooks", "substring": "egress" },
+      "sites": [
+        {
+          "file": "pharn/ARCHITECTURE.md",
+          "marker": "`pre-egress` _(specified; ships with the guarded surface)_ — blocks a network call"
+        },
+        {
+          "file": "pharn/ARCHITECTURE.md",
+          "marker": "fooled — specified; ships with the guarded surface) and the **constitution/trusted-file write-guard**"
+        },
+        {
+          "file": "THREAT-MODEL.md",
+          "marker": "pre-write hook + pre-egress (specified; ships with the guarded surface)"
+        },
+        {
+          "file": "THREAT-MODEL.md",
+          "marker": "pre-egress (specified; ships with the guarded surface) + enum gate"
+        },
+        {
+          "file": "LIMITS.md",
+          "marker": "pre-write hook; pre-egress specified, ships with the guarded surface)"
+        },
+        {
+          "file": "LIMITS.md",
+          "marker": "the pre-write / writes-scope hooks (and pre-egress, specified; ships with the guarded surface) re-gate"
+        },
+        {
+          "file": "CLAUDE.md",
+          "marker": "_(specified; ships with the guarded surface)_ (block non-allowlisted network calls)."
+        }
+      ]
+    },
+
+    {
+      "id": "archetype-maps",
+      "what": "the archetype-maps manifest that makes validate.mjs CHECK 7 (fix #5) fire at all",
+      "probe": { "type": "path", "path": "pharn/pharn-contracts/archetype-maps.json" },
+      "sites": [
+        {
+          "file": "pharn/ARCHITECTURE.md",
+          "marker": "the four archetype maps agree (fix #5 — conditional; specified, ships with the guarded surface)"
+        },
+        {
+          "file": "THREAT-MODEL.md",
+          "marker": "_Specified; the check is conditional and no manifest exists, so it never fires._"
+        }
+      ]
+    },
+
+    {
+      "id": "pharn-estimate",
+      "what": "the /pharn-estimate command LIMITS.md §1c says reports an est_tokens range",
+      "probe": { "type": "dir-contains", "dir": ".claude/commands", "substring": "estimate" },
+      "sites": [
+        {
+          "file": "LIMITS.md",
+          "marker": "`/pharn-estimate` _(specified; ships with the guarded surface)_ reports a range,"
+        }
+      ]
+    },
+
+    {
+      "id": "pharn-audits",
+      "what": "the pharn-audits module whose auditors LIMITS.md §3b names in its cost model",
+      "probe": { "type": "path", "path": "pharn/pharn-audits" },
+      "sites": [
+        {
+          "file": "LIMITS.md",
+          "marker": "security-review auditors — specified; ships with the guarded surface)"
+        }
+      ]
+    }
+  ],
+
+  "named_artifacts": [
+    {
+      "$comment": "The other half of the F7 defect: a doc naming a SHIPPED artifact by a name it does not have. LIMITS.md said `security-secrets lens`; the lens ships as `secrets-in-code`. This guards the corrected name against re-drift in either direction.",
+      "id": "secrets-in-code",
+      "cited_in": "LIMITS.md",
+      "citation": "secrets-in-code lens",
+      "must_exist": "pharn/pharn-review/secrets-in-code"
+    },
+    {
+      "id": "security-griller",
+      "cited_in": "LIMITS.md",
+      "citation": "(security\ngriller,",
+      "must_exist": "pharn/pharn-pipeline/grillers/security"
+    }
+  ]
+}

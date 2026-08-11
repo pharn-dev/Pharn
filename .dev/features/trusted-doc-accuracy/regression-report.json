@@ -1,0 +1,32 @@
+{
+  "feature": "trusted-doc-accuracy",
+  "base": "HEAD (c93ca61 — working-tree dogfood)",
+  "head": "working tree",
+  "inside": [
+    ".dev/features/trusted-doc-accuracy/GRILL.md",
+    ".dev/features/trusted-doc-accuracy/PLAN.md",
+    "CHANGELOG.md",
+    "CLAUDE.md",
+    "LIMITS.md",
+    "SKILLS_VERSION",
+    "THREAT-MODEL.md",
+    "pharn/ARCHITECTURE.md"
+  ],
+  "declared": ["SKILLS_VERSION", "CHANGELOG.md", "CLAUDE.md"],
+  "escaped": [],
+  "escape_exempt": [
+    ".dev/features/trusted-doc-accuracy/GRILL.md",
+    ".dev/features/trusted-doc-accuracy/PLAN.md",
+    "LIMITS.md",
+    "THREAT-MODEL.md",
+    "pharn/ARCHITECTURE.md"
+  ],
+  "style_gates": "skipped — no shared style config in `inside`; a style result cannot flip over outside files byte-identical at base and head",
+  "outside_gates": {
+    "tests": { "base": 0, "head": 0 },
+    "validate": { "base": 0, "head": 0 }
+  },
+  "regressions": [],
+  "pre_existing": [],
+  "verdict": "no-regressions"
+}
