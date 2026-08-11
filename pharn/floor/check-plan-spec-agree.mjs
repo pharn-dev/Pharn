@@ -13,8 +13,20 @@
 // exists as check-spec-approved.mjs (which itself wraps check-spec.mjs), and the canonical body hash is
 // ALREADY emitted by check-spec.mjs --hash. This file shells BOTH as CLIs (NOT sibling imports, P3 — the
 // same separation check-spec-approved / check-regress / check-verify use to re-run other floor gates) and
-// adds exactly ONE new assertion on top: planHash === specHash. So the state-enum and the body-hash logic
-// live in exactly ONE place (check-spec.mjs) and can never drift between the spec checker and this one.
+// adds exactly TWO new assertions on top: planSpecId === specSpecId (IDENTITY) and planHash === specHash
+// (CONTENT). The SPEC side of both is SHELLED, so the state-enum, the body hash, and the spec_id all come
+// from check-spec.mjs and cannot drift from what it just verified.
+//
+// The PLAN side is a LOCAL parse (P3, no sibling import), and its readValue is a DUPLICATE of
+// check-spec.mjs's. So "one source of truth" is TRUE of the SPEC half and merely INTENDED of the PLAN half:
+// the two agreeing is a CONVENTION that tests DETECT, never a floor op that PREVENTS divergence. Said
+// plainly because collapsing the two halves into one confident sentence is exactly the P0 disease — an
+// earlier draft of this header claimed the parses "can never drift", which was false of the duplicated one.
+//
+// WHY IDENTITY as well as content: the content pin alone lets a PLAN name spec A while carrying spec B's body
+// hash — the hash matches, the chain reads GREEN, and the record is MISLABELED. Pinning the body without
+// pinning the name proves the plan was made against SOME current approved spec, never against THE one it
+// claims. Both halves are needed for "this plan implements this spec" to be a floor statement.
 //
 // NON-LLM. Node stdlib only (child_process to invoke the sibling CLIs; no network, no eval, no deps).
 //
@@ -60,17 +72,59 @@ function stripQuotes(v) {
   return v.replace(/^["']|["']$/g, "");
 }
 
-// Extract the PLAN's frontmatter spec_content_hash (or undefined when there is no frontmatter / no such
-// line), using check-spec.mjs's exact key/value parse so the two never disagree on what the field is.
-// Deterministic; no LLM.
-function readCarriedHash(text) {
+// A YAML inline comment on an UNQUOTED scalar: `#` at the value's start or preceded by whitespace, running
+// to end of line. `feat#3` (no preceding whitespace) is NOT a comment and survives byte-exact. Duplicated
+// from check-spec.mjs deliberately — no sibling import (P3), the precedent stripQuotes above already sets.
+function stripComment(v) {
+  return v.replace(/(^|\s)#.*$/, "").trim();
+}
+
+// Read one frontmatter field VALUE, quote-aware. THE QUOTE COMES FIRST: a quoted scalar's interior is taken
+// up to its closing quote and a real trailing comment after it is discarded, so `"a # b"` keeps its hash
+// while `"FEAT-1" # note` drops the note. Stripping ` #…` first would eat the closing quote of the former.
+// Kept byte-identical to check-spec.mjs's readValue so the PLAN side and the SPEC side agree on what a
+// field VALUE is — a quoted id must compare equal across both parses. That agreement is a DUPLICATED
+// function, so it is a convention the tests DETECT, not a floor op that PREVENTS divergence (see header).
+function readValue(raw) {
+  const v = raw.trim();
+  const q = v[0];
+  if (q === '"' || q === "'") {
+    const end = v.indexOf(q, 1);
+    if (end > 0) return v.slice(1, end);
+  }
+  return stripQuotes(stripComment(v));
+}
+
+// Extract ONE carried frontmatter field from the PLAN (or undefined when there is no frontmatter / no such
+// line), using check-spec.mjs's exact key/value parse so the two never disagree on what a field is.
+// Deterministic; no LLM. Parameterized by key rather than copied twice: both carried fields are read the
+// SAME way by construction, so a future change to the parse cannot fix one reader and miss the other.
+//
+// LAST-wins on a DUPLICATE key, deliberately — matching check-spec.mjs's parseSpec (which assigns into an
+// object, so the last line wins) and matching YAML. An earlier first-wins spelling was a real hole: a PLAN
+// could declare `spec_id:` twice, and this checker would compare the FIRST while parseSpec — and every
+// other reader — sees the SECOND, so the identity assertion passed on an id that was not the plan's
+// effective one. Reading the last match is what makes the "never disagree" sentence above TRUE rather than
+// merely intended.
+function readCarried(text, key) {
   const m = text.match(FM_RE);
   if (!m) return undefined;
+  let found;
   for (const line of m[1].split(/\r?\n/)) {
     const kv = line.match(/^([A-Za-z_][\w-]*):[ \t]*(.*)$/);
-    if (kv && kv[1] === "spec_content_hash") return stripQuotes(kv[2].trim());
+    if (kv && kv[1] === key) found = readValue(kv[2]);
   }
-  return undefined;
+  return found;
+}
+
+// The PLAN's carried CONTENT pin (fix #4) — what the spec body hashed to when the plan was made.
+function readCarriedHash(text) {
+  return readCarried(text, "spec_content_hash");
+}
+
+// The PLAN's declared IDENTITY — which spec this plan claims to implement (the §6 root identity).
+function readCarriedSpecId(text) {
+  return readCarried(text, "spec_id");
 }
 
 function red(msg) {
@@ -111,7 +165,25 @@ function gate(planPath, specPath) {
     return red(`check-spec.mjs --hash did not return a sha256 for ${specPath} (got ${JSON.stringify(specHash)})`);
   }
 
-  // (3) Read the PLAN's CARRIED spec_content_hash and enum-gate it to 64-hex BEFORE the compare, so a needle
+  // (3) REUSE check-spec.mjs --spec-id: the SPEC's DECLARED identity, from the SAME single SPEC parser that
+  //     produced the body hash in step (2) — never re-parsed here, so the wrapper cannot drift from the spec
+  //     checker about what `spec_id` is (P4, the identical reuse the hash already uses).
+  const s = spawnSync(process.execPath, [CHECK_SPEC, "--spec-id", specPath], { encoding: "utf8" });
+  if (s.error) {
+    return red(`could not run check-spec.mjs --spec-id (${CHECK_SPEC}): ${s.error.message}`);
+  }
+  if (s.status !== 0) {
+    const out = (s.stdout || "") + (s.stderr || "");
+    if (out.trim()) process.stdout.write(out.endsWith("\n") ? out : out + "\n");
+    return red(`check-spec.mjs --spec-id failed for ${specPath} — cannot read the spec's declared identity`);
+  }
+  // No empty-check here, deliberately: an empty specSpecId is unreachable (step (1)'s gate REDs a
+  // spec_id-less spec), and if it ever became reachable the identity assertion below still fails closed —
+  // an empty SPEC id equals only an empty PLAN id, which the plan-side guard REDs first. A separate branch
+  // would be unreachable code that no test through the public surface could pin, so it is not written.
+  const specSpecId = (s.stdout || "").trim();
+
+  // (4) Read the PLAN's CARRIED spec_content_hash and enum-gate it to 64-hex BEFORE the compare, so a needle
   //     in that field is rejected as not-a-hash (P2 — the verdict ranges only over hashes, never prose).
   let planText;
   try {
@@ -119,6 +191,39 @@ function gate(planPath, specPath) {
   } catch (e) {
     return red(`PLAN.md is unreadable (${planPath}): ${e.message}`);
   }
+  // (5) The IDENTITY assertion — set membership (ARCHITECTURE §2 primitive #3): is the PLAN's declared
+  //     spec_id the single member of the set the SPEC defines? A byte equality over two parsed field values,
+  //     NEVER a comparison of what either name MEANS (P2 — no judgment, no similarity, no normalization
+  //     beyond the trim/quote/comment handling both sides share). Checked BEFORE the hash on purpose: a PLAN
+  //     naming a different spec is not "stale", it is about a DIFFERENT feature, and comparing the two bodies'
+  //     hashes would answer a question nobody asked. Both ids are rendered with JSON.stringify so a value
+  //     bearing control characters cannot forge a verdict line in this checker's own stdout — the per-line
+  //     frontmatter parse already makes a raw newline unreachable, so this is the second layer, not the
+  //     load-bearing one, and it is named as such rather than sold as a hole that was closed.
+  //
+  //     BOTH sides are compared TRIMMED, and that symmetry is load-bearing. The SPEC's id arrives over
+  //     stdout, where leading/trailing spaces cannot survive the transport unambiguously (emitSpecId
+  //     appends a newline and the reader must strip it), so trimming only the SPEC side made two
+  //     BYTE-IDENTICAL files disagree: a quoted `spec_id: "  FEAT-1  "` parses to `  FEAT-1  ` on the PLAN
+  //     side and to `FEAT-1` after transport — a false RED of exactly the class this checker exists to
+  //     remove. Padding is not identity, and trimming cannot make two DISTINCT ids collide, so the
+  //     symmetric trim is both safe and required.
+  const planSpecId = (readCarriedSpecId(planText) ?? "").trim();
+  if (planSpecId === "") {
+    return red(
+      `PLAN.md carries no spec_id in its frontmatter (${planPath}) — the record's identity is UNPINNED, so ` +
+        `"which spec does this plan implement" has no answer; re-plan via /pharn-plan`
+    );
+  }
+  if (planSpecId !== specSpecId) {
+    return red(
+      `spec→plan IDENTITY mismatch: the PLAN's spec_id (${JSON.stringify(planSpecId)}) != the SPEC's spec_id ` +
+        `(${JSON.stringify(specSpecId)}) — the plan NAMES a different spec than the one it is pinned to, so the ` +
+        `record would be mislabeled even if the body hash agreed; re-plan via /pharn-plan against the intended spec`
+    );
+  }
+
+  // (6) The CONTENT assertion's input.
   const planHash = readCarriedHash(planText);
   if (planHash === undefined) {
     return red(
@@ -130,10 +235,9 @@ function gate(planPath, specPath) {
     return red(`PLAN.md spec_content_hash is not a sha256 (${planPath}): ${JSON.stringify(planHash)} — re-plan via /pharn-plan`);
   }
 
-  // (4) The chain assertion — the ONE new branch this checker adds on top of the reused gates: the plan's
-  //     carried hash MUST equal the spec's current body hash. Equal → the plan was made against the current
-  //     approved spec (GREEN). Unequal → the spec changed after the plan was made → the plan is STALE (RED,
-  //     fail-closed).
+  // (7) The CONTENT assertion — the plan's carried hash MUST equal the spec's current body hash. Equal →
+  //     the plan was made against the current approved spec (GREEN). Unequal → the spec changed after the
+  //     plan was made → the plan is STALE (RED, fail-closed).
   if (planHash !== specHash) {
     return red(
       `spec→plan chain BROKEN: PLAN's carried spec_content_hash (${planHash}) != the SPEC's current body hash (${specHash}) — ` +
@@ -142,7 +246,8 @@ function gate(planPath, specPath) {
   }
 
   console.log(
-    `GREEN — spec→plan hash chain holds; the plan was made against the current Approved, un-drifted spec (${planPath} ↔ ${specPath})`
+    `GREEN — spec→plan hash chain holds; the plan declares the SPEC's own spec_id (${JSON.stringify(specSpecId)}) ` +
+      `and was made against the current Approved, un-drifted spec (${planPath} ↔ ${specPath})`
   );
   return 0;
 }

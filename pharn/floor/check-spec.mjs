@@ -24,6 +24,13 @@
 //
 // Usage:
 //   node pharn/floor/check-spec.mjs <SPEC.md>           validate → exit 1 on any RED (prints each), else 0 + GREEN
+//   node pharn/floor/check-spec.mjs --spec-id <SPEC.md> print the frontmatter spec_id to stdout — the §6 root
+//                                                      identity a PLAN carries forward, read by
+//                                                      check-plan-spec-agree.mjs for its identity assertion.
+//                                                      SINGLE source of SPEC parsing, exactly as --hash is the
+//                                                      single source of body-extraction (P4). A frontmatter
+//                                                      with no spec_id prints an EMPTY line at exit 0; the
+//                                                      caller REDs on the empty value.
 //   node pharn/floor/check-spec.mjs --hash <SPEC.md>    print sha256(body) to stdout (line endings folded to
 //                                                      LF — see bodyHash) — the value /pharn-spec pins
 //                                                      into spec_content_hash on approval. SINGLE source of
@@ -51,6 +58,39 @@ function stripQuotes(v) {
   return v.replace(/^["']|["']$/g, "");
 }
 
+// Strip a YAML inline comment from an UNQUOTED scalar: a `#` at the value's start, or preceded by
+// whitespace, opens a comment running to end of line. A `#` with NO preceding whitespace (`feat#3`) is NOT
+// a comment and survives byte-exact — what YAML says, and what keeps an id containing a hash character
+// intact. Deterministic; no LLM. WHY this exists: the command templates document their machine fields with a
+// trailing `# …` note, so a field written exactly as documented was being read WITH the note glued on, and a
+// 64-hex pin then failed its own enum-gate — a false RED on a correct file.
+function stripComment(v) {
+  return v.replace(/(^|\s)#.*$/, "").trim();
+}
+
+// Read one frontmatter field VALUE. THE QUOTE COMES FIRST, and that order is the part to get right: a
+// QUOTED scalar's interior is taken verbatim up to its closing quote, and whatever follows that quote (a
+// real trailing comment) is discarded. Doing it the other way — strip ` #…`, then the quotes — eats the
+// closing quote of a value that legitimately contains ` #` (`"a # b"` → `a`, corrupted). Resolving the
+// quote first gets BOTH shapes right: `"a # b"` keeps its hash, and `"FEAT-1" # note` drops the note.
+// parseSpec stores EVERY field, not just the three this checker gates, so an unrelated quoted field must
+// survive intact.
+//
+// Honestly bounded (P0): a pragmatic frontmatter reader, NOT a YAML library. The closing quote is found by
+// a plain scan, so a value containing an ESCAPED quote (`"a\"b"`) ends at the escape rather than at the
+// real terminator, and an UNTERMINATED quote falls through to the unquoted path rather than guess at an
+// interior. No template here emits either shape, and both fail toward a visibly wrong value that the
+// id/hash gates reject — never toward a silent pass.
+function readValue(raw) {
+  const v = raw.trim();
+  const q = v[0];
+  if (q === '"' || q === "'") {
+    const end = v.indexOf(q, 1);
+    if (end > 0) return v.slice(1, end);
+  }
+  return stripQuotes(stripComment(v));
+}
+
 function titleCase(s) {
   return s.replace(/\b\w/g, (c) => c.toUpperCase());
 }
@@ -65,7 +105,7 @@ function parseSpec(text) {
   const fm = {};
   for (const line of m[1].split(/\r?\n/)) {
     const kv = line.match(/^([A-Za-z_][\w-]*):[ \t]*(.*)$/);
-    if (kv) fm[kv[1]] = stripQuotes(kv[2].trim());
+    if (kv) fm[kv[1]] = readValue(kv[2]);
   }
   return { fm, body: text.slice(m[0].length) };
 }
@@ -131,6 +171,24 @@ function emitHash(specPath) {
   return 0;
 }
 
+// --- --spec-id mode: emit the frontmatter spec_id, the §6 root identity a PLAN carries forward. ---
+// Mirrors emitHash EXACTLY (unreadable → 1, no frontmatter → 1), so the two read-only modes fail closed the
+// same way. A frontmatter that parses but carries no spec_id prints an EMPTY line at exit 0: the absence is
+// reported as data rather than crashing, and the caller REDs on the empty value. That branch is reachable
+// only for a file the Approved gate has not already rejected — validate() REDs a spec_id-less spec — so it
+// is a fail-closed courtesy, never the load-bearing check.
+function emitSpecId(specPath) {
+  const text = readText(specPath, "SPEC.md");
+  if (text === undefined) return 1;
+  const parsed = parseSpec(text);
+  if (!parsed) {
+    console.error(`check-spec: no YAML frontmatter in ${specPath} — cannot locate spec_id`);
+    return 1;
+  }
+  process.stdout.write((parsed.fm.spec_id || "") + "\n");
+  return 0;
+}
+
 // --- default mode: validate the SPEC's shape, state, identity, and (if Approved) its pin. ---
 function validate(specPath) {
   const text = readText(specPath, "SPEC.md");
@@ -189,8 +247,15 @@ function main() {
     }
     return emitHash(args[1]);
   }
+  if (args[0] === "--spec-id") {
+    if (!args[1]) {
+      console.error("check-spec: usage: node pharn/floor/check-spec.mjs --spec-id <SPEC.md>");
+      return 1;
+    }
+    return emitSpecId(args[1]);
+  }
   if (!args[0]) {
-    console.log("RED — usage: node pharn/floor/check-spec.mjs <SPEC.md>  (or --hash <SPEC.md>)");
+    console.log("RED — usage: node pharn/floor/check-spec.mjs <SPEC.md>  (or --hash <SPEC.md> | --spec-id <SPEC.md>)");
     return 1;
   }
   return validate(args[0]);
