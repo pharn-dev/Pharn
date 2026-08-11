@@ -279,6 +279,20 @@ test("quote-aware on the PLAN side too: a QUOTED id containing ' # ' compares eq
   assert.match(r.stdout, /GREEN/);
 });
 
+test("cross-parser: a quoted id with a trailing note on ONE side only still compares equal", () => {
+  // The SPEC's id goes through parseSpec (shelled --spec-id); the PLAN's through this file's local
+  // readValue. Both must resolve `"FEAT-1" # note` and a bare `FEAT-1` to the same bytes, or a plan that
+  // merely annotated its own frontmatter would RED against the spec it correctly names.
+  const body = bodyFrom();
+  const h = bodyHash(body);
+  const r = runWith(
+    makePlan({ spec_id: '"FEAT-1" # carried from the Approved SPEC', hash: h }),
+    makeSpec({ spec_id: "FEAT-1", state: "Approved", hash: h, body })
+  );
+  assert.equal(r.status, 0, r.stdout + r.stderr);
+  assert.match(r.stdout, /GREEN/);
+});
+
 test("★ P0/P2: a control character in the PLAN's spec_id is ESCAPED in the RED, never emitted raw", () => {
   // ESC is the control character that actually SURVIVES the per-line frontmatter parse (JS `.` excludes
   // only the four line terminators), so an ANSI sequence is the real shape an untrusted field would use
@@ -312,6 +326,20 @@ test("duplicate spec_id in the PLAN is LAST-wins, matching parseSpec and YAML �
   assert.equal(r.status, 1);
   assert.match(r.stdout, /IDENTITY mismatch/);
   assert.match(r.stdout, /"some-other-feature"/); // the EFFECTIVE (last) value is what was compared
+});
+
+test("duplicate spec_content_hash is LAST-wins too — a stale effective pin no longer passes (fail-open on main)", () => {
+  // Not a new hole, a PRE-EXISTING one this change closes: the carried-hash read was first-wins before
+  // this file was touched, so a PLAN whose FIRST hash line was current and whose SECOND (effective) line
+  // was stale went GREEN on main. Reading the last match makes the checker agree with parseSpec, and the
+  // stale pin REDs.
+  const body = bodyFrom();
+  const h = bodyHash(body);
+  const plan = `---\nspec_id: my-feature\nspec_content_hash: ${h}\nspec_content_hash: ${"b".repeat(64)}\n---\n\n## Approach\n\nx.\n`;
+  const r = runWith(plan, makeSpec({ spec_id: "my-feature", state: "Approved", hash: h, body }));
+  assert.equal(r.status, 1);
+  assert.match(r.stdout, /chain BROKEN/);
+  assert.match(r.stdout, /b{64}/); // the EFFECTIVE (last) pin is what was compared
 });
 
 test("the id comparison is symmetric under padding: byte-identical quoted ids with edge spaces are GREEN", () => {

@@ -298,6 +298,28 @@ test("comment (single quotes too): 'a # b' in single quotes is preserved", () =>
   assert.equal(r.stdout.trim(), "a # b");
 });
 
+test("comment AFTER a closed quote is a real comment: '\"FEAT-1\" # note' parses to the interior", () => {
+  // The case the first cut of readValue got wrong. Resolving the quote FIRST handles both shapes: the
+  // interior is taken up to the closing quote, and anything after it is a comment. Doing the comment strip
+  // first would instead have eaten the closing quote of `"a # b"` (pinned by the test above).
+  const r = runWith(makeSpec({ spec_id: '"FEAT-1" # carried from the Approved SPEC' }), { specIdMode: true });
+  assert.equal(r.status, 0);
+  assert.equal(r.stdout.trim(), "FEAT-1");
+});
+
+test("comment after a closed quote, on the pin too: a quoted hash with a trailing note is GREEN", () => {
+  const r = runWith(makeSpec({ state: "Approved", hash: `"${bodyHash(BODY)}" # fix #4 — carried forward` }));
+  assert.equal(r.status, 0, r.stdout + r.stderr);
+  assert.match(r.stdout, /GREEN/);
+});
+
+test("an UNTERMINATED quote falls through to the unquoted path rather than guessing an interior", () => {
+  // Stated as a bound in readValue: no template emits this, and it must not silently invent a value.
+  const r = runWith(makeSpec({ spec_id: '"FEAT-1' }), { specIdMode: true });
+  assert.equal(r.status, 0);
+  assert.equal(r.stdout.trim(), "FEAT-1"); // stripQuotes drops the dangling opener; nothing is fabricated
+});
+
 test("comment TIGHTENS: a value that is ONLY a comment parses EMPTY, so 'spec_id: # todo' now REDs", () => {
   // Before the strip this read as the non-empty string "# todo: name this" and PASSED the presence
   // check — a spec with no real identity going GREEN. The strip makes the absence visible. Fail-closed.

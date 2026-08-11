@@ -14,8 +14,14 @@
 // ALREADY emitted by check-spec.mjs --hash. This file shells BOTH as CLIs (NOT sibling imports, P3 — the
 // same separation check-spec-approved / check-regress / check-verify use to re-run other floor gates) and
 // adds exactly TWO new assertions on top: planSpecId === specSpecId (IDENTITY) and planHash === specHash
-// (CONTENT). So the state-enum, the body-hash, and the spec_id parse live in exactly ONE place
-// (check-spec.mjs, reached via --hash and --spec-id) and can never drift between the spec checker and this one.
+// (CONTENT). The SPEC side of both is SHELLED, so the state-enum, the body hash, and the spec_id all come
+// from check-spec.mjs and cannot drift from what it just verified.
+//
+// The PLAN side is a LOCAL parse (P3, no sibling import), and its readValue is a DUPLICATE of
+// check-spec.mjs's. So "one source of truth" is TRUE of the SPEC half and merely INTENDED of the PLAN half:
+// the two agreeing is a CONVENTION that tests DETECT, never a floor op that PREVENTS divergence. Said
+// plainly because collapsing the two halves into one confident sentence is exactly the P0 disease — an
+// earlier draft of this header claimed the parses "can never drift", which was false of the duplicated one.
 //
 // WHY IDENTITY as well as content: the content pin alone lets a PLAN name spec A while carrying spec B's body
 // hash — the hash matches, the chain reads GREEN, and the record is MISLABELED. Pinning the body without
@@ -73,13 +79,19 @@ function stripComment(v) {
   return v.replace(/(^|\s)#.*$/, "").trim();
 }
 
-// Read one frontmatter field VALUE, quote-aware. ORDER IS LOAD-BEARING: a QUOTED scalar goes to stripQuotes
-// UNTOUCHED — stripping ` #…` first would eat the closing quote of a value that legitimately contains ` #`
-// (`"a # b"` → `a`). Kept byte-identical to check-spec.mjs's readValue so the PLAN side and the SPEC side
-// can never disagree about what a field VALUE is; a quoted id must compare equal across both parses.
+// Read one frontmatter field VALUE, quote-aware. THE QUOTE COMES FIRST: a quoted scalar's interior is taken
+// up to its closing quote and a real trailing comment after it is discarded, so `"a # b"` keeps its hash
+// while `"FEAT-1" # note` drops the note. Stripping ` #…` first would eat the closing quote of the former.
+// Kept byte-identical to check-spec.mjs's readValue so the PLAN side and the SPEC side agree on what a
+// field VALUE is — a quoted id must compare equal across both parses. That agreement is a DUPLICATED
+// function, so it is a convention the tests DETECT, not a floor op that PREVENTS divergence (see header).
 function readValue(raw) {
   const v = raw.trim();
-  if (v.startsWith('"') || v.startsWith("'")) return stripQuotes(v);
+  const q = v[0];
+  if (q === '"' || q === "'") {
+    const end = v.indexOf(q, 1);
+    if (end > 0) return v.slice(1, end);
+  }
   return stripQuotes(stripComment(v));
 }
 

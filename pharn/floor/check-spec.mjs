@@ -68,17 +68,26 @@ function stripComment(v) {
   return v.replace(/(^|\s)#.*$/, "").trim();
 }
 
-// Read one frontmatter field VALUE. THE ORDER IS LOAD-BEARING: a QUOTED scalar goes to stripQuotes
-// UNTOUCHED, because stripping ` #…` first would eat the closing quote of a value that legitimately
-// contains ` #` (`"a # b"` → `a`, corrupted). Only an unquoted scalar gets the comment strip. parseSpec
-// stores EVERY field, not just the three this checker gates, so an unrelated quoted field must survive.
+// Read one frontmatter field VALUE. THE QUOTE COMES FIRST, and that order is the part to get right: a
+// QUOTED scalar's interior is taken verbatim up to its closing quote, and whatever follows that quote (a
+// real trailing comment) is discarded. Doing it the other way — strip ` #…`, then the quotes — eats the
+// closing quote of a value that legitimately contains ` #` (`"a # b"` → `a`, corrupted). Resolving the
+// quote first gets BOTH shapes right: `"a # b"` keeps its hash, and `"FEAT-1" # note` drops the note.
+// parseSpec stores EVERY field, not just the three this checker gates, so an unrelated quoted field must
+// survive intact.
 //
-// Honestly bounded (P0): a pragmatic frontmatter reader, NOT a YAML library. A quoted value FOLLOWED by a
-// real comment (`"a" # c`) still yields `a" # c` — byte-identical to what this parse produced before
-// stripComment existed, so nothing regresses, but YAML-completeness is not claimed.
+// Honestly bounded (P0): a pragmatic frontmatter reader, NOT a YAML library. The closing quote is found by
+// a plain scan, so a value containing an ESCAPED quote (`"a\"b"`) ends at the escape rather than at the
+// real terminator, and an UNTERMINATED quote falls through to the unquoted path rather than guess at an
+// interior. No template here emits either shape, and both fail toward a visibly wrong value that the
+// id/hash gates reject — never toward a silent pass.
 function readValue(raw) {
   const v = raw.trim();
-  if (v.startsWith('"') || v.startsWith("'")) return stripQuotes(v);
+  const q = v[0];
+  if (q === '"' || q === "'") {
+    const end = v.indexOf(q, 1);
+    if (end > 0) return v.slice(1, end);
+  }
   return stripQuotes(stripComment(v));
 }
 
