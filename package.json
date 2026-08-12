@@ -1,6 +1,7 @@
 {
   "name": "pharn-oss",
   "version": "1.0.0",
+  "private": true,
   "description": "Audit-grade methodology for AI-native development. Skills, commands, lenses, and rules that turn AI sessions into versioned artifacts — so your codebase stays legible past month six. Claude Code first; Codex and Cursor next.",
   "keywords": [
     "audit",
@@ -23,7 +24,6 @@
   "license": "Apache-2.0",
   "author": "Przemysław Galarowicz",
   "type": "commonjs",
-  "main": "index.js",
   "scripts": {
     "test": "node --test \"**/*.test.mjs\" \"**/*.test.cjs\" \".claude/**/*.test.mjs\" \".claude/**/*.test.cjs\" \".dev/**/*.test.mjs\" \".dev/**/*.test.cjs\" \"pharn/**/*.test.mjs\" \"pharn/**/*.test.cjs\"",
     "lint": "eslint .",
