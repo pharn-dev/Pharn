@@ -203,6 +203,23 @@ node .dev/floor/check-specified-markers.mjs [target-dir] [--manifest <path>]
 node .dev/floor/gen-lessons-index.mjs [target-dir]
 node .dev/floor/check-lessons-index.mjs [target-dir]
 
+# Assert the README's shields version badge agrees with SKILLS_VERSION. FLOOR (enum/regex, primitive #3):
+# the badge value is located by its shields URL PATTERN (`img.shields.io/badge/pharn-<x>-`) — never a line
+# number, since editing the README shifts lines — and string-compared to the file. Added 2.5.1-era because
+# the badge read `version-1.0.0` through the WHOLE 2.x line and nothing noticed: it sits in the README's
+# UNGUARDED prose, OUTSIDE the CURRENT-STATE markers check-capability-catalog holds to byte-equality. Per
+# L20 a defect whose only remedy is "remember to update it" has earned a floor check, so this is one.
+# Fail-closed everywhere: >1 badge is AMBIGUOUS-RED (never first-match-wins), a hyphen-bearing SKILLS_VERSION
+# is a NAMED REFUSAL (shields encodes a literal `-` as `--`, so a pre-release cannot round-trip), and
+# SKILLS_VERSION is validated FIRST so two simultaneous REDs cannot race.
+# NARROWED, and stated: it proves the two strings AGREE, never that SKILLS_VERSION is CORRECT (a badge
+# matching a wrong bump stays GREEN) and never that the version story READS coherently. It does NOT read a
+# structured location — a README badge has none, which is the honest bound on L6, not a claim against it.
+# Wired into `npm run check` as `check:badge` AND as its own ci.yml step — ci.yml runs each script
+# individually and never `npm run check`, so `check`-only wiring would never fire on a PR; both wirings are
+# pinned by tests. Apparatus: no SKILLS_VERSION bump. Exits non-zero on RED.
+node .dev/floor/check-version-badge.mjs [target-dir]
+
 # Self-test the write-guard hook:
 echo '{"tool_name":"Edit","tool_input":{"file_path":"pharn/CONSTITUTION.md"}}' | node .claude/hooks/protect-trusted-paths.cjs   # → exit 2, denied
 echo '{"tool_name":"Write","tool_input":{"file_path":"pharn/pharn-core/rules/x.md"}}' | node .claude/hooks/protect-trusted-paths.cjs  # → exit 0, allowed
@@ -212,7 +229,8 @@ echo '{"tool_name":"Write","tool_input":{"file_path":"pharn/pharn-core/rules/x.m
 - **Dev tooling is real; the methodology stays stdlib-only.** The floor, the hook, and the commands
   have **zero runtime dependencies** (Node stdlib; Node 24). The repo carries **dev-only**
   devDependencies (ESLint, Prettier, markdownlint) wired as npm scripts: `npm run check`
-  (`format:check` + `lint` + `lint:md` + `docs:check` + `test`) is the aggregate gate, and `npm test` runs
+  (`format:check` + `lint` + `lint:md` + `docs:check` + `check:markers` + `check:badge` + `test`) is the
+  aggregate gate, and `npm test` runs
   `node --test` over the hook, product-floor, and dev-floor suites (`.claude/hooks/*.test.cjs` +
   `pharn/floor/*.test.mjs` + `.dev/floor/*.test.mjs`) — **green** at this writing; read the count live
   (`npm test`), never assert it from this doc (P6).

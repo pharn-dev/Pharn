@@ -1,0 +1,31 @@
+{
+  "base": "c583c1f11c13cee659b1ed9b259423c8c8467a6d",
+  "inside": [
+    ".dev/features/version-badge-pin/GRILL.md",
+    ".dev/features/version-badge-pin/PLAN.md",
+    ".dev/floor/check-version-badge.mjs",
+    ".dev/floor/check-version-badge.test.mjs",
+    ".github/workflows/ci.yml",
+    "CHANGELOG.md",
+    "CLAUDE.md",
+    "README.md",
+    "package.json"
+  ],
+  "outside_gates": {
+    "structural:expected-injection-comment": {
+      "base": 0,
+      "head": 0
+    },
+    "tests": {
+      "base": 0,
+      "head": 0
+    },
+    "validate": {
+      "base": 0,
+      "head": 0
+    }
+  },
+  "regressions": [],
+  "pre_existing": [],
+  "verdict": "no-regressions"
+}
