@@ -232,10 +232,18 @@ applied_lessons: none | [L1, L2] # MANDATORY — floor-checked (Step 4b); `none`
 > **leading token is a back-tick path** — ``- `path/to/file` — <what changes>``; (3) to **exclude** a
 > path, put it under the `### Explicitly not touched` **subsection** (the setter stops at that
 > heading) — **never** inline as ``- `path` — not touched`` (an inline-marked item still enters
-> scope). Keep an unfilled placeholder in **angle-brackets** (`` `<path>` ``) so an un-filled
-> `## Files` **fails closed** at the setter — a bare word like `` `path` `` would wrongly parse as a
-> real scope path. The `## Steps` above is **advisory prose**; only `## Files` back-tick paths become
-> the build's scope, and `/pharn-build` writes nothing outside them (fix #7).
+> scope). **Caveat:** a bare, non-blockquote prose line under `## Files` that reads like an exclusion
+> (wording such as _not touch/writ/modif/edit/chang_, _explicitly excluded_, _out of scope_, _off
+> limits_) is treated by the setter as a head-less exclusion intro and **truncates the authorized list
+> right there** — every path after it silently falls out of scope. Keep narrative in a **blockquote**
+> (`> …`) or as a **path-item description** (``- `path` — note``), and use the `### Explicitly not
+touched` heading (rule 3) for a real exclusion. Keep unfilled placeholders as **list items** whose
+> leading token is an angle-bracket path — ``- `<path>` `` (matching `pathsFromPlanFiles`) — so an
+> un-filled `## Files` **fails closed** at the setter (`isConcrete` rejects `<`/`>`); a bare
+> ``- `path` `` item is **unsafe** because it parses as a real scope path. The `## Steps` above is **advisory prose**,
+> but a non-path line under `## Files` is not harmless (see the caveat above) — only the `## Files`
+> back-tick paths **before any such truncation** become the build's scope, and `/pharn-build` writes
+> nothing outside them (fix #7).
 
 ## Step 4b — Check the lessons declaration (FLOOR)
 

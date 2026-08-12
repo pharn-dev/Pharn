@@ -1,0 +1,28 @@
+{
+  "base": "HEAD",
+  "inside": [
+    ".claude/commands/pharn-plan.md",
+    ".dev/features/f13-modeb-cue/GRILL.md",
+    ".dev/features/f13-modeb-cue/PLAN.md",
+    "CHANGELOG.md",
+    "SKILLS_VERSION",
+    "README.md"
+  ],
+  "outside_gates": {
+    "structural:expected-injection-comment": {
+      "base": 0,
+      "head": 0
+    },
+    "tests": {
+      "base": 0,
+      "head": 0
+    },
+    "validate": {
+      "base": 0,
+      "head": 0
+    }
+  },
+  "regressions": [],
+  "pre_existing": [],
+  "verdict": "no-regressions"
+}
