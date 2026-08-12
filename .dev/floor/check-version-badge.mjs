@@ -190,7 +190,9 @@ function main() {
   }
   const { ok, findings, version, badge } = checkVersionBadge(target);
   if (ok) {
-    process.stdout.write(`VERSION-BADGE: GREEN — ${README_PATH} badge ${JSON.stringify(badge)} matches ${VERSION_PATH} ${JSON.stringify(version)}\n`);
+    process.stdout.write(
+      `VERSION-BADGE: GREEN — ${README_PATH} badge ${JSON.stringify(badge)} matches ${VERSION_PATH} ${JSON.stringify(version)}\n`
+    );
     process.exit(0);
   }
   process.stdout.write(`VERSION-BADGE: RED — ${findings.length} finding(s)\n`);
