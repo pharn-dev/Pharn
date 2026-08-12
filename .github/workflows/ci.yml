@@ -39,6 +39,9 @@ jobs:
       - name: Specified-marker check
         if: ${{ always() && steps.install.outcome == 'success' }}
         run: npm run check:markers
+      - name: Version badge check
+        if: ${{ always() && steps.install.outcome == 'success' }}
+        run: npm run check:badge
       - name: Test
         if: ${{ always() && steps.install.outcome == 'success' }}
         run: npm test
