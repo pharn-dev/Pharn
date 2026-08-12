@@ -1,9 +1,10 @@
 #!/usr/bin/env node
 // .dev/floor/check-version-badge.mjs — the README version-badge DRIFT CHECKER (build apparatus).
 //
-// The GUARANTEE (P0, ARCHITECTURE §2 primitive #3 — enum/regex): the value rendered by the README's
-// shields version badge is BYTE-EQUAL to the contents of SKILLS_VERSION. Both sides are read live, the
-// badge value is extracted by URL pattern, and the comparison is a string equality. ZERO LLM.
+// The GUARANTEE (P0, ARCHITECTURE §2 primitive #3 — enum/regex): the value extracted from the README's
+// shields version badge equals the trimmed, shape-validated SKILLS_VERSION scalar. Both sides are read live,
+// the badge value is extracted by URL pattern, and the comparison is JavaScript string equality (`===`).
+// ZERO LLM.
 //
 //   - MISSING_VERSION  : SKILLS_VERSION is absent or unreadable
 //   - ENUM_ERROR       : SKILLS_VERSION or the badge value is not a clean `<major>.<minor>.<patch>` scalar
@@ -134,11 +135,11 @@ export function checkVersionBadge(targetDir) {
     return finding(
       "UNSUPPORTED",
       VERSION_PATH,
-      `"${version}" contains a hyphen; a shields badge message encodes a literal "-" as "--", so this version cannot round-trip through the badge URL — the badge would have to be built and read differently before a pre-release version is supported`
+      `${JSON.stringify(version)} contains a hyphen; a shields badge message encodes a literal "-" as "--", so this version cannot round-trip through the badge URL — the badge would have to be built and read differently before a pre-release version is supported`
     );
   }
   if (!VERSION_RE.test(version)) {
-    return finding("ENUM_ERROR", VERSION_PATH, `"${version}" is not a <major>.<minor>.<patch> version`);
+    return finding("ENUM_ERROR", VERSION_PATH, `${JSON.stringify(version)} is not a <major>.<minor>.<patch> version`);
   }
 
   // ── 2. The README badge ─────────────────────────────────────────────────────────────────────────
@@ -156,12 +157,12 @@ export function checkVersionBadge(targetDir) {
     return finding(
       "AMBIGUOUS",
       README_PATH,
-      `${values.length} "${BADGE_LABEL}" version badges found (${values.join(", ")}); exactly one is required — a set with two members is not a value`
+      `${values.length} "${BADGE_LABEL}" version badges found (${values.map((v) => JSON.stringify(v)).join(", ")}); exactly one is required — a set with two members is not a value`
     );
   }
   const badge = values[0];
   if (!isCleanScalar(badge) || !VERSION_RE.test(badge)) {
-    return finding("ENUM_ERROR", README_PATH, `badge value "${badge}" is not a <major>.<minor>.<patch> version`);
+    return finding("ENUM_ERROR", README_PATH, `badge value ${JSON.stringify(badge)} is not a <major>.<minor>.<patch> version`);
   }
   if (badge !== version) {
     return {
@@ -172,7 +173,7 @@ export function checkVersionBadge(targetDir) {
         {
           type: "DRIFT",
           file: README_PATH,
-          problem: `the badge reads "${badge}" but ${VERSION_PATH} is "${version}"`,
+          problem: `the badge reads ${JSON.stringify(badge)} but ${VERSION_PATH} is ${JSON.stringify(version)}`,
         },
       ],
     };
@@ -189,7 +190,7 @@ function main() {
   }
   const { ok, findings, version, badge } = checkVersionBadge(target);
   if (ok) {
-    process.stdout.write(`VERSION-BADGE: GREEN — ${README_PATH} badge "${badge}" matches ${VERSION_PATH} "${version}"\n`);
+    process.stdout.write(`VERSION-BADGE: GREEN — ${README_PATH} badge ${JSON.stringify(badge)} matches ${VERSION_PATH} ${JSON.stringify(version)}\n`);
     process.exit(0);
   }
   process.stdout.write(`VERSION-BADGE: RED — ${findings.length} finding(s)\n`);

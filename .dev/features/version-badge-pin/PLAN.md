@@ -73,7 +73,7 @@
 ## Trust audit (P2)
 
 - **Inputs.** `README.md` and `SKILLS_VERSION` are in-repo, human-authored, committed files — trusted in the ordinary sense, but the checker treats their contents as **DATA** regardless and never as instructions.
-- **Taint handling.** The extracted badge value and the `SKILLS_VERSION` contents are compared as **bytes**, never interpreted. Both pass a control-char-free single-line-scalar guard _before_ any anchored regex (L14), so a crafted README cannot launder a newline or control sequence into the comparison or into the printed finding.
+- **Taint handling.** The extracted badge value and the trimmed, shape-validated `SKILLS_VERSION` scalar are compared with JavaScript string equality (`===`), never interpreted beyond the scalar/shape guards. Both pass a control-char-free single-line-scalar guard _before_ any anchored regex (L14), so a crafted README cannot launder a newline or control sequence into the comparison or into the printed finding.
 - **Output.** The checker prints the two values inside a quoted finding message. That message is free text and is treated as untrusted DATA by any reader; **no decision anywhere rests on it** — the verdict is the exit code alone.
 
 ## Determinism audit (P5)

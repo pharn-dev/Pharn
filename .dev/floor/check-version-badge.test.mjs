@@ -124,7 +124,7 @@ test("✧ TWO pharn badges → exit 1 AMBIGUOUS, never first-match-wins (L6)", (
     const { code, out } = run(dir);
     assert.equal(code, 1, "ambiguity must be RED even when the FIRST badge is correct");
     assert.match(out, /\[AMBIGUOUS\]/);
-    assert.match(out, /2\.5\.1, 9\.9\.9/);
+    assert.match(out, /"2\.5\.1", "9\.9\.9"/);
   });
 });
 
@@ -182,6 +182,20 @@ test("✧ SKILLS_VERSION not <major>.<minor>.<patch> → exit 1 ENUM_ERROR", () 
     const { code, out } = run(dir);
     assert.equal(code, 1);
     assert.match(out, /\[ENUM_ERROR\]/);
+  });
+});
+
+test("✧ badge bearing ESC in the URL value is escaped in stdout, never emitted raw (P2)", () => {
+  // ESC is built with fromCharCode, never written as a literal escape or a raw byte: a raw control byte
+  // in a source file survives copy/paste and tooling badly (check-plan-spec-agree.test.mjs precedent).
+  const ESC = String.fromCharCode(27);
+  const hostile = `${ESC}[31mPWNED${ESC}[0m`;
+  withFixture({ version: "2.5.1", badge: hostile }, (dir) => {
+    const { code, out } = run(dir);
+    assert.equal(code, 1);
+    assert.match(out, /\[ENUM_ERROR\]/);
+    assert.ok(!out.includes(ESC), "the ESC must not reach stdout raw");
+    assert.match(out, /\\u001b/); // escaped, as JSON.stringify renders it
   });
 });
 
