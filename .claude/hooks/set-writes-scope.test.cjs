@@ -288,6 +288,56 @@ test("the usage line advertises --allow-claude-dir", () => {
   assert.match(r.stderr, /--allow-claude-dir/);
 });
 
+// --- F15: `clean()`'s trailing-annotation strip must not mangle a path segment that itself ends in
+// `)` — a Next.js route-group directory (`app/(marketing)`) is a real, concrete `writes:` value whose
+// last path segment is `(marketing)`. The old `\s*\([^)]*\)\s*$` matched a ZERO-space gap, so it
+// stripped the group off entirely (scope collapsed to `app/`), silently under-scoping the writes-scope
+// guard for a common layout. An annotation (the documented use, e.g. ` (gated)`) is always written with
+// a LEADING SPACE, so requiring `\s+` distinguishes the two without behavior change for the documented
+// case. ---
+
+test("F15 fix: a route-group directory `app/(marketing)` survives `clean()` intact (was mangled to `app/`)", () => {
+  const cwd = tmp();
+  const cap = capWith(cwd, "writes:", '  - "app/(marketing)"');
+  const r = setter(cwd, "--from-frontmatter", cap);
+  assert.equal(r.status, 0);
+  const rec = JSON.parse(fs.readFileSync(join(cwd, ".pharn", "writes-scope.json"), "utf8"));
+  assert.deepEqual(rec.scope, ["app/(marketing)"]);
+});
+
+test("F15 fix: a NESTED route-group path `app/(a)/(b)` survives `clean()` intact", () => {
+  const cwd = tmp();
+  const cap = capWith(cwd, "writes:", '  - "app/(a)/(b)"');
+  const r = setter(cwd, "--from-frontmatter", cap);
+  assert.equal(r.status, 0);
+  const rec = JSON.parse(fs.readFileSync(join(cwd, ".pharn", "writes-scope.json"), "utf8"));
+  assert.deepEqual(rec.scope, ["app/(a)/(b)"]);
+});
+
+test("F15 regression guard: the documented SPACE-separated annotation (e.g. ` (gated)`) is still stripped", () => {
+  const cwd = tmp();
+  const cap = capWith(cwd, "writes:", '  - "src/widget.ts (gated)"');
+  const r = setter(cwd, "--from-frontmatter", cap);
+  assert.equal(r.status, 0);
+  const rec = JSON.parse(fs.readFileSync(join(cwd, ".pharn", "writes-scope.json"), "utf8"));
+  assert.deepEqual(rec.scope, ["src/widget.ts"]);
+});
+
+test("F15 regression guard: a route-group FILE (`app/(marketing)/page.tsx`) was never affected either way", () => {
+  const cwd = tmp();
+  const cap = capWith(cwd, "writes:", '  - "app/(marketing)/page.tsx"');
+  const r = setter(cwd, "--from-frontmatter", cap);
+  assert.equal(r.status, 0);
+  const rec = JSON.parse(fs.readFileSync(join(cwd, ".pharn", "writes-scope.json"), "utf8"));
+  assert.deepEqual(rec.scope, ["app/(marketing)/page.tsx"]);
+});
+
+// Mutant MEASURED (L4 — an authored assertion passes by construction until proven otherwise): reverting
+// `\s+` back to `\s*` in `clean()` was applied to the live file and both F15-fix tests above FAILED
+// (scope collapsed to `["app/"]` / `["app/(a)"]`); the fix was then restored and the full suite is green
+// again. No mutant-guard test is added here (that would just re-encode the same regex the fix already
+// pins) — the measurement is recorded as evidence the two tests above are not vacuous.
+
 // --- Coverage backfill for the entry-resolution paths this increment's refusal sits downstream of.
 // These were untested before: a refusal that runs over `scope` is only as sound as the parsing that
 // builds `scope`, so the glob / block-list / unquoted-inline forms are pinned here. ---
