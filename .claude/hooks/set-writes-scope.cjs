@@ -93,7 +93,7 @@ function normalizeForTest(entry) {
 // Strip a trailing " (annotation)" (e.g. " (gated)") and surrounding whitespace.
 function clean(entry) {
   return String(entry)
-    .replace(/\s*\([^)]*\)\s*$/, "")
+    .replace(/\s+\([^)]*\)\s*$/, "")
     .trim();
 }
 
