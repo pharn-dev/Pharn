@@ -136,3 +136,34 @@ prevents. The honest standard:
 
 "Good" = known holes closed or labeled, and limits honest. **Not** "no holes." The unknowns are
 discovered by building and measuring, not by more review (`README.md`, the experiment agenda).
+
+---
+
+## 5. Observability is interrogated at plan time only
+
+The `observability` griller (`pharn/pharn-pipeline/grillers/observability/`) reads **the PLAN** and
+nothing else. Its scanner, `pharn/floor/scan-plan-observability.mjs`, is one of five `scan-plan-*`
+scanners; there is no `scan-code-*` counterpart, and no lens in `pharn/pharn-review/` reads code for
+telemetry wiring.
+
+The consequence, stated plainly: **a plan may declare telemetry, pass the grill, and the diff that
+results may wire none — with every floor green.** Nothing downstream re-checks the promise against
+the code. `/pharn-verify` re-runs the project's own gates; if the project has no telemetry test,
+neither does PHARN.
+
+Two reasons this is a limit rather than a gap awaiting a fix:
+
+- **There is no configured sink.** `pharn.config.json` carries only model/stage settings and
+  `ship.requireAttestation`; `pharn/pharn-contracts/seam-config.md` names no telemetry concept. A
+  project cannot tell PHARN what its logger is, so any code-side check must hardcode a name set and
+  will misread every custom sink.
+- **Absence is not injection-immune the way presence is.** For a concern whose shape is _absence_, a
+  scanner hit is GOOD and therefore _suppresses_ — the inverse of `scan-plan-secrets.mjs`. On code,
+  masking stops a comment from suppressing, but a real dead `logger.debug()` call still does.
+
+`pharn/floor/scan-code-swallowed-exception.mjs` is the nearest existing check and is not this: it
+reads logger calls inside `catch` bodies with **inverted polarity** — logging there is evidence the
+error was _swallowed_. A catch that rethrows and emits nothing is CLEAN to every check PHARN ships.
+
+Reopens when a real failure surfaces it (P7) — a dogfood or eval run where a plan-declared signal
+was absent from the built code — or when a sink becomes declarable.

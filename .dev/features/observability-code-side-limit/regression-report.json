@@ -1,0 +1,32 @@
+{
+  "feature": "observability-code-side-limit",
+  "base": "b7626d4",
+  "head": "working-tree",
+  "inside": [],
+  "outside_gates": {
+    "check:badge": { "base": 0, "head": 0 },
+    "check:markers": { "base": 0, "head": 0 },
+    "docs:check": { "base": 0, "head": 0 },
+    "lint": { "base": 0, "head": 0 },
+    "test": { "base": 0, "head": 0 },
+    "validate": { "base": 0, "head": 0 }
+  },
+  "regressions": [],
+  "pre_existing": [],
+  "verdict": "no-regressions",
+  "scope": {
+    "changed": [
+      "CHANGELOG.md",
+      ".dev/features/observability-code-side-limit/GRILL.md",
+      ".dev/features/observability-code-side-limit/LIMITS-5-PROPOSED.md",
+      ".dev/features/observability-code-side-limit/PLAN.md"
+    ],
+    "escaped": [],
+    "escape_exempt": [],
+    "scope_exit": 0
+  },
+  "style_gates": {
+    "skipped": true,
+    "reason": "no shared style config (.prettierrc / .prettierignore / .markdownlint* / eslint.config / package.json) is in the changed set, so an outside file's style result cannot flip between base and head (L9). The increment's OWN new markdown is covered at /pharn-dev-verify, not here."
+  }
+}
