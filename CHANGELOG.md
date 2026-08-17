@@ -8,6 +8,42 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Deferred
+
+- **Recorded that PHARN interrogates observability at plan time only, and never against the code that
+  results — as a deliberate deferral, not a TODO.** The `observability` griller reads the PLAN and
+  nothing else; `pharn/floor/scan-plan-observability.mjs` is one of five `scan-plan-*` scanners with no
+  `scan-code-*` counterpart, and `pharn/floor/lens-scanner-map.json` registers no observability lens
+  among its 22. The practical consequence is that a plan may declare telemetry, pass the grill, and the
+  resulting diff may wire none while every floor stays green.
+
+  **Why no lens was built (P7).** The floor-able half of the question — "a call to the **configured**
+  logger/telemetry sink exists on this failure path" — cannot be built as stated, because **no
+  telemetry sink is configurable anywhere in PHARN**: `pharn.config.json` carries only `models.stages`
+  and `ship.requireAttestation`, and `pharn/pharn-contracts/seam-config.md` names no telemetry concept.
+  Any code-side scanner would have to hardcode a logger-name set — the same construction whose
+  false-negative `pharn/floor/scan-code-swallowed-exception.mjs` already documents (`telemetry.record(e)`
+  is classified CLEAN). Shipping a checker that is wrong for every project with a custom sink, while its
+  capability doc reads `FLOOR`, is the P0 disease this repo exists to prevent. No dogfood run and no
+  eval failed on this gap, so P7's trigger — a real failure, never a hypothetical — has not fired.
+
+  **The one near-miss, stated so the absence claim is not overstated.** `scan-code-swallowed-exception.mjs`
+  _does_ read code for logger calls, but with **inverted polarity**: a logging call inside a `catch` is
+  evidence the error was _swallowed_, not evidence it is observable. An exhaustive sweep confirmed the
+  other 17 `scan-code-*.mjs` scanners contain no logger reference at all. A catch that rethrows and
+  emits nothing is CLEAN to every check PHARN currently ships.
+
+  **`SKILLS_VERSION` bumped to `2.6.1` (patch)** — a clarification to already-shipped trusted-doc
+  bytes, per `CLAUDE.md`'s bump-size rule. Nothing the increment itself wrote is product surface; the
+  bump versions the `LIMITS.md` §5 addition it stages. **The staged section is carried in the root
+  `TEST.md`, a byte-exact clone of `LIMITS.md` with §5 appended** — `LIMITS.md` is hook-denied to the
+  agent, so the addition is prepared for a human to apply with a single `cp TEST.md LIMITS.md`. Until
+  that copy happens the bump runs one step ahead of the byte it versions; `TEST.md` and its two
+  linter-ignore entries (`.prettierignore`, `.markdownlint-cli2.jsonc`, both required because
+  `LIMITS.md` fails prettier and `MD047` under any non-excluded name) are transient and should be
+  deleted once the section is applied. Full reasoning, the measured discovery, the rejected designs,
+  and the where/why of the append: `.dev/features/observability-code-side-limit/`.
+
 ### Fixed
 
 - **`/pharn-review.md` Step 6 now mandates surfacing every `sources[]` contributor, not only the merged

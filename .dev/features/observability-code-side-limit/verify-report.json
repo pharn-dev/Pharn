@@ -1,0 +1,25 @@
+{
+  "feature": "observability-code-side-limit",
+  "head": "working-tree",
+  "gates": {
+    "check:badge": 0,
+    "check:markers": 0,
+    "docs:check": 0,
+    "format:check": 0,
+    "lint": 0,
+    "lint:md": 0,
+    "test": 0,
+    "validate": 0
+  },
+  "verdict": "PASS",
+  "failing_gates": [],
+  "structural_gates": {
+    "count": 0,
+    "reason": "the increment ships no capability and therefore no evals/cases + evals/expected pair, so there is no structural:<expected> gate to run. This is a consequence of the increment's design (no lens is authored), not a skipped check."
+  },
+  "verifiers": {
+    "registered": 0,
+    "note": "node pharn/floor/count-verifiers.mjs . -> {\"registered\":0,\"verifiers\":[]}, read live this run. Zero verifiers exist (P7), so the advisory layer is empty. Per fix #3 a verifier finding could never flip this verdict even if one existed."
+  },
+  "test_count": 1380
+}
