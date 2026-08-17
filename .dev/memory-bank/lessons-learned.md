@@ -610,3 +610,43 @@ each name a defect, this one names a **failure of the correction mechanism**.
   line) + `.dev/features/product-capability-catalog/SHIP.md` (the build HALT), with the 6-vs-2 over-grant
   reproduced live at build Step 0
 - promoted: 2026-08-07 via gated `/pharn-dev-memory-promote` (human-approved).
+
+## L21 — L5's input-capture boundary recurred through `git status` — a path-set checker must REJECT a directory-shaped input, not trust its caller
+
+type: process · concepts: [input-capture, lesson-recurrence, floor-escalation, writes-scope, git]
+
+**Lesson.** L5 named input-capture a trust boundary and prescribed discipline: quote/array-expand shell
+lists, ASSERT THE EXPECTED CARDINALITY, fail-closed on a surprising shape. It has now recurred on a
+different tool. A bare `git status --porcelain` emits an untracked DIRECTORY as one entry
+(`.dev/features/<name>/`) rather than the files inside it; fed to `check-regress.mjs scope`, that
+directory path matches nothing in a plan's `## Files` (which declares FILES), and the checker emitted the
+blocking `P0` finding "the build escaped its plan's `## Files`" over a build that escaped nothing. Per
+L20, a second occurrence of a discipline-only remedy is the trigger to move it to the floor, not to write
+a third reminder. The reduction is available and needs no new primitive: `check-regress.mjs scope` should
+REJECT or EXPAND a directory-shaped `--changed` entry (a trailing `/`, or a path that resolves to a
+directory on disk) instead of silently classifying it as an undeclared file — a shape/membership test,
+`pharn/ARCHITECTURE.md §2` primitive #3. Until that lands the interim discipline is
+`git status --porcelain -uall`, or deriving the changed set from `.pharn/writes-scope.json` rather than
+from git at all.
+
+**Why it matters.** It fails in the direction L17 warns about most sharply: a **false blocking** "the
+build escaped its plan's `## Files`" trains the operator to wave through the one finding that must never
+be waved through — and unlike L17's instance, this one is not a design mismatch in the checker's question
+but garbage handed to a correct checker. The evidence standard L20 sets is met exactly: L5's remedy list
+**already contained** "assert the expected cardinality," so the reminder was not too quiet — it was the
+wrong KIND of remedy, and the family (L5 → this entry) has now cost two investigations to reach the same
+conclusion. Note the asymmetry with L20's own instance, which is the reason this one nearly escaped:
+L20's recurrence was caught by a number the tooling **prints** (the setter's path count), whereas this one
+was caught only because a blocking finding was **investigated rather than recorded** (L16) — there was no
+printed number to read, which is itself an argument for the floor-side fix. Complements L5 (the boundary),
+L17 (the same checker's other defect), and L20 (the escalation rule this entry applies to itself).
+
+**Provenance.**
+
+- feature: `observability-code-side-limit`
+- commit: `93f022218e0bfd6cbbfe8885faa00d72a3686011`
+- source: `.dev/features/observability-code-side-limit/REVIEW.md` (proposed lesson candidate) +
+  `.dev/features/observability-code-side-limit/REGRESSION.md` (the scope-check investigation), with the
+  false blocking finding reproduced live at the regress stage; reframed from a tooling-trap draft to an
+  L20 escalation at the promote gate (human-directed)
+- promoted: 2026-08-17 via gated `/pharn-dev-memory-promote` (human-approved).
