@@ -139,6 +139,25 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
+- **`/pharn-ship` now renders `features/<name>/BRIEFING.md` at GATE 2, alongside `SHIP.md`.** `SHIP.md`
+  stays a thin roll-up of exit codes and pointers; `BRIEFING.md` is a distinct, one-screen artifact
+  answering what a reviewer needs before opening any other file — what was built, why this design (when
+  recoverable), and whether it matches what was asked. It is assembled **deterministically** by the new
+  `pharn/floor/render-ship-briefing.mjs` (Node stdlib only, no LLM call): every enum-gated frontmatter
+  field is a verbatim copy of a value already present in a committed source file (SPEC/PLAN frontmatter,
+  `regression-report.json`, `verify-report.json`, GRILL.md's own verdict line), or the honest literal
+  `n/a`/`unknown` when that source is absent — never fabricated. A design-rationale section is located in
+  `PLAN.md` by a curated structural heading-scan and quoted verbatim when found (matched against all 34
+  heading spellings sampled from this repo's own build history); when none is found, `/pharn-ship` may
+  generate one narrow, always-labeled `## Why this design (ADVISORY — model-synthesized, not
+floor-verified; ...)` paragraph — the _only_ generated prose in the artifact, structurally confined to
+  one fenced section and never reaching an enum-gated field. A paired new checker,
+  `pharn/floor/check-ship-briefing.mjs`, re-verifies every frontmatter field against its live sibling
+  source (cross-file equality, not merely shape) and is surfaced to the human as an **annotation only** —
+  it never gates GATE 2, never issues a seal, and never becomes a precondition for reaching the human's
+  decision. New contract: `pharn/pharn-contracts/ship-briefing.md`. **`SKILLS_VERSION` bumped to `2.6.0`
+  (minor)** — a newly-shipped command step, contract, and checker, not a correction of already-shipped
+  bytes.
 - **The "specified; ships with the guarded surface" annotations are now floor-checked in BOTH drift directions — the entry below corrected the docs by hand, and this stops that correction from rotting.** The F7 fix reduced to "remember to update the docs when the primitive ships", which is exactly the remedy-class `.dev/memory-bank/lessons-learned.md` **L20** says WILL fail. The P7 trigger is not hypothetical and not new: the trusted docs asserted non-existent floor primitives in the present tense and **nothing detected it** — all three are in `.prettierignore` **and** excluded by name in `.markdownlint-cli2.jsonc`, and no floor checker reads their prose, so the drift was structurally invisible for as long as it was true. New `.dev/floor/check-specified-markers.mjs` + `.dev/floor/specified-primitives.json`, wired into `npm run check` as `check:markers`.
 
   **Two directions, and the first one is the one nobody would catch.** **(1) The primitive SHIPS while its markers remain** → RED naming every site: the doc now **understates** a live protection. This fires precisely when the repo gets **better**, which is exactly when no one is auditing the docs for a bug. **(2) A marker is DELETED while the primitive is still absent** → RED: a silent return to overclaiming, the original F7 defect. A third check covers the other half of what F7 fixed — `named_artifacts` asserts a doc citing a shipped artifact still names it correctly **and** that the artifact exists, and rejects any `forbidden` legacy citation still present, guarding the `security-secrets` → `secrets-in-code` name-drift class in both directions.

@@ -140,6 +140,21 @@ node pharn/floor/check-plan-lessons.mjs <PLAN.md> <lessons-learned.md>
 # NOT an input to check-loop.mjs — the record can never influence the stop. Exits non-zero on RED.
 node pharn/floor/check-loop-record.mjs <LOOP.md>
 
+# Render / cross-verify the GATE-2 briefing artifact (features/<name>/BRIEFING.md) /pharn-ship writes
+# alongside SHIP.md. render-ship-briefing.mjs is Node stdlib only, no LLM call: every enum-gated
+# frontmatter field is a verbatim copy of a value already in a committed source file (SPEC/PLAN
+# frontmatter, regression-report.json, verify-report.json, GRILL.md's own verdict line), or the literal
+# `n/a`/`unknown` when that source is absent — never fabricated. A design-rationale section is located in
+# PLAN.md by a curated structural heading-scan (matched against 34 sampled heading spellings from this
+# repo's own build history) and quoted verbatim; a miss degrades to an honest sentinel line, never a
+# guess. check-ship-briefing.mjs then re-verifies every frontmatter field against its LIVE sibling source
+# (cross-file equality, not merely shape) — a genuinely new floor primitive, surfaced by /pharn-ship as an
+# ANNOTATION only: it never gates GATE 2, never issues a seal. ADVISORY (never checked): that the quoted
+# or (bounded, always-labeled) model-synthesized `## Why this design` section is accurate or sufficient.
+# See pharn/pharn-contracts/ship-briefing.md. Exits non-zero on RED.
+node pharn/floor/render-ship-briefing.mjs <name> [--base <dir>]
+node pharn/floor/check-ship-briefing.mjs <BRIEFING.md>
+
 # PRODUCT twin of check-provenance (below): validate a promotion candidate for a USER's memory-bank.
 # Same primitive #3 checks; TARGET_ENUM is `memory-bank/{lessons-learned,pattern-library}.md` (the two
 # PRESCRIPTION files, deliberately NOT ARCHITECTURE §5's four state files), and COMMIT_RE additionally
