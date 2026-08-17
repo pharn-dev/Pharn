@@ -1,0 +1,31 @@
+{
+  "base": "5ec36b02b753417db69a2d82e14b62ea649e41e4",
+  "inside": [
+    ".claude/commands/pharn-ship.md",
+    ".dev/features/ship-briefing/GRILL.md",
+    ".dev/features/ship-briefing/PLAN.md",
+    "CHANGELOG.md",
+    "CLAUDE.md",
+    "README.md",
+    "SKILLS_VERSION",
+    "pharn/floor/check-regress.mjs",
+    "pharn/floor/check-ship-briefing.mjs",
+    "pharn/floor/check-ship-briefing.test.mjs",
+    "pharn/floor/render-ship-briefing.mjs",
+    "pharn/floor/render-ship-briefing.test.mjs",
+    "pharn/pharn-contracts/ship-briefing.md"
+  ],
+  "outside_gates": {
+    "tests": {
+      "base": 0,
+      "head": 0
+    },
+    "validate": {
+      "base": 0,
+      "head": 0
+    }
+  },
+  "regressions": [],
+  "pre_existing": [],
+  "verdict": "no-regressions"
+}
