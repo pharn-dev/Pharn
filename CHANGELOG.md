@@ -10,6 +10,24 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Fixed
 
+- **`/pharn-review.md` Step 6 now mandates surfacing every `sources[]` contributor, not only the merged
+  finding's top-level scalar.** When two lenses flag the same `(type, rule_id, file)` for different
+  reasons, `pharn/floor/merge-findings.mjs` correctly collapses them into one finding — the scalar
+  `problem`/`evidence` are taken from `sources[0]` after a deterministic sort, and the additive
+  `sources[]` array carries every contributor's `{source, severity, problem, evidence}`. Nothing was
+  lost in the data. But Step 6's rendering instruction only listed `sources[]` in its P2 quoting
+  mandate — it did not require a renderer to actually display more than the top-level scalar, so a
+  `REVIEW.md` following it literally could show only the first lens's `problem` and leave a second
+  lens's distinct concern at the same location invisible to the human reader. Step 6 now adds an
+  explicit clause: when a finding's `sources[]` has more than one entry, surface each contributor's
+  `source` and `problem`, attributed to its lens, still rendered as quoted DATA (P2). `merge-findings.mjs`,
+  the merge contract, and the `sources[0]`-after-sort scalar selection are unchanged — this is a
+  renderer-only fix. `/pharn-dev-review.md` was checked for the same gap and needs no fix: read live, it
+  never calls `merge-findings.mjs` (it runs four inline lenses into one report directly), so no
+  `sources[]` structure exists there to under-render. **`SKILLS_VERSION` bumped to `2.5.5` (patch)** —
+  `pharn-review.md` is product surface; this clarifies a rendering mandate in shipped bytes with no
+  contract or floor change.
+
 - **`/pharn-plan.md`'s `## Files` placeholder guidance now shows the list-item shape `pathsFromPlanFiles` actually parses.** The contract blockquote had said to keep an unfilled placeholder in angle-brackets (`` `<path>` ``) without showing it as a list item, and warned only that a bare `` `path` `` "word" would parse as scope — but the parser matches ``- `…` `` list items (`pathsFromPlanFiles`), so the unsafe form is specifically ``- `path` `` (no angle brackets), which `isConcrete` accepts while ``- `<path>` `` does not. The guidance now shows ``- `<path>` `` explicitly and names the bare list-item form as unsafe. **`SKILLS_VERSION` bumped to `2.5.4` (patch)** — `pharn-plan.md` is product surface.
 
 - **A bare, non-blockquote prose line under a PLAN's `## Files` could silently truncate the authorized writes-scope, and `/pharn-plan.md` didn't say so.** `set-writes-scope.cjs`'s Mode-B parser (`pathsFromPlanFiles`) already exempts an authorized path-item's own description and an explanatory blockquote from its fail-closed exclusion-cue fallback (Boundary 2), but a bare narrative sentence between two path items — e.g. "these steps do not change the public API" — still matched the cue and ended the list there, dropping every path after it from `.pharn/writes-scope.json`. This is fail-closed (the build is blocked, not silently under-protected) and the underlying matcher is unchanged: narrowing it would trade today's false-positive for a fail-**open** false-negative on a real, unusually-worded exclusion — the exact failure mode L18 already documented. `/pharn-plan.md`'s `## Files` contract blockquote — the one place an author writes this section — now names the caveat and the three ways to avoid it (blockquote, path-item description, or the `### Explicitly not touched` heading), and clarifies that its closing sentence ("only back-tick paths become the build's scope") does not mean non-path lines are harmless. **`SKILLS_VERSION` bumped to `2.5.3` (patch)** — `pharn-plan.md` is product surface (a non-`pharn-dev-` command), and this is a prose clarification of already-shipped bytes with no behavior change.
