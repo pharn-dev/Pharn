@@ -27,10 +27,3 @@ pharn/CONSTITUTION.md
 pharn/ARCHITECTURE.md
 THREAT-MODEL.md
 LIMITS.md
-
-# TRANSIENT staging clone of LIMITS.md carrying a proposed `## 5.` for a human to apply (LIMITS.md is
-# hook-denied to the agent). Ignored for the same reason LIMITS.md is, and the need was MEASURED:
-# copied to a non-excluded name, LIMITS.md fails `prettier --check`. The clone must stay BYTE-EXACT so
-# `cp TEST.md LIMITS.md` yields only the intended addition, not a reformat of the trusted doc.
-# DELETE this entry together with TEST.md once the section is applied.
-TEST.md

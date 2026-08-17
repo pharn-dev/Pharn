@@ -66,6 +66,14 @@ that exists only in `TEST.md`. This is the one place this increment knowingly de
 `## Guarantee audit` posture, at the human's direction, and it resolves the moment `TEST.md` is
 copied over `LIMITS.md`.
 
+> **RESOLVED — commit `25aafd2`.** The human applied §5 to `LIMITS.md` by hand outside the agent loop
+> (appended after §4; `§1a`/`§1c` and every other id intact, so the code cites in
+> `scan-installed-skills.mjs:21` and `lessons-index-core.mjs:78,316` still resolve) and committed it
+> together with the `2.6.1` bump and the badge. The paragraph above is kept as the record of the
+> window in which the bump ran ahead of its byte; that window is closed. `TEST.md` and its two
+> linter-ignore entries were transient by design and have been deleted — the two entries in a
+> follow-up cleanup, since the commit landed while they were still present.
+
 ### Deliberately NOT in scope
 
 - **`LIMITS.md`** — hook-denied (`protect-trusted-paths.cjs:130-133`; verified live this run: an `Edit` to it returns `permissionDecision: deny`, exit 2). The proposed §5 text is produced for a human to apply; the agent never attempts the write.

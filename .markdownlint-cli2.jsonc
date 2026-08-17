@@ -33,14 +33,6 @@
     // entry: probed the same way, `prettier --check .` does NOT traverse `.pharn/`, so there is no
     // trigger for one (P7 — no speculative additions).
     ".pharn/lessons-index.md",
-    // TRANSIENT staging clone of LIMITS.md carrying a proposed `## 5.` for a human to apply
-    // (LIMITS.md is hook-denied to the agent, so the addition is staged rather than written).
-    // Ignored for the SAME reason LIMITS.md is, and the need was MEASURED, not assumed: copied to a
-    // non-excluded name, LIMITS.md fails MD047 (it ends without a trailing newline). The clone must
-    // stay BYTE-EXACT so `cp TEST.md LIMITS.md` yields only the intended addition — a --fix pass
-    // would reformat it and turn the apply into an unreviewed diff of the trusted doc.
-    // DELETE this entry together with TEST.md once the section is applied.
-    "TEST.md",
   ],
   "config": {
     "default": true,

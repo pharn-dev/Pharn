@@ -33,16 +33,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
   other 17 `scan-code-*.mjs` scanners contain no logger reference at all. A catch that rethrows and
   emits nothing is CLEAN to every check PHARN currently ships.
 
+  **The limit is recorded as `LIMITS.md` §5, appended after §4 with no renumbering** — the existing
+  section ids are load-bearing and cited from code (`pharn/floor/scan-installed-skills.mjs:21` cites
+  `§1a`; `pharn/floor/lessons-index-core.mjs:78,316` cite `§1c`), so a new top-level section was the
+  only safe shape; a fifth entry under §1 would also have contradicted its own heading ("The four
+  irreducible limits"). `LIMITS.md` is hook-denied to the agent, so the text was staged for a human
+  and applied by hand outside the agent loop.
+
   **`SKILLS_VERSION` bumped to `2.6.1` (patch)** — a clarification to already-shipped trusted-doc
-  bytes, per `CLAUDE.md`'s bump-size rule. Nothing the increment itself wrote is product surface; the
-  bump versions the `LIMITS.md` §5 addition it stages. **The staged section is carried in the root
-  `TEST.md`, a byte-exact clone of `LIMITS.md` with §5 appended** — `LIMITS.md` is hook-denied to the
-  agent, so the addition is prepared for a human to apply with a single `cp TEST.md LIMITS.md`. Until
-  that copy happens the bump runs one step ahead of the byte it versions; `TEST.md` and its two
-  linter-ignore entries (`.prettierignore`, `.markdownlint-cli2.jsonc`, both required because
-  `LIMITS.md` fails prettier and `MD047` under any non-excluded name) are transient and should be
-  deleted once the section is applied. Full reasoning, the measured discovery, the rejected designs,
-  and the where/why of the append: `.dev/features/observability-code-side-limit/`.
+  bytes, per `CLAUDE.md`'s bump-size rule, with the matching README badge edit. Full reasoning, the
+  measured discovery, and the rejected designs: `.dev/features/observability-code-side-limit/`.
 
 ### Fixed
 
