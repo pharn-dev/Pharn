@@ -303,6 +303,66 @@ overwrites `.pharn/writes-scope.json`).
    is reached regardless of this checker's exit code** — the same "never a precondition" rule
    `pharn-contracts/ship-briefing.md` states for the whole artifact.
 
+## Step 2d — Emit the PR handoff (DISPLAY ONLY — `/pharn-ship` runs no git command)
+
+`BRIEFING.md` is written to be **pasteable as a pull-request description**
+(`pharn/pharn-contracts/ship-briefing.md`, cited not restated — P4). This step closes the last manual gap
+by **displaying** the exact invocation that would carry it there. It **executes nothing**.
+
+**This changes no non-goal.** `/pharn-ship` still never merges, ships, seals, or **commits** — it emits
+text; a human runs it, or does not. Writing "`/pharn-ship` opened the PR" or "`/pharn-ship` filed the
+briefing" is the disease (P0) — **struck**. What it did was print a line.
+
+1. **Shape-check the slug before interpolating it (SPECIFIED — advisory compliance, NOT floor).** The
+   test below is an enum/regex in **shape**, but nothing executes it: no checker reads it, no test pins
+   it, and `validate.mjs` deliberately ignores `.claude/commands/`. It is a rule this command tells you
+   to apply — **"written in the command" is not "guaranteed" (P0)**, and calling it FLOOR would be the
+   exact disease. The emitted block is a string a human will paste into a **shell**, which makes the
+   feature slug an injection surface — a different egress shape from every other artifact in this chain
+   (those are files that get read; this is a line that gets run). `ship-briefing.md` constrains `feature`
+   only to "non-empty, control-char-free, `<=128` chars", which admits spaces, `;`, backticks and `$(…)`.
+   So branch on a **membership test**, never on judgment:
+   - `<name>` matches `^[a-z0-9][a-z0-9-]{0,63}$` → emit the full block below.
+   - **Otherwise → REFUSE the one-liner.** Emit the `--body-file` form with the title left as an explicit
+     `<fill in>` placeholder, plus the sentence _"the feature slug `<name>` is not shell-safe, so the
+     title is not interpolated — supply it yourself."_ Never emit an unchecked slug inside a command
+     string, and never silently sanitize one (a silently-rewritten slug would misname the PR).
+
+2. **Display the block.** Present it to the human as a fenced code block — **do not run it**:
+
+   ```bash
+   # PHARN does not run these. Copy, review, and run them yourself if you decide to open a PR.
+   gh pr create --title '<name>' --body-file features/<name>/BRIEFING.md
+   ```
+
+   Single quotes, not double: the title must not be re-expanded by the human's shell even after step 1's
+   check. If the human's remote is not GitHub, or `gh` is absent or unauthenticated, they will see that in
+   **their own terminal** when they run it — `/pharn-ship` neither probes for `gh` nor claims it exists.
+
+3. **State what a reader of that PR can verify.** Alongside the block, name the briefing's
+   `rendered_at_commit` frontmatter value (already floor-checked by `check-ship-briefing.mjs`) so a
+   reviewer can fetch that commit and diff the description's claims against committed content. That field
+   — **not** `ship-record.json`'s `record_hash`, which binds the _attestation_ block on a different
+   artifact — is the briefing's own content pointer.
+
+**Guarantee audit for Step 2d (P0): there is NO floor element in this step. Zero.** Every line of it is
+advisory:
+
+- the **slug shape check** — enum/regex in shape, but **specified prose, not a running check**; no checker
+  executes it, no test pins it, and `validate.mjs` ignores `.claude/commands/` (this was caught at review
+  of the increment that added the step, where it had been mislabeled `FLOOR` — recorded rather than
+  quietly corrected);
+- that the human **runs** the command, that their remote is GitHub, that `gh` exists or is authenticated,
+  that the PR description is ever read;
+- that `/pharn-ship` **performs no git write** — true of these bytes and verifiable by reading them, but
+  **not "floor by absence"**: fix #7 gates `Write|Edit|MultiEdit|NotebookEdit` only, so a Bash-run `git`
+  call bypasses it entirely (`lessons-learned.md` L19; `THREAT-MODEL.md` §4 item 2), and **no checker
+  would catch a future edit that added one**.
+
+Step 2d adds **no** new floor primitive and **no** new `writes:` path; it writes nothing at all. If the
+slug check is ever to become a guarantee it needs a checker and a test — a follow-up (`ship-slug-shape`),
+not a claim.
+
 ## Step 3 — Set the writes-scope (fix #7, fail-closed), then write `features/<name>/SHIP.md`
 
 `/pharn-ship` sets **no global scope** and never an over-broad one. Each sub-stage already runs its **own**
@@ -455,6 +515,13 @@ the `check-ship.mjs` cap.
   faithful or sufficient summary — `check-ship-briefing.mjs`'s exit code is surfaced as an **annotation
   only** (Step 2c). The **rendering** itself (`render-ship-briefing.mjs`) is deterministic but its act of
   running is **advisory orchestration**, exactly like every other stage-invocation here.
+- **"Step 2d's PR handoff runs no git command"** → **not a floor claim — a property of these bytes.**
+  Step 2d emits a fenced code block and executes nothing; `/pharn-ship` contains no `git`/`gh` invocation.
+  Note honestly that this is **not** "floor by absence": fix #7 gates `Write|Edit|MultiEdit|NotebookEdit`
+  only, so a Bash-run `git` call would bypass it entirely (`lessons-learned.md` L19; `THREAT-MODEL.md` §4
+  item 2) — no checker would catch a future edit that added one. **Step 2d contains no floor element at
+  all:** its slug **shape check** is enum/regex in shape but is **specified prose, not a running check**
+  (nothing executes it), so it is advisory compliance. Step 2d adds no primitive and no `writes:` path.
 - **Net (gated mode):** the gated chain introduces **exactly one** new floor primitive of its own — the
   `BRIEFING.md` cross-file checker above, deliberately narrow and never gating — plus the pre-existing
   build-completion-retry primitive that belongs to `/pharn-verify`. Every proceed/stop verdict still
@@ -500,6 +567,10 @@ the `check-ship.mjs` cap.
   adds none. It adds exactly one **non-gating** primitive of its own (`check-ship-briefing.mjs`, Step 2c) —
   named, never conflated with a proceed/stop check. Writing "`/pharn-ship` ensures the chain ran" or "ensures
   quality" is still the disease — struck.
+- **No git, still — and Step 2d does not change that.** Step 2d **displays** a `gh pr create` line for the
+  human to review and run; `/pharn-ship` performs **zero** git operations — no branch, no add, no commit,
+  no push, no PR. The bullet above is unamended and remains exactly true: reaching the end is permission to
+  **present**, never to act. "It printed the command" is not "it opened the PR" (P0).
 - **No `--loop`, and the single build-completion retry is NOT a loop.** `--loop` (iterate to a floor-grade
   stop with the `check-ship.mjs` cap) remains a separate deferred increment. Step 2b's retry is a **single,
   bounded** re-build fired **only** on an `INCOMPLETE` verify — **at most once**, **no** second retry, **no**
