@@ -19,6 +19,7 @@ reads:
     "pharn/floor/check-plan-spec-agree.mjs",
     "pharn/floor/validate.mjs",
     "pharn/floor/check-attestation.mjs",
+    "pharn/floor/render-cost-record.mjs",
     "pharn/floor/render-ship-briefing.mjs",
     "pharn/floor/check-ship-briefing.mjs",
     "pharn/pharn-contracts/ship-record.md",
@@ -27,7 +28,7 @@ reads:
   ]
 writes: ["features/<name>/SHIP.md", "features/<name>/ship-record.json", "features/<name>/BRIEFING.md"]
 constitution_refs: ["P0", "P2", "P5", "P6", "P7"]
-version: "0.3.0"
+version: "0.4.0"
 ---
 
 # /pharn-ship — run the product pipeline, end at a human gate
@@ -400,11 +401,29 @@ human** attest to having **READ** the ship-record, **content-bound** by a hash. 
 comprehension, correctness, or a self-issued seal — **attestation ≠ comprehension** (P0); the base
 `PHARN ✓ reviewed` seal and the merge decision remain the human's GATE-2 call (unchanged).
 
-1. **Emit the machine record.** Write `features/<name>/ship-record.json` — a JSON object carrying the same
-   advisory roll-up as `SHIP.md` (stages that ran, the floor verdicts read, `decision: null`), **without**
-   an `attestation` key yet.
+1. **Render the measured cost block (deterministic, no LLM).** `LIMITS.md §1c`: a static `est_tokens` is a
+   guess; **the real number is the measured runtime cost**. Render it from this run's own transcript:
 
-2. **Read the gate (deterministic membership, P5).** Read `ship.requireAttestation` from `pharn.config.json`:
+   ```bash
+   node pharn/floor/render-cost-record.mjs
+   ```
+
+   Node stdlib only, no network, no model call. It deduplicates on `requestId` — **load-bearing**, since one
+   API response is written to the transcript as several lines repeating the same usage object — includes the
+   disjointly-stored subagent transcripts, and groups by the platform's recorded `attributionSkill`. It
+   **prints** the block; it never writes (fix #7 gates the write below, not the render). If it returns
+   `coverage: "unavailable"`, embed that block verbatim — an honest absence is a member, never a reason to
+   omit the key or to fabricate a figure.
+
+2. **Emit the machine record.** Write `features/<name>/ship-record.json` — a JSON object carrying the same
+   advisory roll-up as `SHIP.md` (stages that ran, the floor verdicts read, `decision: null`), **plus the
+   `cost` block from step 1**, and **without** an `attestation` key yet.
+
+   > **Ordering is load-bearing.** `record_hash` covers the record _with `attestation` removed_, so `cost`
+   > is **inside** the attested content. Write it **before** computing any attestation hash, or the
+   > attestation would be invalidated by its own record (contract: `pharn/pharn-contracts/ship-record.md`).
+
+3. **Read the gate (deterministic membership, P5).** Read `ship.requireAttestation` from `pharn.config.json`:
    - **key absent** (no `ship` block, or no `requireAttestation`) → treat as `false` (the default —
      attestation stays optional and ship proceeds `· unattested`, never blocking on a handle);
    - **present and boolean** → use it (`true` enables the halt-and-ask below);
@@ -413,7 +432,7 @@ comprehension, correctness, or a self-issued seal — **attestation ≠ comprehe
      whether to proceed unattested or fix the config (a silent `false` would disable a gate the author
      intended — fix F3). This is a membership test, not a guess.
 
-3. **Elicit attestation — NEVER self-fill (P2, constraint the command MUST honor).** You, the agent, **MUST
+4. **Elicit attestation — NEVER self-fill (P2, constraint the command MUST honor).** You, the agent, **MUST
    NOT** write `by` yourself, invent a handle, or infer it from git. Ask the human via an **interactive
    question** (the seam-resolver terminal-fallback — ask, never guess): _"A named human may attest to having
    READ `features/<name>/ship-record.json` + `SHIP.md`. Enter your handle to attest, or decline to ship
@@ -432,7 +451,7 @@ comprehension, correctness, or a self-issued seal — **attestation ≠ comprehe
      (Using `--compute` — the same code the verifier runs — is why a genuine attestation can never spuriously
      read `stale`; fix F1.)
 
-4. **Verify + render the clause (FLOOR verdict; rendering is ADVISORY).** Run the checker and branch **only**
+5. **Verify + render the clause (FLOOR verdict; rendering is ADVISORY).** Run the checker and branch **only**
    on its `verdict` (a membership test, P5):
 
    ```bash
