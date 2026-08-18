@@ -256,6 +256,45 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
+- **`/pharn-ship` now records the MEASURED token cost of the run on `features/<name>/ship-record.json`
+  (`SKILLS_VERSION` 2.6.2 → 2.7.0, minor — a newly shipped checker + contract surface).** New
+  `pharn/floor/render-cost-record.mjs` (Node stdlib, no network, no model call) reads the run's own session
+  transcript and prints a `cost` block; `/pharn-ship` Step 3b embeds it before computing any attestation
+  hash. New `## The \`cost\` block`section in`pharn/pharn-contracts/ship-record.md` is its contract.
+
+  **Why (`LIMITS.md §1c`).** That limit already states the honest position — a static `est_tokens` is
+  "either a constant guess (always wrong) or a function of input size (which frontmatter cannot express)",
+  and "the real number is the **measured runtime cost**". Nothing on the product surface measured it: a user
+  running the pipeline on their own API key had no way to see what a feature cost. The maintainer could
+  always reconstruct it from transcripts — `.dev/measurements/token-cost-2026-08-18.md` is that
+  reconstruction — so the instrument was missing on the side of the person actually holding the bill.
+
+  **What is FLOOR.** The dedup and the sum. Records are deduplicated on `requestId` before summing —
+  **load-bearing, not a nicety**: the platform writes one API response as several transcript lines that each
+  repeat the same usage object, measured at **2.34×** over-count on this repo's own history. Disjointly
+  stored subagent transcripts are included, or fan-out cost would be invisible. Every token class
+  (uncached input / 1h cache-write / 5m cache-write / cache-read / output) is summed **separately** — cache
+  reads bill at a fraction of fresh input, so a blended total would be wrong by close to an order of
+  magnitude. Given the same transcript bytes the render is byte-identical (no clock read, no randomness);
+  pinned by 26 hermetic tests.
+
+  **What is ADVISORY, and stated (P0).** `coverage` has **no `complete` member by design** — the ship
+  stage's own turns are still being written when the block renders, so a run can never fully account for
+  itself; the figure is a floor on spend, never the total. It reports **tokens, never dollars**: no price
+  table is embedded, because published prices change and nothing in the floor could check one. It
+  **annotates and gates nothing** (fix #3) — it can never flip a verdict or block GATE 2, and "the record
+  shows N tokens" never means "the spend was worthwhile". Coverage is machine-local (the transcript is never
+  committed), the `product-lessons-index` precedent's weakness rather than the dev floor's byte-equality.
+  `by_stage` keys are the platform's own `attributionSkill`, so a stage absent from the block means the
+  platform did not tag it, **not** that the stage did not run.
+
+  **One ordering constraint, load-bearing.** `record_hash` covers the record with `attestation` removed,
+  so `cost` sits **inside** the attested content; it is written before any attestation hash is computed, or
+  an attestation would be invalidated by its own record.
+
+  **The cwd→transcript-directory mapping is lossy** (`a/b` and `a-b` collide), so the renderer verifies the
+  located transcript's own recorded `cwd` and refuses rather than report a foreign run.
+
 - **`/pharn-ship` Step 2d — a DISPLAY-ONLY pull-request handoff.** `pharn/pharn-contracts/ship-briefing.md`
   already states that `BRIEFING.md` "is written to be pasteable as a pull-request description"; Step 2d
   closes the last manual gap by **displaying** the exact `gh pr create --title '<name>' --body-file

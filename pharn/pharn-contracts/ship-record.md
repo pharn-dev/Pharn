@@ -53,6 +53,60 @@ prevents smuggling extra fields past the shape gate. `by`'s single-line bounded 
 F2): it keeps an untrusted handle from becoming a multi-line / markup injection vector in the rendered seal
 clause or the record (P2; bounds — does not zero — the `LIMITS.md §2` residual).
 
+## The `cost` block (ADVISORY — measured tokens, never a guarantee)
+
+`cost` is the measured token cost of the run that produced the record, rendered by
+`pharn/floor/render-cost-record.mjs` (cited, not restated — P4). It is the floor reduction of
+`LIMITS.md §1c`'s true statement — the real number is the **measured** runtime cost, not a declared
+`est_tokens`.
+
+```yaml
+cost: # OPTIONAL. Absent → the run predates the block or the record was hand-assembled.
+  schema: "pharn-cost-record/1"
+  coverage: partial | unavailable # NO `complete` member — see below
+  coverage_note: "<free text>"
+  session_id: "<id>" | null
+  window_start: "<ISO-8601>" | null # from the records' OWN timestamps, never a clock read
+  window_end: "<ISO-8601>" | null
+  dedup_key: "requestId"
+  transcript_files: <int>
+  requests: <int> # DEDUPLICATED API requests, not transcript lines
+  tokens: # every class kept SEPARATE — cached and uncached are never blended
+    input_uncached: <int>
+    cache_write_1h: <int>
+    cache_write_5m: <int>
+    cache_read: <int>
+    output: <int>
+    thinking: <int>
+  by_stage: { "<attributionSkill>": { requests, tokens } } # "(untagged)" is an honest bucket
+  by_model: { "<model-id>": { requests, tokens } }
+```
+
+**What it IS:** a deterministic sum over the run's own session transcript. The dedup on `requestId` is
+**load-bearing, not a nicety** — the platform writes one API response as several transcript lines that each
+repeat the same usage object, so a naive sum over-counts (measured at **2.34×** over this repo's own build
+history). Nested subagent transcripts are stored **disjointly** from the parent and are included, or fan-out
+cost would be invisible. Given the same transcript bytes the render is byte-identical.
+
+**What it IS NOT — and these are the whole point (P0):**
+
+- **Never `complete`.** The `coverage` enum has **no `complete` member by design**: the ship stage's own
+  turns are still being written when the block is rendered, so a run can never fully account for itself. The
+  figure is a **floor on spend**, never the total.
+- **Tokens, never dollars.** No price table is embedded, deliberately — published prices change, a baked-in
+  table would rot silently, and nothing in the floor could check it. Currency conversion is the reader's job.
+- **Not a verdict input.** It **annotates**; it gates nothing (fix #3). It can never flip a stage verdict or
+  block GATE 2, and "the record shows N tokens" **never** means "the spend was worthwhile" — that stays the
+  human's GATE-2 call.
+- **Machine-local coverage.** The transcript lives outside the repo and is never committed, so a fresh clone
+  reproduces nothing — the `product-lessons-index` precedent's weakness, not the dev floor's byte-equality.
+- **`by_stage` keys are the platform's `attributionSkill`,** not PHARN's own accounting. A stage missing
+  from `by_stage` means the platform did not tag those records, **not** that the stage did not run.
+
+**Ordering (load-bearing).** `record_hash` is computed over the record with `attestation` removed, so
+`cost` is **inside** the attested content. An emitter MUST write `cost` **before** computing the
+attestation hash; adding or editing it afterwards makes a previously-valid attestation read `stale`.
+
 ## record_hash — the content-hash binding (ONE implementation, no desync)
 
 `record_hash` = sha256(canonicalJSON(record with the `attestation` key removed)), where

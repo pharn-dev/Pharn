@@ -1,0 +1,2183 @@
+{
+  "schema_version": 1,
+  "generated_from": "Claude Code session transcripts (JSONL) for this repo only",
+  "source_dir": "~/.claude/projects/-Users-pgalarowicz-Projects-pharn-oss",
+  "content_policy": "numeric usage fields, ISO timestamps and enum/identifier fields only; no message content extracted or stored",
+  "extraction": {
+    "dedup_key": "requestId (fallback message.id)",
+    "excluded": ["<synthetic> model records"],
+    "deduped_requests": 6882,
+    "raw_assistant_records": 16092,
+    "inflation_factor": 2.338,
+    "window_start": "2026-07-22T14:10:12.543Z",
+    "window_end": "2026-08-18T08:18:24.846Z",
+    "includes_nested_subagent_transcripts": true,
+    "nested_rows": 2861
+  },
+  "pricing": {
+    "note": "API list-price equivalents, NOT amounts billed. Source: claude-api skill, cached 2026-06-24.",
+    "usd_per_1m": {
+      "claude-opus-5": {
+        "in": 5,
+        "out": 25
+      },
+      "claude-opus-4-8": {
+        "in": 5,
+        "out": 25
+      },
+      "claude-sonnet-5": {
+        "in": 2,
+        "out": 10
+      },
+      "claude-fable-5": {
+        "in": 10,
+        "out": 50
+      }
+    },
+    "cache_multipliers": {
+      "read": 0.1,
+      "w5m": 1.25,
+      "w1h": 2
+    },
+    "sonnet_5_caveat": "intro rate $2/$10 used; valid through 2026-08-31 which covers the whole window. Standard is $3/$15."
+  },
+  "attribution": {
+    "stage": "attributionSkill field (recorded, not inferred)",
+    "feature": "gitBranch, plus main-branch records from sessions whose sole feature branch is that branch",
+    "unattributed_main_usd": 138.93,
+    "coverage_filter": "features with < 10 attributed requests excluded from headline regression (natural gap: 7 -> 25)"
+  },
+  "totals": {
+    "req": 6882,
+    "fresh": 13689,
+    "w1h": 21905542,
+    "w5m": 19184949,
+    "read": 1111463431,
+    "out": 4720778,
+    "think": 356677,
+    "usd": 936.7948
+  },
+  "regression": {
+    "included": {
+      "n": 23,
+      "pearson_churn_usd": 0.6392,
+      "spearman_churn_usd": 0.5968,
+      "pearson_files_usd": 0.0554,
+      "total_usd": 571.95,
+      "mean_usd": 24.87,
+      "median_usd": 17.59
+    },
+    "unfiltered": {
+      "n": 26,
+      "pearson_churn_usd": 0.4863,
+      "spearman_churn_usd": 0.3313,
+      "pearson_files_usd": 0.0823,
+      "total_usd": 575.56,
+      "mean_usd": 22.14,
+      "median_usd": 16.33
+    }
+  },
+  "cold_start": {
+    "first_request_usd": 20.2432,
+    "subsequent_usd": 713.3335,
+    "sessions": 50,
+    "sessions_with_zero_cache_read_on_first_request": 0
+  },
+  "features": [
+    {
+      "branch": "loop-handoff",
+      "pr": 116,
+      "additions": 2314,
+      "deletions": 19,
+      "churn": 2333,
+      "files": 16,
+      "requests": 777,
+      "stages_seen": 7,
+      "sessions": 2,
+      "included": true,
+      "usd": 90.9856,
+      "usd_via_main": 23.6824,
+      "tok": {
+        "fresh_in": 1554,
+        "cache_write_1h": 1653250,
+        "cache_write_5m": 2673617,
+        "cache_read": 103749988,
+        "output": 234410,
+        "thinking": 0
+      }
+    },
+    {
+      "branch": "feat/lessons-index",
+      "pr": 115,
+      "additions": 3749,
+      "deletions": 23,
+      "churn": 3772,
+      "files": 47,
+      "requests": 215,
+      "stages_seen": 8,
+      "sessions": 1,
+      "included": true,
+      "usd": 65.1439,
+      "usd_via_main": 17.6625,
+      "tok": {
+        "fresh_in": 430,
+        "cache_write_1h": 1859425,
+        "cache_write_5m": 0,
+        "cache_read": 79414281,
+        "output": 273615,
+        "thinking": 0
+      }
+    },
+    {
+      "branch": "fix/f6-spec-id-agreement",
+      "pr": 127,
+      "additions": 537,
+      "deletions": 21,
+      "churn": 558,
+      "files": 6,
+      "requests": 413,
+      "stages_seen": 1,
+      "sessions": 2,
+      "included": true,
+      "usd": 47.8554,
+      "usd_via_main": 12.1994,
+      "tok": {
+        "fresh_in": 826,
+        "cache_write_1h": 643772,
+        "cache_write_5m": 2621767,
+        "cache_read": 41770727,
+        "output": 165687,
+        "thinking": 0
+      }
+    },
+    {
+      "branch": "fix/trusted-doc-accuracy",
+      "pr": 128,
+      "additions": 1516,
+      "deletions": 13,
+      "churn": 1529,
+      "files": 20,
+      "requests": 350,
+      "stages_seen": 1,
+      "sessions": 1,
+      "included": true,
+      "usd": 45.1253,
+      "usd_via_main": 43.5141,
+      "tok": {
+        "fresh_in": 700,
+        "cache_write_1h": 628105,
+        "cache_write_5m": 2226027,
+        "cache_read": 42968410,
+        "output": 137756,
+        "thinking": 0
+      }
+    },
+    {
+      "branch": "fix/f3-guard-self-protection",
+      "pr": 120,
+      "additions": 1340,
+      "deletions": 26,
+      "churn": 1366,
+      "files": 18,
+      "requests": 174,
+      "stages_seen": 1,
+      "sessions": 1,
+      "included": true,
+      "usd": 34.7404,
+      "usd_via_main": 8.821,
+      "tok": {
+        "fresh_in": 348,
+        "cache_write_1h": 377096,
+        "cache_write_5m": 33846,
+        "cache_read": 51892748,
+        "output": 192391,
+        "thinking": 0
+      }
+    },
+    {
+      "branch": "fix/f4-trusted-doc-exact-match",
+      "pr": 124,
+      "additions": 553,
+      "deletions": 133,
+      "churn": 686,
+      "files": 6,
+      "requests": 304,
+      "stages_seen": 0,
+      "sessions": 1,
+      "included": true,
+      "usd": 32.3419,
+      "usd_via_main": 0,
+      "tok": {
+        "fresh_in": 601,
+        "cache_write_1h": 367614,
+        "cache_write_5m": 1540839,
+        "cache_read": 33600994,
+        "output": 89280,
+        "thinking": 0
+      }
+    },
+    {
+      "branch": "feat/retro-tag-legacy-lessons",
+      "pr": 141,
+      "additions": 1236,
+      "deletions": 41,
+      "churn": 1277,
+      "files": 17,
+      "requests": 150,
+      "stages_seen": 6,
+      "sessions": 1,
+      "included": true,
+      "usd": 27.9514,
+      "usd_via_main": 26.7076,
+      "tok": {
+        "fresh_in": 300,
+        "cache_write_1h": 700852,
+        "cache_write_5m": 0,
+        "cache_read": 35049349,
+        "output": 136667,
+        "thinking": 49144
+      }
+    },
+    {
+      "branch": "feat/observability-code-side-limit",
+      "pr": 140,
+      "additions": 878,
+      "deletions": 24,
+      "churn": 902,
+      "files": 15,
+      "requests": 125,
+      "stages_seen": 2,
+      "sessions": 1,
+      "included": true,
+      "usd": 24.6846,
+      "usd_via_main": 14.2665,
+      "tok": {
+        "fresh_in": 250,
+        "cache_write_1h": 574098,
+        "cache_write_5m": 0,
+        "cache_read": 31477200,
+        "output": 128149,
+        "thinking": 47878
+      }
+    },
+    {
+      "branch": "fix/f1-floor-ref-relocation",
+      "pr": 121,
+      "additions": 1571,
+      "deletions": 319,
+      "churn": 1890,
+      "files": 147,
+      "requests": 155,
+      "stages_seen": 5,
+      "sessions": 2,
+      "included": true,
+      "usd": 24.5238,
+      "usd_via_main": 7.5092,
+      "tok": {
+        "fresh_in": 302,
+        "cache_write_1h": 468316,
+        "cache_write_5m": 55022,
+        "cache_read": 29562096,
+        "output": 188566,
+        "thinking": 0
+      }
+    },
+    {
+      "branch": "fix/f2-relocate-scan-plan",
+      "pr": 123,
+      "additions": 769,
+      "deletions": 95,
+      "churn": 864,
+      "files": 49,
+      "requests": 105,
+      "stages_seen": 7,
+      "sessions": 1,
+      "included": true,
+      "usd": 23.3308,
+      "usd_via_main": 4.2406,
+      "tok": {
+        "fresh_in": 193,
+        "cache_write_1h": 889325,
+        "cache_write_5m": 0,
+        "cache_read": 23379452,
+        "output": 109875,
+        "thinking": 0
+      }
+    },
+    {
+      "branch": "readme-current-state",
+      "pr": 109,
+      "additions": 1714,
+      "deletions": 56,
+      "churn": 1770,
+      "files": 17,
+      "requests": 126,
+      "stages_seen": 1,
+      "sessions": 3,
+      "included": true,
+      "usd": 19.1003,
+      "usd_via_main": 5.5382,
+      "tok": {
+        "fresh_in": 252,
+        "cache_write_1h": 551704,
+        "cache_write_5m": 80894,
+        "cache_read": 18590675,
+        "output": 151244,
+        "thinking": 0
+      }
+    },
+    {
+      "branch": "feat/product-capability-catalog",
+      "pr": 119,
+      "additions": 800,
+      "deletions": 20,
+      "churn": 820,
+      "files": 12,
+      "requests": 104,
+      "stages_seen": 8,
+      "sessions": 1,
+      "included": true,
+      "usd": 17.5868,
+      "usd_via_main": 12.4713,
+      "tok": {
+        "fresh_in": 208,
+        "cache_write_1h": 583396,
+        "cache_write_5m": 0,
+        "cache_read": 19065720,
+        "output": 88759,
+        "thinking": 0
+      }
+    },
+    {
+      "branch": "chore/floor-selfpath-correction",
+      "pr": 110,
+      "additions": 990,
+      "deletions": 138,
+      "churn": 1128,
+      "files": 69,
+      "requests": 110,
+      "stages_seen": 7,
+      "sessions": 2,
+      "included": true,
+      "usd": 16.333,
+      "usd_via_main": 12.9032,
+      "tok": {
+        "fresh_in": 220,
+        "cache_write_1h": 628486,
+        "cache_write_5m": 0,
+        "cache_read": 14546341,
+        "output": 110953,
+        "thinking": 0
+      }
+    },
+    {
+      "branch": "typed-lessons",
+      "pr": 114,
+      "additions": 1415,
+      "deletions": 27,
+      "churn": 1442,
+      "files": 14,
+      "requests": 104,
+      "stages_seen": 1,
+      "sessions": 1,
+      "included": true,
+      "usd": 15.9582,
+      "usd_via_main": 13.5907,
+      "tok": {
+        "fresh_in": 208,
+        "cache_write_1h": 274550,
+        "cache_write_5m": 0,
+        "cache_read": 20966446,
+        "output": 109138,
+        "thinking": 0
+      }
+    },
+    {
+      "branch": "feat/applied-lessons",
+      "pr": 113,
+      "additions": 1352,
+      "deletions": 13,
+      "churn": 1365,
+      "files": 18,
+      "requests": 102,
+      "stages_seen": 7,
+      "sessions": 1,
+      "included": true,
+      "usd": 15.8996,
+      "usd_via_main": 6.4584,
+      "tok": {
+        "fresh_in": 204,
+        "cache_write_1h": 413896,
+        "cache_write_5m": 0,
+        "cache_read": 18351523,
+        "output": 103354,
+        "thinking": 0
+      }
+    },
+    {
+      "branch": "chore/floor-selfheader-prefix",
+      "pr": 111,
+      "additions": 817,
+      "deletions": 27,
+      "churn": 844,
+      "files": 22,
+      "requests": 95,
+      "stages_seen": 7,
+      "sessions": 1,
+      "included": true,
+      "usd": 14.6203,
+      "usd_via_main": 0,
+      "tok": {
+        "fresh_in": 190,
+        "cache_write_1h": 573830,
+        "cache_write_5m": 0,
+        "cache_read": 13717533,
+        "output": 80891,
+        "thinking": 0
+      }
+    },
+    {
+      "branch": "docs/capability-catalog",
+      "pr": 101,
+      "additions": 2182,
+      "deletions": 1,
+      "churn": 2183,
+      "files": 55,
+      "requests": 71,
+      "stages_seen": 7,
+      "sessions": 1,
+      "included": true,
+      "usd": 12.958,
+      "usd_via_main": 8.2792,
+      "tok": {
+        "fresh_in": 142,
+        "cache_write_1h": 310998,
+        "cache_write_5m": 0,
+        "cache_read": 13538322,
+        "output": 123127,
+        "thinking": 0
+      }
+    },
+    {
+      "branch": "feat/ship-attestation",
+      "pr": 99,
+      "additions": 817,
+      "deletions": 11,
+      "churn": 828,
+      "files": 15,
+      "requests": 61,
+      "stages_seen": 4,
+      "sessions": 1,
+      "included": true,
+      "usd": 12.0902,
+      "usd_via_main": 0,
+      "tok": {
+        "fresh_in": 122,
+        "cache_write_1h": 145455,
+        "cache_write_5m": 0,
+        "cache_read": 16855163,
+        "output": 88299,
+        "thinking": 0
+      }
+    },
+    {
+      "branch": "docs/attestation-cannot-stall-loop",
+      "pr": 100,
+      "additions": 50,
+      "deletions": 5,
+      "churn": 55,
+      "files": 6,
+      "requests": 48,
+      "stages_seen": 0,
+      "sessions": 2,
+      "included": true,
+      "usd": 9.946,
+      "usd_via_main": 6.6213,
+      "tok": {
+        "fresh_in": 96,
+        "cache_write_1h": 261986,
+        "cache_write_5m": 0,
+        "cache_read": 7211097,
+        "output": 148803,
+        "thinking": 0
+      }
+    },
+    {
+      "branch": "fix/f10-features-readme",
+      "pr": 129,
+      "additions": 600,
+      "deletions": 4,
+      "churn": 604,
+      "files": 10,
+      "requests": 68,
+      "stages_seen": 1,
+      "sessions": 1,
+      "included": true,
+      "usd": 8.5901,
+      "usd_via_main": 1.8961,
+      "tok": {
+        "fresh_in": 136,
+        "cache_write_1h": 191171,
+        "cache_write_5m": 0,
+        "cache_read": 10656589,
+        "output": 53977,
+        "thinking": 0
+      }
+    },
+    {
+      "branch": "fix/f14-review-sources",
+      "pr": 138,
+      "additions": 438,
+      "deletions": 6,
+      "churn": 444,
+      "files": 12,
+      "requests": 76,
+      "stages_seen": 2,
+      "sessions": 1,
+      "included": true,
+      "usd": 4.8543,
+      "usd_via_main": 4.5921,
+      "tok": {
+        "fresh_in": 152,
+        "cache_write_1h": 424531,
+        "cache_write_5m": 0,
+        "cache_read": 13533139,
+        "output": 44928,
+        "thinking": 12816
+      }
+    },
+    {
+      "branch": "fix/f8-package-private",
+      "pr": 135,
+      "additions": 352,
+      "deletions": 1,
+      "churn": 353,
+      "files": 9,
+      "requests": 76,
+      "stages_seen": 7,
+      "sessions": 1,
+      "included": true,
+      "usd": 3.745,
+      "usd_via_main": 3.6509,
+      "tok": {
+        "fresh_in": 152,
+        "cache_write_1h": 230506,
+        "cache_write_5m": 0,
+        "cache_read": 11695234,
+        "output": 48362,
+        "thinking": 22941
+      }
+    },
+    {
+      "branch": "docs/readme-tagline-record",
+      "pr": 98,
+      "additions": 1,
+      "deletions": 1,
+      "churn": 2,
+      "files": 1,
+      "requests": 25,
+      "stages_seen": 1,
+      "sessions": 2,
+      "included": true,
+      "usd": 3.5812,
+      "usd_via_main": 0.8033,
+      "tok": {
+        "fresh_in": 50,
+        "cache_write_1h": 188906,
+        "cache_write_5m": 0,
+        "cache_read": 1389520,
+        "output": 39887,
+        "thinking": 0
+      }
+    },
+    {
+      "branch": "fix/f4-guard-fail-closed",
+      "pr": 125,
+      "additions": 559,
+      "deletions": 190,
+      "churn": 749,
+      "files": 9,
+      "requests": 7,
+      "stages_seen": 0,
+      "sessions": 1,
+      "included": false,
+      "usd": 1.5864,
+      "usd_via_main": 0,
+      "tok": {
+        "fresh_in": 13,
+        "cache_write_1h": 7348,
+        "cache_write_5m": 0,
+        "cache_read": 2740608,
+        "output": 5702,
+        "thinking": 0
+      }
+    },
+    {
+      "branch": "fix/line-ending-drift-and-regress-scope",
+      "pr": 126,
+      "additions": 1533,
+      "deletions": 40,
+      "churn": 1573,
+      "files": 30,
+      "requests": 5,
+      "stages_seen": 0,
+      "sessions": 1,
+      "included": false,
+      "usd": 1.4301,
+      "usd_via_main": 0,
+      "tok": {
+        "fresh_in": 10,
+        "cache_write_1h": 5261,
+        "cache_write_5m": 0,
+        "cache_read": 2555396,
+        "output": 3989,
+        "thinking": 0
+      }
+    },
+    {
+      "branch": "feat/product-memory-promote",
+      "pr": 117,
+      "additions": 2588,
+      "deletions": 25,
+      "churn": 2613,
+      "files": 16,
+      "requests": 6,
+      "stages_seen": 0,
+      "sessions": 1,
+      "included": false,
+      "usd": 0.5974,
+      "usd_via_main": 0,
+      "tok": {
+        "fresh_in": 12,
+        "cache_write_1h": 37364,
+        "cache_write_5m": 0,
+        "cache_read": 291912,
+        "output": 3109,
+        "thinking": 0
+      }
+    }
+  ],
+  "by_stage": {
+    "(untagged)": {
+      "req": 4060,
+      "fresh": 8077,
+      "w1h": 9110661,
+      "w5m": 17325490,
+      "read": 539664303,
+      "out": 1854208,
+      "think": 89489,
+      "usd": 497.9157,
+      "models": {
+        "claude-opus-4-8": 110,
+        "claude-opus-5": 3844,
+        "claude-fable-5": 14,
+        "claude-sonnet-5": 92
+      }
+    },
+    "pharn-dev-ship": {
+      "req": 615,
+      "fresh": 1227,
+      "w1h": 3799710,
+      "w5m": 135916,
+      "read": 93299048,
+      "out": 781582,
+      "think": 54146,
+      "usd": 102.4039,
+      "models": {
+        "claude-opus-4-8": 2,
+        "claude-opus-5": 604,
+        "claude-sonnet-5": 9
+      }
+    },
+    "pharn-dev-plan": {
+      "req": 388,
+      "fresh": 769,
+      "w1h": 2815131,
+      "w5m": 178595,
+      "read": 51450691,
+      "out": 451818,
+      "think": 53874,
+      "usd": 54.4636,
+      "models": {
+        "claude-opus-4-8": 20,
+        "claude-opus-5": 251,
+        "claude-sonnet-5": 117
+      }
+    },
+    "pharn-dev-grill": {
+      "req": 397,
+      "fresh": 790,
+      "w1h": 677730,
+      "w5m": 1544948,
+      "read": 43546973,
+      "out": 307810,
+      "think": 51628,
+      "usd": 43.1439,
+      "models": {
+        "claude-opus-4-8": 9,
+        "claude-opus-5": 361,
+        "claude-sonnet-5": 27
+      }
+    },
+    "pharn-dev-build": {
+      "req": 580,
+      "fresh": 1150,
+      "w1h": 2149614,
+      "w5m": 0,
+      "read": 131445418,
+      "out": 609933,
+      "think": 42032,
+      "usd": 95.4652,
+      "models": {
+        "claude-opus-4-8": 52,
+        "claude-opus-5": 456,
+        "claude-sonnet-5": 72
+      }
+    },
+    "pharn-dev-regress": {
+      "req": 347,
+      "fresh": 691,
+      "w1h": 539285,
+      "w5m": 0,
+      "read": 91012704,
+      "out": 262585,
+      "think": 16394,
+      "usd": 46.9682,
+      "models": {
+        "claude-opus-4-8": 30,
+        "claude-opus-5": 203,
+        "claude-sonnet-5": 114
+      }
+    },
+    "pharn-dev-verify": {
+      "req": 154,
+      "fresh": 306,
+      "w1h": 579837,
+      "w5m": 0,
+      "read": 41373044,
+      "out": 78992,
+      "think": 3564,
+      "usd": 24.53,
+      "models": {
+        "claude-opus-4-8": 13,
+        "claude-opus-5": 101,
+        "claude-sonnet-5": 40
+      }
+    },
+    "pharn-dev-review": {
+      "req": 282,
+      "fresh": 561,
+      "w1h": 2081557,
+      "w5m": 0,
+      "read": 101841196,
+      "out": 304715,
+      "think": 29585,
+      "usd": 59.7403,
+      "models": {
+        "claude-opus-4-8": 25,
+        "claude-opus-5": 153,
+        "claude-sonnet-5": 104
+      }
+    },
+    "pharn-dev-memory-promote": {
+      "req": 47,
+      "fresh": 94,
+      "w1h": 82814,
+      "w5m": 0,
+      "read": 15909708,
+      "out": 44872,
+      "think": 6790,
+      "usd": 9.9053,
+      "models": {
+        "claude-opus-5": 47
+      }
+    },
+    "claude-api": {
+      "req": 12,
+      "fresh": 24,
+      "w1h": 69203,
+      "w5m": 0,
+      "read": 1920346,
+      "out": 24263,
+      "think": 9175,
+      "usd": 2.2589,
+      "models": {
+        "claude-opus-5": 12
+      }
+    }
+  },
+  "by_model": {
+    "claude-opus-4-8": {
+      "req": 261,
+      "fresh": 522,
+      "w1h": 1449830,
+      "w5m": 0,
+      "read": 44322538,
+      "out": 581495,
+      "think": 0,
+      "usd": 51.1996
+    },
+    "claude-opus-5": {
+      "req": 6032,
+      "fresh": 11989,
+      "w1h": 16859595,
+      "w5m": 19184949,
+      "read": 901919906,
+      "out": 3650802,
+      "think": 166576,
+      "usd": 830.7918
+    },
+    "claude-fable-5": {
+      "req": 14,
+      "fresh": 28,
+      "w1h": 64100,
+      "w5m": 0,
+      "read": 892899,
+      "out": 18686,
+      "think": 0,
+      "usd": 3.1095
+    },
+    "claude-sonnet-5": {
+      "req": 575,
+      "fresh": 1150,
+      "w1h": 3532017,
+      "w5m": 0,
+      "read": 164328088,
+      "out": 469795,
+      "think": 190101,
+      "usd": 51.6939
+    }
+  },
+  "cells_feature_stage_model": {
+    "docs/readme-tagline-record|(untagged)|claude-opus-4-8": {
+      "req": 20,
+      "fresh": 40,
+      "w1h": 146145,
+      "w5m": 0,
+      "read": 977404,
+      "out": 24958,
+      "think": 0,
+      "usd": 2.5743
+    },
+    "docs/readme-tagline-record|pharn-dev-plan|claude-opus-4-8": {
+      "req": 5,
+      "fresh": 10,
+      "w1h": 42761,
+      "w5m": 0,
+      "read": 412116,
+      "out": 14929,
+      "think": 0,
+      "usd": 1.0069
+    },
+    "feat/ship-attestation|pharn-dev-build|claude-opus-4-8": {
+      "req": 20,
+      "fresh": 40,
+      "w1h": 59087,
+      "w5m": 0,
+      "read": 4448504,
+      "out": 31882,
+      "think": 0,
+      "usd": 3.6124
+    },
+    "feat/ship-attestation|pharn-dev-regress|claude-opus-4-8": {
+      "req": 13,
+      "fresh": 26,
+      "w1h": 36632,
+      "w5m": 0,
+      "read": 3554231,
+      "out": 24639,
+      "think": 0,
+      "usd": 2.7595
+    },
+    "feat/ship-attestation|pharn-dev-verify|claude-opus-4-8": {
+      "req": 8,
+      "fresh": 16,
+      "w1h": 14691,
+      "w5m": 0,
+      "read": 2375390,
+      "out": 5893,
+      "think": 0,
+      "usd": 1.482
+    },
+    "feat/ship-attestation|pharn-dev-review|claude-opus-4-8": {
+      "req": 20,
+      "fresh": 40,
+      "w1h": 35045,
+      "w5m": 0,
+      "read": 6477038,
+      "out": 25885,
+      "think": 0,
+      "usd": 4.2363
+    },
+    "docs/attestation-cannot-stall-loop|(untagged)|claude-opus-4-8": {
+      "req": 48,
+      "fresh": 96,
+      "w1h": 261986,
+      "w5m": 0,
+      "read": 7211097,
+      "out": 148803,
+      "think": 0,
+      "usd": 9.946
+    },
+    "docs/capability-catalog|pharn-dev-ship|claude-opus-4-8": {
+      "req": 1,
+      "fresh": 2,
+      "w1h": 33695,
+      "w5m": 0,
+      "read": 12697,
+      "out": 2094,
+      "think": 0,
+      "usd": 0.3957
+    },
+    "docs/capability-catalog|pharn-dev-plan|claude-opus-4-8": {
+      "req": 13,
+      "fresh": 26,
+      "w1h": 111582,
+      "w5m": 0,
+      "read": 1227455,
+      "out": 27991,
+      "think": 0,
+      "usd": 2.4295
+    },
+    "docs/capability-catalog|pharn-dev-grill|claude-opus-4-8": {
+      "req": 3,
+      "fresh": 6,
+      "w1h": 11004,
+      "w5m": 0,
+      "read": 384551,
+      "out": 5601,
+      "think": 0,
+      "usd": 0.4424
+    },
+    "docs/capability-catalog|pharn-dev-build|claude-opus-4-8": {
+      "req": 27,
+      "fresh": 54,
+      "w1h": 79364,
+      "w5m": 0,
+      "read": 4913709,
+      "out": 47687,
+      "think": 0,
+      "usd": 4.4429
+    },
+    "docs/capability-catalog|pharn-dev-regress|claude-opus-4-8": {
+      "req": 17,
+      "fresh": 34,
+      "w1h": 53915,
+      "w5m": 0,
+      "read": 4194116,
+      "out": 28893,
+      "think": 0,
+      "usd": 3.3587
+    },
+    "docs/capability-catalog|pharn-dev-verify|claude-opus-4-8": {
+      "req": 5,
+      "fresh": 10,
+      "w1h": 11325,
+      "w5m": 0,
+      "read": 1381031,
+      "out": 2719,
+      "think": 0,
+      "usd": 0.8718
+    },
+    "docs/capability-catalog|pharn-dev-review|claude-opus-4-8": {
+      "req": 5,
+      "fresh": 10,
+      "w1h": 10113,
+      "w5m": 0,
+      "read": 1424763,
+      "out": 8142,
+      "think": 0,
+      "usd": 1.0171
+    },
+    "readme-current-state|pharn-dev-ship|claude-opus-5": {
+      "req": 84,
+      "fresh": 168,
+      "w1h": 424151,
+      "w5m": 80894,
+      "read": 16024726,
+      "out": 118519,
+      "think": 0,
+      "usd": 15.7233
+    },
+    "readme-current-state|(untagged)|claude-opus-5": {
+      "req": 42,
+      "fresh": 84,
+      "w1h": 127553,
+      "w5m": 0,
+      "read": 2565949,
+      "out": 32725,
+      "think": 0,
+      "usd": 3.377
+    },
+    "chore/floor-selfpath-correction|pharn-dev-ship|claude-opus-5": {
+      "req": 11,
+      "fresh": 22,
+      "w1h": 104939,
+      "w5m": 0,
+      "read": 534320,
+      "out": 8287,
+      "think": 0,
+      "usd": 1.5238
+    },
+    "chore/floor-selfpath-correction|pharn-dev-plan|claude-opus-5": {
+      "req": 8,
+      "fresh": 16,
+      "w1h": 83969,
+      "w5m": 0,
+      "read": 585426,
+      "out": 14655,
+      "think": 0,
+      "usd": 1.4989
+    },
+    "chore/floor-selfpath-correction|(untagged)|claude-opus-5": {
+      "req": 25,
+      "fresh": 50,
+      "w1h": 207830,
+      "w5m": 0,
+      "read": 2457774,
+      "out": 33486,
+      "think": 0,
+      "usd": 4.1446
+    },
+    "chore/floor-selfpath-correction|pharn-dev-grill|claude-opus-5": {
+      "req": 6,
+      "fresh": 12,
+      "w1h": 17153,
+      "w5m": 0,
+      "read": 700105,
+      "out": 8900,
+      "think": 0,
+      "usd": 0.7441
+    },
+    "chore/floor-selfpath-correction|pharn-dev-build|claude-opus-5": {
+      "req": 21,
+      "fresh": 42,
+      "w1h": 145350,
+      "w5m": 0,
+      "read": 2862579,
+      "out": 14149,
+      "think": 0,
+      "usd": 3.2387
+    },
+    "chore/floor-selfpath-correction|pharn-dev-regress|claude-opus-5": {
+      "req": 14,
+      "fresh": 28,
+      "w1h": 20195,
+      "w5m": 0,
+      "read": 2367289,
+      "out": 10728,
+      "think": 0,
+      "usd": 1.6539
+    },
+    "chore/floor-selfpath-correction|pharn-dev-verify|claude-opus-5": {
+      "req": 11,
+      "fresh": 22,
+      "w1h": 17306,
+      "w5m": 0,
+      "read": 2082928,
+      "out": 5699,
+      "think": 0,
+      "usd": 1.3571
+    },
+    "chore/floor-selfpath-correction|pharn-dev-review|claude-opus-5": {
+      "req": 14,
+      "fresh": 28,
+      "w1h": 31744,
+      "w5m": 0,
+      "read": 2955920,
+      "out": 15049,
+      "think": 0,
+      "usd": 2.1718
+    },
+    "chore/floor-selfheader-prefix|pharn-dev-ship|claude-opus-5": {
+      "req": 1,
+      "fresh": 2,
+      "w1h": 694,
+      "w5m": 0,
+      "read": 63227,
+      "out": 332,
+      "think": 0,
+      "usd": 0.0469
+    },
+    "chore/floor-selfheader-prefix|pharn-dev-plan|claude-opus-5": {
+      "req": 5,
+      "fresh": 10,
+      "w1h": 66609,
+      "w5m": 0,
+      "read": 299435,
+      "out": 6763,
+      "think": 0,
+      "usd": 0.9849
+    },
+    "chore/floor-selfheader-prefix|(untagged)|claude-opus-5": {
+      "req": 17,
+      "fresh": 34,
+      "w1h": 286473,
+      "w5m": 0,
+      "read": 2155344,
+      "out": 21239,
+      "think": 0,
+      "usd": 4.4735
+    },
+    "chore/floor-selfheader-prefix|pharn-dev-grill|claude-opus-5": {
+      "req": 8,
+      "fresh": 16,
+      "w1h": 23096,
+      "w5m": 0,
+      "read": 862835,
+      "out": 11665,
+      "think": 0,
+      "usd": 0.9541
+    },
+    "chore/floor-selfheader-prefix|pharn-dev-build|claude-opus-5": {
+      "req": 25,
+      "fresh": 50,
+      "w1h": 138369,
+      "w5m": 0,
+      "read": 3289725,
+      "out": 13298,
+      "think": 0,
+      "usd": 3.3613
+    },
+    "chore/floor-selfheader-prefix|pharn-dev-regress|claude-opus-5": {
+      "req": 20,
+      "fresh": 40,
+      "w1h": 22648,
+      "w5m": 0,
+      "read": 3363795,
+      "out": 12861,
+      "think": 0,
+      "usd": 2.2301
+    },
+    "chore/floor-selfheader-prefix|pharn-dev-verify|claude-opus-5": {
+      "req": 12,
+      "fresh": 24,
+      "w1h": 18471,
+      "w5m": 0,
+      "read": 2265812,
+      "out": 5125,
+      "think": 0,
+      "usd": 1.4459
+    },
+    "chore/floor-selfheader-prefix|pharn-dev-review|claude-opus-5": {
+      "req": 7,
+      "fresh": 14,
+      "w1h": 17470,
+      "w5m": 0,
+      "read": 1417360,
+      "out": 9608,
+      "think": 0,
+      "usd": 1.1237
+    },
+    "feat/applied-lessons|pharn-dev-ship|claude-opus-5": {
+      "req": 13,
+      "fresh": 26,
+      "w1h": 102494,
+      "w5m": 0,
+      "read": 1017850,
+      "out": 17011,
+      "think": 0,
+      "usd": 1.9593
+    },
+    "feat/applied-lessons|(untagged)|claude-opus-5": {
+      "req": 8,
+      "fresh": 16,
+      "w1h": 16583,
+      "w5m": 0,
+      "read": 943035,
+      "out": 8337,
+      "think": 0,
+      "usd": 0.8459
+    },
+    "feat/applied-lessons|pharn-dev-grill|claude-opus-5": {
+      "req": 11,
+      "fresh": 22,
+      "w1h": 25709,
+      "w5m": 0,
+      "read": 1529543,
+      "out": 14254,
+      "think": 0,
+      "usd": 1.3783
+    },
+    "feat/applied-lessons|pharn-dev-build|claude-opus-5": {
+      "req": 29,
+      "fresh": 58,
+      "w1h": 188963,
+      "w5m": 0,
+      "read": 4973854,
+      "out": 25772,
+      "think": 0,
+      "usd": 5.0211
+    },
+    "feat/applied-lessons|pharn-dev-regress|claude-opus-5": {
+      "req": 12,
+      "fresh": 24,
+      "w1h": 20918,
+      "w5m": 0,
+      "read": 2571126,
+      "out": 11159,
+      "think": 0,
+      "usd": 1.7738
+    },
+    "feat/applied-lessons|pharn-dev-verify|claude-opus-5": {
+      "req": 5,
+      "fresh": 10,
+      "w1h": 13393,
+      "w5m": 0,
+      "read": 1147482,
+      "out": 2658,
+      "think": 0,
+      "usd": 0.7742
+    },
+    "feat/applied-lessons|pharn-dev-review|claude-opus-5": {
+      "req": 14,
+      "fresh": 28,
+      "w1h": 28902,
+      "w5m": 0,
+      "read": 3486999,
+      "out": 14076,
+      "think": 0,
+      "usd": 2.3846
+    },
+    "feat/applied-lessons|pharn-dev-memory-promote|claude-opus-5": {
+      "req": 10,
+      "fresh": 20,
+      "w1h": 16934,
+      "w5m": 0,
+      "read": 2681634,
+      "out": 10087,
+      "think": 0,
+      "usd": 1.7624
+    },
+    "typed-lessons|pharn-dev-ship|claude-opus-5": {
+      "req": 90,
+      "fresh": 180,
+      "w1h": 257970,
+      "w5m": 0,
+      "read": 17077636,
+      "out": 98852,
+      "think": 0,
+      "usd": 13.5907
+    },
+    "typed-lessons|(untagged)|claude-opus-5": {
+      "req": 14,
+      "fresh": 28,
+      "w1h": 16580,
+      "w5m": 0,
+      "read": 3888810,
+      "out": 10286,
+      "think": 0,
+      "usd": 2.3675
+    },
+    "feat/lessons-index|pharn-dev-ship|claude-opus-5": {
+      "req": 12,
+      "fresh": 24,
+      "w1h": 82124,
+      "w5m": 0,
+      "read": 3745606,
+      "out": 24217,
+      "think": 0,
+      "usd": 3.2996
+    },
+    "feat/lessons-index|pharn-dev-plan|claude-opus-5": {
+      "req": 17,
+      "fresh": 34,
+      "w1h": 153678,
+      "w5m": 0,
+      "read": 2223982,
+      "out": 24024,
+      "think": 0,
+      "usd": 3.2495
+    },
+    "feat/lessons-index|pharn-dev-grill|claude-opus-5": {
+      "req": 9,
+      "fresh": 18,
+      "w1h": 47050,
+      "w5m": 0,
+      "read": 2285678,
+      "out": 20477,
+      "think": 0,
+      "usd": 2.1254
+    },
+    "feat/lessons-index|pharn-dev-build|claude-opus-5": {
+      "req": 68,
+      "fresh": 136,
+      "w1h": 120901,
+      "w5m": 0,
+      "read": 21175211,
+      "out": 71079,
+      "think": 0,
+      "usd": 13.5743
+    },
+    "feat/lessons-index|pharn-dev-regress|claude-opus-5": {
+      "req": 25,
+      "fresh": 50,
+      "w1h": 40332,
+      "w5m": 0,
+      "read": 9411684,
+      "out": 20052,
+      "think": 0,
+      "usd": 5.6107
+    },
+    "feat/lessons-index|pharn-dev-verify|claude-opus-5": {
+      "req": 6,
+      "fresh": 12,
+      "w1h": 14637,
+      "w5m": 0,
+      "read": 1890886,
+      "out": 3672,
+      "think": 0,
+      "usd": 1.1837
+    },
+    "feat/lessons-index|pharn-dev-review|claude-opus-5": {
+      "req": 17,
+      "fresh": 34,
+      "w1h": 479988,
+      "w5m": 0,
+      "read": 6443154,
+      "out": 28882,
+      "think": 0,
+      "usd": 8.7437
+    },
+    "feat/lessons-index|(untagged)|claude-opus-5": {
+      "req": 52,
+      "fresh": 104,
+      "w1h": 901101,
+      "w5m": 0,
+      "read": 27722214,
+      "out": 71266,
+      "think": 0,
+      "usd": 24.6543
+    },
+    "feat/lessons-index|pharn-dev-memory-promote|claude-opus-5": {
+      "req": 9,
+      "fresh": 18,
+      "w1h": 19614,
+      "w5m": 0,
+      "read": 4515866,
+      "out": 9946,
+      "think": 0,
+      "usd": 2.7028
+    },
+    "loop-handoff|pharn-dev-ship|claude-opus-5": {
+      "req": 1,
+      "fresh": 2,
+      "w1h": 46352,
+      "w5m": 0,
+      "read": 20729,
+      "out": 1148,
+      "think": 0,
+      "usd": 0.5026
+    },
+    "loop-handoff|pharn-dev-plan|claude-opus-5": {
+      "req": 22,
+      "fresh": 44,
+      "w1h": 124907,
+      "w5m": 0,
+      "read": 3407375,
+      "out": 33661,
+      "think": 0,
+      "usd": 3.7945
+    },
+    "loop-handoff|pharn-dev-grill|claude-opus-5": {
+      "req": 10,
+      "fresh": 20,
+      "w1h": 69234,
+      "w5m": 0,
+      "read": 2319035,
+      "out": 22689,
+      "think": 0,
+      "usd": 2.4192
+    },
+    "loop-handoff|pharn-dev-build|claude-opus-5": {
+      "req": 43,
+      "fresh": 86,
+      "w1h": 320685,
+      "w5m": 0,
+      "read": 12938488,
+      "out": 52475,
+      "think": 0,
+      "usd": 10.9884
+    },
+    "loop-handoff|pharn-dev-regress|claude-opus-5": {
+      "req": 10,
+      "fresh": 20,
+      "w1h": 16178,
+      "w5m": 0,
+      "read": 3496842,
+      "out": 6787,
+      "think": 0,
+      "usd": 2.08
+    },
+    "loop-handoff|pharn-dev-verify|claude-opus-5": {
+      "req": 6,
+      "fresh": 12,
+      "w1h": 13662,
+      "w5m": 0,
+      "read": 2193715,
+      "out": 2967,
+      "think": 0,
+      "usd": 1.3077
+    },
+    "loop-handoff|pharn-dev-review|claude-opus-5": {
+      "req": 10,
+      "fresh": 20,
+      "w1h": 29299,
+      "w5m": 0,
+      "read": 3852262,
+      "out": 14834,
+      "think": 0,
+      "usd": 2.5901
+    },
+    "loop-handoff|(untagged)|claude-opus-5": {
+      "req": 675,
+      "fresh": 1350,
+      "w1h": 1032933,
+      "w5m": 2673617,
+      "read": 75521542,
+      "out": 99849,
+      "think": 0,
+      "usd": 67.3032
+    },
+    "feat/run-claude-idle|pharn-dev-ship|claude-opus-5": {
+      "req": 31,
+      "fresh": 62,
+      "w1h": 170555,
+      "w5m": 0,
+      "read": 4386010,
+      "out": 38632,
+      "think": 0,
+      "usd": 4.8647
+    },
+    "feat/run-claude-idle|(untagged)|claude-opus-5": {
+      "req": 545,
+      "fresh": 1090,
+      "w1h": 621843,
+      "w5m": 3284393,
+      "read": 39887909,
+      "out": 201247,
+      "think": 0,
+      "usd": 51.7265
+    },
+    "feat/run-claude-idle|(untagged)|claude-fable-5": {
+      "req": 14,
+      "fresh": 28,
+      "w1h": 64100,
+      "w5m": 0,
+      "read": 892899,
+      "out": 18686,
+      "think": 0,
+      "usd": 3.1095
+    },
+    "feat/product-memory-promote|(untagged)|claude-opus-5": {
+      "req": 6,
+      "fresh": 12,
+      "w1h": 37364,
+      "w5m": 0,
+      "read": 291912,
+      "out": 3109,
+      "think": 0,
+      "usd": 0.5974
+    },
+    "feat/product-capability-catalog|pharn-dev-ship|claude-opus-5": {
+      "req": 5,
+      "fresh": 10,
+      "w1h": 51790,
+      "w5m": 0,
+      "read": 278961,
+      "out": 1614,
+      "think": 0,
+      "usd": 0.6978
+    },
+    "feat/product-capability-catalog|pharn-dev-plan|claude-opus-5": {
+      "req": 28,
+      "fresh": 56,
+      "w1h": 128133,
+      "w5m": 0,
+      "read": 3153853,
+      "out": 22187,
+      "think": 0,
+      "usd": 3.4132
+    },
+    "feat/product-capability-catalog|pharn-dev-grill|claude-opus-5": {
+      "req": 7,
+      "fresh": 14,
+      "w1h": 18000,
+      "w5m": 0,
+      "read": 1110108,
+      "out": 8230,
+      "think": 0,
+      "usd": 0.9409
+    },
+    "feat/product-capability-catalog|pharn-dev-build|claude-opus-5": {
+      "req": 15,
+      "fresh": 30,
+      "w1h": 31046,
+      "w5m": 0,
+      "read": 2740650,
+      "out": 12535,
+      "think": 0,
+      "usd": 1.9943
+    },
+    "feat/product-capability-catalog|pharn-dev-regress|claude-opus-5": {
+      "req": 11,
+      "fresh": 22,
+      "w1h": 18271,
+      "w5m": 0,
+      "read": 2295743,
+      "out": 6733,
+      "think": 0,
+      "usd": 1.499
+    },
+    "feat/product-capability-catalog|pharn-dev-verify|claude-opus-5": {
+      "req": 10,
+      "fresh": 20,
+      "w1h": 19025,
+      "w5m": 0,
+      "read": 2270677,
+      "out": 6804,
+      "think": 0,
+      "usd": 1.4958
+    },
+    "feat/product-capability-catalog|pharn-dev-review|claude-opus-5": {
+      "req": 10,
+      "fresh": 20,
+      "w1h": 25985,
+      "w5m": 0,
+      "read": 2479326,
+      "out": 15071,
+      "think": 0,
+      "usd": 1.8764
+    },
+    "feat/product-capability-catalog|pharn-dev-memory-promote|claude-opus-5": {
+      "req": 12,
+      "fresh": 24,
+      "w1h": 19455,
+      "w5m": 0,
+      "read": 3281391,
+      "out": 9478,
+      "think": 0,
+      "usd": 2.0723
+    },
+    "feat/product-capability-catalog|(untagged)|claude-opus-5": {
+      "req": 6,
+      "fresh": 12,
+      "w1h": 271691,
+      "w5m": 0,
+      "read": 1455011,
+      "out": 6107,
+      "think": 0,
+      "usd": 3.5972
+    },
+    "fix/f3-guard-self-protection|pharn-dev-ship|claude-opus-5": {
+      "req": 49,
+      "fresh": 98,
+      "w1h": 231830,
+      "w5m": 0,
+      "read": 8550282,
+      "out": 80568,
+      "think": 0,
+      "usd": 8.6081
+    },
+    "fix/f3-guard-self-protection|(untagged)|claude-opus-5": {
+      "req": 125,
+      "fresh": 250,
+      "w1h": 145266,
+      "w5m": 33846,
+      "read": 43342466,
+      "out": 111823,
+      "think": 0,
+      "usd": 26.1323
+    },
+    "fix/f1-floor-ref-relocation|pharn-dev-ship|claude-opus-5": {
+      "req": 37,
+      "fresh": 72,
+      "w1h": 242870,
+      "w5m": 55022,
+      "read": 4024666,
+      "out": 60402,
+      "think": 0,
+      "usd": 6.2953
+    },
+    "fix/f1-floor-ref-relocation|pharn-dev-grill|claude-opus-5": {
+      "req": 22,
+      "fresh": 44,
+      "w1h": 47988,
+      "w5m": 0,
+      "read": 3987324,
+      "out": 31221,
+      "think": 0,
+      "usd": 3.2543
+    },
+    "fix/f1-floor-ref-relocation|(untagged)|claude-opus-5": {
+      "req": 65,
+      "fresh": 124,
+      "w1h": 114437,
+      "w5m": 0,
+      "read": 12929728,
+      "out": 66972,
+      "think": 0,
+      "usd": 9.2842
+    },
+    "fix/f1-floor-ref-relocation|pharn-dev-regress|claude-opus-5": {
+      "req": 14,
+      "fresh": 28,
+      "w1h": 29454,
+      "w5m": 0,
+      "read": 3641972,
+      "out": 14342,
+      "think": 0,
+      "usd": 2.4742
+    },
+    "fix/f1-floor-ref-relocation|pharn-dev-verify|claude-opus-5": {
+      "req": 7,
+      "fresh": 14,
+      "w1h": 12938,
+      "w5m": 0,
+      "read": 1997110,
+      "out": 3693,
+      "think": 0,
+      "usd": 1.2203
+    },
+    "fix/f1-floor-ref-relocation|pharn-dev-review|claude-opus-5": {
+      "req": 10,
+      "fresh": 20,
+      "w1h": 20629,
+      "w5m": 0,
+      "read": 2981296,
+      "out": 11936,
+      "think": 0,
+      "usd": 1.9954
+    },
+    "fix/f2-relocate-scan-plan|pharn-dev-ship|claude-opus-5": {
+      "req": 2,
+      "fresh": 4,
+      "w1h": 56795,
+      "w5m": 0,
+      "read": 95901,
+      "out": 1509,
+      "think": 0,
+      "usd": 0.6536
+    },
+    "fix/f2-relocate-scan-plan|pharn-dev-plan|claude-opus-5": {
+      "req": 26,
+      "fresh": 47,
+      "w1h": 100127,
+      "w5m": 0,
+      "read": 3760979,
+      "out": 32110,
+      "think": 0,
+      "usd": 3.6847
+    },
+    "fix/f2-relocate-scan-plan|pharn-dev-grill|claude-opus-5": {
+      "req": 9,
+      "fresh": 16,
+      "w1h": 31707,
+      "w5m": 0,
+      "read": 1746888,
+      "out": 15412,
+      "think": 0,
+      "usd": 1.5759
+    },
+    "fix/f2-relocate-scan-plan|pharn-dev-build|claude-opus-5": {
+      "req": 35,
+      "fresh": 64,
+      "w1h": 59184,
+      "w5m": 0,
+      "read": 8462823,
+      "out": 29353,
+      "think": 0,
+      "usd": 5.5574
+    },
+    "fix/f2-relocate-scan-plan|pharn-dev-regress|claude-opus-5": {
+      "req": 17,
+      "fresh": 32,
+      "w1h": 28867,
+      "w5m": 0,
+      "read": 4853196,
+      "out": 15069,
+      "think": 0,
+      "usd": 3.0922
+    },
+    "fix/f2-relocate-scan-plan|pharn-dev-verify|claude-opus-5": {
+      "req": 7,
+      "fresh": 13,
+      "w1h": 302333,
+      "w5m": 0,
+      "read": 1857885,
+      "out": 3552,
+      "think": 0,
+      "usd": 4.0411
+    },
+    "fix/f2-relocate-scan-plan|pharn-dev-review|claude-opus-5": {
+      "req": 9,
+      "fresh": 17,
+      "w1h": 310312,
+      "w5m": 0,
+      "read": 2601780,
+      "out": 12870,
+      "think": 0,
+      "usd": 4.7258
+    },
+    "fix/f4-trusted-doc-exact-match|(untagged)|claude-opus-5": {
+      "req": 304,
+      "fresh": 601,
+      "w1h": 367614,
+      "w5m": 1540839,
+      "read": 33600994,
+      "out": 89280,
+      "think": 0,
+      "usd": 32.3419
+    },
+    "fix/f4-guard-fail-closed|(untagged)|claude-opus-5": {
+      "req": 7,
+      "fresh": 13,
+      "w1h": 7348,
+      "w5m": 0,
+      "read": 2740608,
+      "out": 5702,
+      "think": 0,
+      "usd": 1.5864
+    },
+    "fix/f5-spec-hash-eol-normalize|pharn-dev-grill|claude-opus-5": {
+      "req": 1,
+      "fresh": 2,
+      "w1h": 543,
+      "w5m": 0,
+      "read": 184342,
+      "out": 90,
+      "think": 0,
+      "usd": 0.0999
+    },
+    "fix/f5-spec-hash-eol-normalize|pharn-dev-build|claude-opus-5": {
+      "req": 26,
+      "fresh": 48,
+      "w1h": 30841,
+      "w5m": 0,
+      "read": 5226785,
+      "out": 13875,
+      "think": 0,
+      "usd": 3.2689
+    },
+    "fix/f5-spec-hash-eol-normalize|pharn-dev-regress|claude-opus-5": {
+      "req": 9,
+      "fresh": 17,
+      "w1h": 15029,
+      "w5m": 0,
+      "read": 2014342,
+      "out": 5657,
+      "think": 0,
+      "usd": 1.299
+    },
+    "fix/f5-spec-hash-eol-normalize|pharn-dev-verify|claude-opus-5": {
+      "req": 6,
+      "fresh": 11,
+      "w1h": 13724,
+      "w5m": 0,
+      "read": 1433075,
+      "out": 3053,
+      "think": 0,
+      "usd": 0.9302
+    },
+    "fix/f5-spec-hash-eol-normalize|pharn-dev-review|claude-opus-5": {
+      "req": 14,
+      "fresh": 26,
+      "w1h": 22149,
+      "w5m": 0,
+      "read": 3584553,
+      "out": 12643,
+      "think": 0,
+      "usd": 2.33
+    },
+    "fix/f5-spec-hash-eol-normalize|(untagged)|claude-opus-5": {
+      "req": 399,
+      "fresh": 792,
+      "w1h": 341746,
+      "w5m": 2467551,
+      "read": 32316039,
+      "out": 43491,
+      "think": 0,
+      "usd": 36.0889
+    },
+    "fix/l17-regress-escape-artifacts|(untagged)|claude-opus-5": {
+      "req": 23,
+      "fresh": 43,
+      "w1h": 31432,
+      "w5m": 0,
+      "read": 8766619,
+      "out": 20719,
+      "think": 0,
+      "usd": 5.2158
+    },
+    "fix/dev-spec-hash-eol-normalize|(untagged)|claude-opus-5": {
+      "req": 14,
+      "fresh": 26,
+      "w1h": 25231,
+      "w5m": 0,
+      "read": 5655124,
+      "out": 13647,
+      "think": 0,
+      "usd": 3.4212
+    },
+    "fix/floor-readme-resync|(untagged)|claude-opus-5": {
+      "req": 91,
+      "fresh": 180,
+      "w1h": 45350,
+      "w5m": 393156,
+      "read": 12681006,
+      "out": 16083,
+      "think": 0,
+      "usd": 9.6542
+    },
+    "fix/verification-corrections|(untagged)|claude-opus-5": {
+      "req": 35,
+      "fresh": 65,
+      "w1h": 43925,
+      "w5m": 0,
+      "read": 16903008,
+      "out": 27401,
+      "think": 0,
+      "usd": 9.5761
+    },
+    "fix/line-ending-drift-and-regress-scope|(untagged)|claude-opus-5": {
+      "req": 5,
+      "fresh": 10,
+      "w1h": 5261,
+      "w5m": 0,
+      "read": 2555396,
+      "out": 3989,
+      "think": 0,
+      "usd": 1.4301
+    },
+    "fix/f6-spec-id-agreement|pharn-dev-ship|claude-opus-5": {
+      "req": 10,
+      "fresh": 20,
+      "w1h": 101485,
+      "w5m": 0,
+      "read": 895711,
+      "out": 14488,
+      "think": 0,
+      "usd": 1.825
+    },
+    "fix/f6-spec-id-agreement|(untagged)|claude-opus-5": {
+      "req": 403,
+      "fresh": 806,
+      "w1h": 542287,
+      "w5m": 2621767,
+      "read": 40875016,
+      "out": 151199,
+      "think": 0,
+      "usd": 46.0304
+    },
+    "fix/trusted-doc-accuracy|pharn-dev-ship|claude-opus-5": {
+      "req": 66,
+      "fresh": 132,
+      "w1h": 279419,
+      "w5m": 0,
+      "read": 11607738,
+      "out": 70973,
+      "think": 0,
+      "usd": 10.373
+    },
+    "fix/trusted-doc-accuracy|(untagged)|claude-opus-5": {
+      "req": 284,
+      "fresh": 568,
+      "w1h": 348686,
+      "w5m": 2226027,
+      "read": 31360672,
+      "out": 66783,
+      "think": 0,
+      "usd": 34.7523
+    },
+    "fix/f10-features-readme|pharn-dev-ship|claude-opus-5": {
+      "req": 57,
+      "fresh": 114,
+      "w1h": 179036,
+      "w5m": 0,
+      "read": 8380595,
+      "out": 47331,
+      "think": 0,
+      "usd": 7.1645
+    },
+    "fix/f10-features-readme|(untagged)|claude-opus-5": {
+      "req": 11,
+      "fresh": 22,
+      "w1h": 12135,
+      "w5m": 0,
+      "read": 2275994,
+      "out": 6646,
+      "think": 0,
+      "usd": 1.4256
+    },
+    "fix/f9-version-story|pharn-dev-ship|claude-opus-5": {
+      "req": 6,
+      "fresh": 12,
+      "w1h": 66572,
+      "w5m": 0,
+      "read": 412556,
+      "out": 5158,
+      "think": 0,
+      "usd": 1.001
+    },
+    "fix/f9-version-story|pharn-dev-plan|claude-opus-5": {
+      "req": 14,
+      "fresh": 28,
+      "w1h": 130657,
+      "w5m": 0,
+      "read": 1653227,
+      "out": 20864,
+      "think": 0,
+      "usd": 2.6549
+    },
+    "fix/f9-version-story|(untagged)|claude-opus-5": {
+      "req": 21,
+      "fresh": 42,
+      "w1h": 344870,
+      "w5m": 0,
+      "read": 3514692,
+      "out": 26433,
+      "think": 0,
+      "usd": 5.8671
+    },
+    "fix/f9-version-story|pharn-dev-grill|claude-opus-5": {
+      "req": 215,
+      "fresh": 430,
+      "w1h": 20426,
+      "w5m": 1544948,
+      "read": 12504291,
+      "out": 11827,
+      "think": 0,
+      "usd": 16.4102
+    },
+    "fix/f9-version-story|pharn-dev-build|claude-opus-5": {
+      "req": 30,
+      "fresh": 60,
+      "w1h": 239007,
+      "w5m": 0,
+      "read": 7115109,
+      "out": 32862,
+      "think": 0,
+      "usd": 6.7695
+    },
+    "fix/f9-version-story|pharn-dev-regress|claude-opus-5": {
+      "req": 11,
+      "fresh": 22,
+      "w1h": 18224,
+      "w5m": 0,
+      "read": 2983940,
+      "out": 8344,
+      "think": 0,
+      "usd": 1.8829
+    },
+    "fix/f9-version-story|pharn-dev-verify|claude-opus-5": {
+      "req": 7,
+      "fresh": 14,
+      "w1h": 12873,
+      "w5m": 0,
+      "read": 2008479,
+      "out": 3005,
+      "think": 0,
+      "usd": 1.2082
+    },
+    "fix/f9-version-story|pharn-dev-review|claude-opus-5": {
+      "req": 7,
+      "fresh": 14,
+      "w1h": 18970,
+      "w5m": 0,
+      "read": 2093577,
+      "out": 10681,
+      "think": 0,
+      "usd": 1.5036
+    },
+    "fix/f8-package-private|pharn-dev-ship|claude-sonnet-5": {
+      "req": 3,
+      "fresh": 6,
+      "w1h": 54939,
+      "w5m": 0,
+      "read": 194134,
+      "out": 4058,
+      "think": 2282,
+      "usd": 0.2992
+    },
+    "fix/f8-package-private|pharn-dev-plan|claude-sonnet-5": {
+      "req": 9,
+      "fresh": 18,
+      "w1h": 80067,
+      "w5m": 0,
+      "read": 865035,
+      "out": 6000,
+      "think": 3003,
+      "usd": 0.5533
+    },
+    "fix/f8-package-private|pharn-dev-grill|claude-sonnet-5": {
+      "req": 7,
+      "fresh": 14,
+      "w1h": 27270,
+      "w5m": 0,
+      "read": 855641,
+      "out": 12525,
+      "think": 9319,
+      "usd": 0.4055
+    },
+    "fix/f8-package-private|pharn-dev-build|claude-sonnet-5": {
+      "req": 14,
+      "fresh": 28,
+      "w1h": 10997,
+      "w5m": 0,
+      "read": 2029370,
+      "out": 4095,
+      "think": 1635,
+      "usd": 0.4909
+    },
+    "fix/f8-package-private|pharn-dev-regress|claude-sonnet-5": {
+      "req": 17,
+      "fresh": 34,
+      "w1h": 23049,
+      "w5m": 0,
+      "read": 2776195,
+      "out": 7742,
+      "think": 2721,
+      "usd": 0.7249
+    },
+    "fix/f8-package-private|pharn-dev-verify|claude-sonnet-5": {
+      "req": 14,
+      "fresh": 28,
+      "w1h": 18520,
+      "w5m": 0,
+      "read": 2578324,
+      "out": 6499,
+      "think": 2183,
+      "usd": 0.6548
+    },
+    "fix/f8-package-private|pharn-dev-review|claude-sonnet-5": {
+      "req": 12,
+      "fresh": 24,
+      "w1h": 15664,
+      "w5m": 0,
+      "read": 2396535,
+      "out": 7443,
+      "think": 1798,
+      "usd": 0.6164
+    },
+    "fix/f14-review-sources|pharn-dev-ship|claude-sonnet-5": {
+      "req": 1,
+      "fresh": 2,
+      "w1h": 64466,
+      "w5m": 0,
+      "read": 30369,
+      "out": 3583,
+      "think": 904,
+      "usd": 0.2998
+    },
+    "fix/f14-review-sources|pharn-dev-plan|claude-sonnet-5": {
+      "req": 75,
+      "fresh": 150,
+      "w1h": 360065,
+      "w5m": 0,
+      "read": 13502770,
+      "out": 41345,
+      "think": 11912,
+      "usd": 4.5546
+    },
+    "feat/observability-code-side-limit|pharn-dev-ship|claude-opus-5": {
+      "req": 17,
+      "fresh": 34,
+      "w1h": 142141,
+      "w5m": 0,
+      "read": 2021752,
+      "out": 28444,
+      "think": 12641,
+      "usd": 3.1436
+    },
+    "feat/observability-code-side-limit|(untagged)|claude-opus-5": {
+      "req": 92,
+      "fresh": 184,
+      "w1h": 405146,
+      "w5m": 0,
+      "read": 24024631,
+      "out": 84344,
+      "think": 28447,
+      "usd": 18.1733
+    },
+    "feat/observability-code-side-limit|pharn-dev-memory-promote|claude-opus-5": {
+      "req": 16,
+      "fresh": 32,
+      "w1h": 26811,
+      "w5m": 0,
+      "read": 5430817,
+      "out": 15361,
+      "think": 6790,
+      "usd": 3.3677
+    },
+    "feat/retro-tag-legacy-lessons|pharn-dev-ship|claude-opus-5": {
+      "req": 3,
+      "fresh": 6,
+      "w1h": 57241,
+      "w5m": 0,
+      "read": 171379,
+      "out": 1600,
+      "think": 655,
+      "usd": 0.6981
+    },
+    "feat/retro-tag-legacy-lessons|pharn-dev-grill|claude-opus-5": {
+      "req": 17,
+      "fresh": 34,
+      "w1h": 66901,
+      "w5m": 0,
+      "read": 1947372,
+      "out": 29800,
+      "think": 17218,
+      "usd": 2.3879
+    },
+    "feat/retro-tag-legacy-lessons|pharn-dev-build|claude-opus-5": {
+      "req": 42,
+      "fresh": 84,
+      "w1h": 187189,
+      "w5m": 0,
+      "read": 7793393,
+      "out": 25697,
+      "think": 10402,
+      "usd": 6.4114
+    },
+    "feat/retro-tag-legacy-lessons|pharn-dev-regress|claude-opus-5": {
+      "req": 12,
+      "fresh": 24,
+      "w1h": 20307,
+      "w5m": 0,
+      "read": 2665500,
+      "out": 9346,
+      "think": 1818,
+      "usd": 1.7696
+    },
+    "feat/retro-tag-legacy-lessons|pharn-dev-verify|claude-opus-5": {
+      "req": 6,
+      "fresh": 12,
+      "w1h": 15588,
+      "w5m": 0,
+      "read": 1443431,
+      "out": 4435,
+      "think": 775,
+      "usd": 0.9885
+    },
+    "feat/retro-tag-legacy-lessons|pharn-dev-review|claude-opus-5": {
+      "req": 12,
+      "fresh": 24,
+      "w1h": 27734,
+      "w5m": 0,
+      "read": 3166115,
+      "out": 17611,
+      "think": 6653,
+      "usd": 2.3008
+    },
+    "feat/retro-tag-legacy-lessons|(untagged)|claude-opus-5": {
+      "req": 58,
+      "fresh": 116,
+      "w1h": 325892,
+      "w5m": 0,
+      "read": 17862159,
+      "out": 48178,
+      "think": 11623,
+      "usd": 13.395
+    }
+  }
+}
