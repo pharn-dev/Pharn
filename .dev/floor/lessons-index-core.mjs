@@ -50,8 +50,12 @@ export const CHARS_PER_TOKEN = 4;
 
 // The absent / malformed markers. They are DELIBERATELY DISTINCT (raised as GRILL F2): rendering both as
 // `-` would make a poisoned or typo'd tag line indistinguishable from a legacy untagged entry, silently
-// swallowing the malformation. `-` = no tag line at all (the pre-#114 legacy shape, expected and benign).
-// `?` = a tag line IS present but failed its gate (unexpected — look at canon).
+// swallowing the malformation. `-` = no tag line at all: on THIS surface every canon entry carries one,
+// so a `-` means an entry reached canon WITHOUT the promote gate's `type`/`concepts` — unexpected, and
+// pinned by a live-canon drift guard in lessons-index-core.test.mjs (0 untagged, 0 malformed), so it
+// fails `npm test` rather than merely rendering oddly. (The PRODUCT twin keeps the benign reading on
+// purpose, and has no such pin: a user's corpus may legitimately hold hand-written entries.)
+// `?` = a tag line IS present but failed its gate (unexpected — look at canon; same drift guard).
 export const ABSENT = "-";
 export const MALFORMED = "?";
 
@@ -274,9 +278,10 @@ export function renderIndex(entries) {
     `\n` +
     `${entries.length} lessons · ${tagged} tagged · ${malformed} malformed · ${untagged} untagged · ~${totalTokens} tokens total\n` +
     `\n` +
-    `Columns: \`id | type | concepts | title | promoted | ~tokens\`. \`${ABSENT}\` = no tag line (the pre-#114\n` +
-    `legacy shape — expected and benign). \`${MALFORMED}\` = a tag line is present but failed its gate — that is\n` +
-    `unexpected; read the entry in canon. \`~tokens\` is \`ceil(chars / ${CHARS_PER_TOKEN})\` over the FULL section\n` +
+    `Columns: \`id | type | concepts | title | promoted | ~tokens\`. Every canon entry carries a tag line, so\n` +
+    `BOTH absence markers are unexpected: \`${ABSENT}\` = no tag line, i.e. an entry that reached canon without\n` +
+    `the promote gate's \`type\`/\`concepts\`; \`${MALFORMED}\` = a tag line is present but failed its gate. Read that\n` +
+    `entry in canon either way. \`~tokens\` is \`ceil(chars / ${CHARS_PER_TOKEN})\` over the FULL section\n` +
     `(heading through the line before the next \`##\`), an ESTIMATE with a confidence band, never a measurement\n` +
     `(\`LIMITS.md §1c\`). Titles are canon free text, reproduced verbatim as DATA.\n` +
     `\n` +

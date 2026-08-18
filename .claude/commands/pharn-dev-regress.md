@@ -116,9 +116,21 @@ re-run this setter** — never bypass the hook.
    > in `check-regress.mjs`'s honest-scope block.
 
    _(Committed eval pairs are discovered by convention — each `<cap>/evals/expected/<x>.json` with its
-   committed actual findings; today the one pair is trust-fence's expected ↔ `.dev/features/trust-fence/findings.json`,
-   per the increment's `PLAN.md`. A pair whose file is **inside** the feature is correctly **not** an
-   outside gate.)_
+   committed actual findings. **Today there is exactly one, and it is named in full rather than left to
+   a placeholder:**
+   `pharn/pharn-review/trust-fence/evals/expected/expected-injection-comment.json` ↔
+   `.dev/features/trust-fence/findings.json` — the same pair `/pharn-dev-verify` names (keep the two in
+   step). A pair whose file is **inside** the feature is correctly **not** an outside gate.)_
+
+   > **Never hand-type this path from memory, and never accept an unreadable one as a gate result
+   > (L5 / L16 / L21 — the input-capture boundary, cited not restated, P4).** A wrong path makes
+   > `check-structural.mjs` exit **1** with `expected.json is unreadable … ENOENT`. That red is **equal
+   > at base and head**, so `check-regress.mjs` classifies it `pre_existing` rather than a regression —
+   > evading a false _regression_ while **masking a real** structural-gate one. Observed live during
+   > `retro-tag-legacy-lessons`, from a guessed `…/expected/injection-comment.json` (the committed file
+   > is `expected-injection-comment.json`). **Confirm the path resolves before recording its exit code**
+   > — e.g. `test -r "$EXP" || { echo "eval-pair path unreadable: $EXP"; exit 2; }` — so a setup error
+   > fails **loudly as a setup error**, never quietly as a gate verdict.
 
 ## Step 2 — Capture the baseline and HEAD (Bash; you run the suite, the helper never does)
 

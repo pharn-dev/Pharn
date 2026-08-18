@@ -417,8 +417,14 @@ framework-specific`), via the first-match-wins procedure in `pharn/ARCHITECTURE.
   `pharn/floor/check-plan-lessons.mjs` is unchanged and still verifies the declaration against **canon**,
   never against the index. The index's `type` / `concepts` columns are model-drafted values a human
   ratified at the promote gate, so **"typed `floor`" never means "about the floor"** — selecting on them
-  is advisory context selection. A `-` means no tag line (the pre-#114 legacy shape — expected, benign);
-  a `?` means a tag line is present but **failed its gate** — read that entry in canon and flag it.
+  is advisory context selection. **Every dev canon entry is now tagged** — the legacy L1–L17 were
+  retro-tagged, so the index renders `21 tagged · 0 malformed · 0 untagged` and **both** absence markers
+  are now unexpected: a `-` means no tag line, i.e. an entry that reached canon without the promote
+  gate's `type`/`concepts`; a `?` means a tag line is present but **failed its gate**. Read that entry in
+  canon and flag it either way. (The PRODUCT twin keeps the benign reading of `-` on purpose — a user's
+  `memory-bank/` may legitimately hold hand-written entries.) **Neither marker is a floor error:** a `-`
+  or `?` regenerates cleanly and `docs:check` stays exit 0, so this is a read-it-and-look signal, not a
+  gate — the named `lesson-tagline-render-check` residual.
   - **The PRODUCT surface now has the same two-step sweep, with a deliberately WEAKER guarantee.**
     `/pharn-plan` selects from `.pharn/lessons-index.md` and then reads the full entries from the user's
     `memory-bank/lessons-learned.md`, branching on `pharn/floor/check-lessons-index.mjs --verdict`'s closed
