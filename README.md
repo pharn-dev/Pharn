@@ -10,7 +10,7 @@ runs on Claude Code today, and the discipline itself ships as readable markdown 
 lenses, rules — that you read, diff, and version yourself. PHARN does not make anyone understand the
 code; it keeps a deterministic floor under it and the record available the moment someone needs it.
 
-[![pharn](https://img.shields.io/badge/pharn-2.6.1-blue)](./CHANGELOG.md)
+[![pharn](https://img.shields.io/badge/pharn-2.6.2-blue)](./CHANGELOG.md)
 [![License: Apache 2.0](https://img.shields.io/badge/license-Apache%202.0-green)](./LICENSE)
 [![CI](https://github.com/pharn-dev/pharn-oss/actions/workflows/ci.yml/badge.svg)](https://github.com/pharn-dev/pharn-oss/actions/workflows/ci.yml)
 [![CodeQL](https://github.com/pharn-dev/pharn-oss/actions/workflows/codeql.yml/badge.svg)](https://github.com/pharn-dev/pharn-oss/actions/workflows/codeql.yml)

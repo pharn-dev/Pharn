@@ -256,6 +256,55 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
+- **`/pharn-ship` Step 2d — a DISPLAY-ONLY pull-request handoff.** `pharn/pharn-contracts/ship-briefing.md`
+  already states that `BRIEFING.md` "is written to be pasteable as a pull-request description"; Step 2d
+  closes the last manual gap by **displaying** the exact `gh pr create --title '<name>' --body-file
+features/<name>/BRIEFING.md` invocation at GATE 2. **`/pharn-ship` executes nothing** — no branch, no
+  add, no commit, no push, no PR. It prints a line; a human reviews it and runs it, or does not.
+  `SKILLS_VERSION` → `2.6.2`.
+
+  **The boundary was deliberately NOT crossed, and that was the increment's actual decision.** Opening the
+  PR from inside the command was specified, designed in three variants, and **rejected** at the plan gate.
+  Two reasons decided it. First, **P7**: the triggering failure was "the user does one paste" — a
+  convenience preference, not a dogfood or eval failure; the `product-capability-catalog` deferral already
+  settled this test for a less invasive addition. Second, **the floor**: fix #7 gates
+  `Write|Edit|MultiEdit|NotebookEdit` only, so a Bash-run `git push` bypasses it entirely
+  (`.dev/memory-bank/lessons-learned.md` L19; `THREAT-MODEL.md` §4 item 2 already records the residual) —
+  a commit-and-push step would have been the **first product action with no floor gate of any kind**, at
+  the most consequential point in the chain. "Advisory" next to "pushes to a shared remote" is the pairing
+  this repo exists to refuse.
+
+  **The existing non-goal sentences are unamended, byte-for-byte** ("Reaching the end of the chain is
+  permission to **present**, never to merge / ship / seal / commit"). A new adjacent bullet makes Step 2d's
+  boundary explicit rather than leaving a reader to reconcile a printed `gh` line against an unqualified
+  "never commits".
+
+  **No floor element — and the first draft got this wrong.** The emitted block is a string a human pastes into a **shell** —
+  a different egress shape from every other artifact in the chain, which are files that get read rather
+  than lines that get run. `ship-briefing.md` constrains `feature` only to "non-empty, control-char-free,
+  `<=128` chars", which admits spaces, `;`, backticks and `$(…)`, so Step 2d **shape-checks the slug**
+  (`^[a-z0-9][a-z0-9-]{0,63}$`) before interpolating it, single-quotes the title, and on a non-matching
+  slug **refuses the one-liner** rather than silently sanitizing one (which would misname the PR). That
+  check was labeled `FLOOR — enum/regex, ARCHITECTURE §2 primitive #3` in the first draft and **that was
+  wrong**: nothing executes it — no checker reads it, no test pins it, and `validate.mjs` ignores
+  `.claude/commands/`. It is **specified prose, advisory compliance**. The review lens caught it, the
+  label was corrected in both files, and the miss is recorded rather than quietly fixed, because "written
+  in the command" mistaken for "guaranteed" is the precise disease this repo exists to prevent (P0).
+  Making it a real guarantee needs a checker and a test — follow-up `ship-slug-shape`, not a claim.
+  **Everything else in Step 2d is advisory too:** that the human runs the
+  command, that their remote is GitHub, that `gh` exists or is authenticated — `/pharn-ship` neither probes
+  for `gh` nor claims it exists. Step 2d adds **no** new floor primitive and **no** new `writes:` path.
+
+  **Verifiability pointer:** the briefing's own `rendered_at_commit` frontmatter field (already
+  cross-verified by `pharn/floor/check-ship-briefing.mjs`) — **not** `ship-record.json`'s `record_hash`,
+  which binds the _attestation_ block on a different artifact.
+
+  **Bump sizing (`SKILLS_VERSION` 2.6.1 → 2.6.2, patch).** Sized against CLAUDE.md's rule: **minor** is
+  reserved for "a newly shipped capability / command / checker" and Step 2d is none of the three — no
+  `role:`-bearing capability, no new command, no new floor checker. It is new prose in a command that
+  already shipped, adding no contract, frontmatter or finding-shape change, so **major** (a breaking shape
+  change invalidating existing installs) is not in question either.
+
 - **`/pharn-ship` now renders `features/<name>/BRIEFING.md` at GATE 2, alongside `SHIP.md`.** `SHIP.md`
   stays a thin roll-up of exit codes and pointers; `BRIEFING.md` is a distinct, one-screen artifact
   answering what a reviewer needs before opening any other file — what was built, why this design (when
