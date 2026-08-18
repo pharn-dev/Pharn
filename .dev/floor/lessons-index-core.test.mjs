@@ -169,6 +169,26 @@ test("✧ P4: TYPE_ENUM here EQUALS the TYPE_ENUM in check-provenance.mjs (its s
   assert.deepEqual(TYPE_ENUM, theirs, "the mirrored TYPE_ENUM drifted from check-provenance.mjs");
 });
 
+test("✧ L20: every LIVE canon entry carries a well-formed tag line — 0 untagged, 0 malformed", () => {
+  // WHY this guard exists (L20 — a promoted lesson whose only remedy is discipline WILL recur): before the
+  // L1–L17 retro-tag, the corpus was legitimately mixed and this assertion could not have been written. It
+  // can now, and #114's named residual is exactly the kind L20 says to escalate: the tag gate MARKS a bad
+  // value `?` instead of failing, so a malformed or missing tag line regenerates cleanly and `docs:check`
+  // stays exit 0 — the only remedy on offer was "remember to grep the rendered header," which is discipline.
+  // This turns it into a non-zero exit.
+  //
+  // SCOPE, stated (P0): this covers THIS repo's canon only. The product twin pharn/floor/lessons-index-core.mjs
+  // has no equivalent pin and deliberately keeps the benign reading of `-`, because a user's memory-bank may
+  // hold hand-written entries — so `lesson-tagline-render-check` remains a real follow-up for that surface.
+  // And it proves the tag line is well-SHAPED, never that its values are APT ("typed `floor`" still never
+  // means "about the floor" — aptness is human-ratified at the promote gate and checked by nothing).
+  const entries = parseLessons(readFileSync(new URL("../memory-bank/lessons-learned.md", import.meta.url), "utf8"));
+  assert.ok(entries.length > 0, "canon must parse to at least one entry — an empty parse would pass vacuously");
+  const idsWhere = (marker) => entries.filter((e) => e.type === marker).map((e) => e.id);
+  assert.deepEqual(idsWhere(ABSENT), [], "canon entries with NO tag line — add one, or promote via /pharn-dev-memory-promote");
+  assert.deepEqual(idsWhere(MALFORMED), [], "canon entries whose tag line FAILED its gate — read them in canon and fix the tag line");
+});
+
 test("✧ GRILL F7: package.json WIRES both the generator and the checker into docs:generate / docs:check", () => {
   // Without this, the increment's entire floor claim ("the committed index matches canon, enforced by
   // npm run check") can be deleted by one package.json edit while every other test stays green.

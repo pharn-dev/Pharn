@@ -7,6 +7,8 @@ when first needed, not speculatively (P7).
 
 ## L1 — `/plan` must scope the meta-docs an increment invalidates
 
+type: process · concepts: [plan-shape, meta-docs, doc-drift]
+
 **Lesson.** When an increment changes a fact asserted in a meta-doc — `CLAUDE.md` test/command counts,
 `CHANGELOG.md`, the root `README.md` — `/plan` must name that meta-doc in its _Files_ list, or `/build`
 ships stale canon (it writes only the files the plan names). Add a meta-doc sweep to the `/plan`
@@ -28,6 +30,8 @@ that only `/review` surfaces — exactly how this lesson was found.
 - promoted: 2026-06-24 via gated `/review` (human-approved).
 
 ## L2 — A contract's honesty must travel with the artifact, and may cite only live floor ops
+
+type: contract · concepts: [guarantee-audit, doc-drift, live-floor-op]
 
 **Lesson.** When a `/build` amends a contract with a normative `MUST`, two checks must pass at
 `/review`: (1) the PLAN's `## Guarantee audit (P0)` honesty (what is advisory vs floor-enforced) must
@@ -54,6 +58,8 @@ explicit `advisory` label.
 
 ## L3 — Making a declarative field load-bearing requires re-auditing every existing declaration of it
 
+type: scoping · concepts: [writes-scope, declaration-audit, fail-closed]
+
 **Lesson.** When an increment turns a previously-advisory declarative field (here `writes:`) into a
 floor-enforced gate, the SAME increment must audit every existing value of that field against where the
 workflow actually writes. A declaration that was harmless while advisory (`/review`'s
@@ -79,6 +85,8 @@ load-bearing, diff every declaration of it against actual usage in the same incr
 - promoted: 2026-06-25 via gated `/review` (human-approved).
 
 ## L4 — An authored fixture passes by construction; a live capability must be measured
+
+type: eval · concepts: [eval-fixture, live-measurement, structural-semantic-split, guarantee-audit]
 
 **Lesson.** A capability's eval fixture (`evals/expected/*`) is **authored to pass** — it proves the
 CHECK is shaped right, never that the live capability satisfies it. Do not trust that a capability does
@@ -125,6 +133,8 @@ advisory semantic ones.
 
 ## L5 — A floor verdict is only as trustworthy as the orchestration that captures its inputs
 
+type: tooling · concepts: [input-capture, shell-portability, word-splitting]
+
 **Lesson.** A pipeline stage's deterministic FLOOR verdict (`/regress`, `/verify` — exit-code
 comparisons) is only as trustworthy as the ADVISORY orchestration that captures its inputs: the exit
 codes and file lists are assembled by the command's Bash, and that assembly can silently corrupt them.
@@ -153,6 +163,8 @@ the floor.
 
 ## L6 — Membership/structural facts are read from the structured location, never grepped from free text
 
+type: floor · concepts: [membership-test, frontmatter, enum-gated]
+
 **Lesson.** A structural or membership fact — "does this capability declare `role: verifier`?", "what
 paths does this plan write?" — is read from its STRUCTURED location (the `---`-fenced YAML frontmatter, an
 enum, `package.json`), never pattern-matched as a substring over file contents. The enum-gated vs free-text
@@ -178,6 +190,8 @@ text for human-facing DATA. Complements L5.
 - promoted: 2026-06-29 via gated `/memory-promote` (human-approved).
 
 ## L7 — A stage's writes: must equal exactly what it writes — never declare a downstream gate's target upstream
+
+type: scoping · concepts: [writes-scope, over-declaration, canon-write, declaration-audit]
 
 **Lesson.** A pipeline stage's `writes:` declaration must list exactly the paths the stage's own code
 writes this run — nothing aspirational, and never the target of a _downstream_ gated action. Declaring
@@ -208,6 +222,8 @@ L5/L6 (a floor verdict or membership test is only as trustworthy as the declarat
 
 ## L8 — The writes-scope setter resolves one --target — favor single-file command outputs
 
+type: scoping · concepts: [writes-scope, setter-resolution, command-design]
+
 **Lesson.** `set-writes-scope.cjs` narrows a placeholder `writes:` entry to exactly ONE concrete `--target`
 path per call, and each call OVERWRITES `.pharn/writes-scope.json`. A command that emits ≥2 artifacts under
 placeholder paths therefore cannot scope them all in a single setter call — only the entry matching `--target`
@@ -236,6 +252,8 @@ reading `set-writes-scope.cjs` live, not by a dogfood failure.
 - promoted: 2026-06-30 via gated `/pharn-dev-memory-promote` (human-approved).
 
 ## L9 — An increment's own markdown style is gated by neither /pharn-dev-regress nor /pharn-dev-verify
+
+type: process · concepts: [style-gates, gate-map, stage-seam]
 
 **Lesson.** The per-increment deterministic gates leave the increment's OWN markdown style ungated.
 `/pharn-dev-regress` deterministically SKIPS the style gates (`format:check` / `lint:md`) unless the change
@@ -271,6 +289,8 @@ captures).
 
 ## L10 — Product-pipeline artifacts sit on the validate-SCANNED surface; `.dev/` dev artifacts don't
 
+type: floor · concepts: [validate-scan-surface, dev-product-boundary, enum-gated]
+
 **Lesson.** The dev/product boundary is symmetric on the WRITE side (dev artifacts → `.dev/features/`, product
 artifacts → root `features/`) but ASYMMETRIC at the floor's SCAN side: `validate.mjs` `EXCLUDE_SEGMENTS`
 excludes `.dev/` wholesale but NOT root `features/`. So a finding-bearing PRODUCT artifact (e.g. a `/pharn-grill`
@@ -292,6 +312,8 @@ the product `/pharn-grill` `GRILL.md` landed on the scanned surface and passed C
 documented; a bare-findings `GRILL.md` would have RED'd the floor.
 
 ## L11 — Verify's whole-repo style gates let a pre-existing unrelated error block every later feature's verify
+
+type: process · concepts: [style-gates, gate-map, whole-repo-scope]
 
 **Lesson.** L9 added `format:check` + `lint:md` to `/pharn-dev-verify` so an increment's OWN new markdown is
 caught. But those gates are WHOLE-REPO and `/pharn-dev-verify` runs them ONCE at HEAD with no base comparison, so
@@ -328,6 +350,8 @@ input/orchestration trust boundary).
 
 ## L12 — Prevent an increment's own style misses at BUILD (format written files), don't only DETECT them at verify
 
+type: process · concepts: [style-gates, prevention-vs-detection, formatter]
+
 **Lesson.** L9 made `/pharn-dev-verify` CATCH an increment's own style misses (it added `format:check` +
 `lint:md` to verify's gate map). But detection-at-verify means every increment that writes `.md`/`.js` first
 REDS verify and needs a manual format pass — recurring friction, and a wrong-direction one (the floor found
@@ -363,6 +387,8 @@ evidence L5's input-capture boundary recurs and its fix holds. Complements L9 (d
 
 ## L13 — Extend the Step-2b format discipline (L12) to every artifact-writing stage, not just `/pharn-dev-build`
 
+type: process · concepts: [style-gates, prevention-vs-detection, gate-map]
+
 **Lesson.** L12 added format-at-BUILD (Step 2b: `/pharn-dev-build` formats its just-written files before its
 floor), but Step 2b covers ONLY `/pharn-dev-build`'s outputs. The later artifact-writing stages —
 `/pharn-dev-regress` (`REGRESSION.md`), `/pharn-dev-verify` (`VERIFY.md`), `/pharn-dev-review` (`REVIEW.md`),
@@ -388,6 +414,8 @@ L11 (whole-repo scope), and L12 (prevention at build).
 - promoted: 2026-07-07 via gated `/pharn-dev-memory-promote` (human-approved).
 
 ## L14 — A shape-regex tightening of an enum-gated field must COMPOSE with the control-char guard, never replace it
+
+type: floor · concepts: [enum-gated, control-char-guard, regex-anchoring]
 
 **Lesson.** When you tighten an enum-gated validator (e.g. `merge-findings.mjs`'s `RULE_ID_OK`) from a
 permissive "any clean single line" rule to a shape whitelist, layer the shape regex AFTER the existing
@@ -416,6 +444,8 @@ meant to keep closed. Complements the enum-gated/free-text trust split (fix #1) 
 - promoted: 2026-07-09 via gated `/pharn-dev-memory-promote` (human-approved).
 
 ## L15 — Index an arbitrary key with an own-property test, never `||`/`??` — inherited prototype members leak silently
+
+type: floor · concepts: [keyed-lookup, prototype-pollution, silent-failure]
 
 **Lesson.** In a determinism-owning floor tool, index a user-supplied or otherwise arbitrary key into a
 plain JS object with an OWN-property test (`Object.hasOwn(obj, key)`, a null-prototype map
@@ -446,6 +476,8 @@ post-fix), witnessed by a regression test over `toString`/`constructor`/`__proto
 
 ## L16 — L5's own remedy is a portability trap: `xargs -a` is GNU-only and fabricates a false red
 
+type: tooling · concepts: [input-capture, shell-portability, word-splitting, false-red]
+
 **Lesson.** L5 prescribes `xargs` to expand a gate's file list safely, and L12 records re-hitting L5's zsh
 word-split and correcting it "with `xargs` per L5's remedy". This run hit a **third** variant — **inside the
 remedy itself**: `xargs -a <file>` is a **GNU extension** that macOS/BSD `xargs` rejects outright
@@ -475,6 +507,8 @@ this lesson now qualifies).
 - promoted: 2026-08-05 via gated `/pharn-dev-memory-promote` (human-approved).
 
 ## L17 — `check-regress scope` tests changed-since-base, not written-by-the-build
+
+type: scoping · concepts: [writes-scope, scope-check, false-blocking]
 
 **Lesson.** `check-regress.mjs scope` computes `escaped = inside.filter((f) => !matchesAny(f, declared))`
 (`pharn/floor/check-regress.mjs:192`) over `git diff <base>`, with **no** exclusion for other pipeline

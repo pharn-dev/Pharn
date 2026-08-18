@@ -46,6 +46,87 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Fixed
 
+- **The legacy lessons `L1`–`L17` are retro-tagged, so `docs/lessons-index.md` is selectable on more
+  than the title** ([`.dev/memory-bank/lessons-learned.md`](./.dev/memory-bank/lessons-learned.md),
+  [`.dev/floor/lessons-index-core.mjs`](./.dev/floor/lessons-index-core.mjs),
+  [`.dev/floor/lessons-index-core.test.mjs`](./.dev/floor/lessons-index-core.test.mjs),
+  [`/pharn-dev-plan`](./.claude/commands/pharn-dev-plan.md),
+  [`/pharn-dev-regress`](./.claude/commands/pharn-dev-regress.md),
+  [`/pharn-dev-memory-promote`](./.claude/commands/pharn-dev-memory-promote.md)) — #114 defined the
+  `type: <enum> · concepts: [...]` tag line and #115 built the index that reads it, but every pre-#114
+  entry stayed untagged, so **17 of 21 rows rendered `-`** and a `type`-keyed or `concepts`-keyed
+  selection was incomplete by construction. Each of `L1`–`L17` now carries the tag line in its **defined
+  structured location** (the first non-empty line after the `## L<n> — <title>` heading, read by
+  `lessons-index-core.mjs`, never grepped — L6), and the regenerated index header reads
+  **`21 lessons · 21 tagged · 0 malformed · 0 untagged`**.
+
+  **The `type` assignment reproduces the ratified distribution exactly** — `process` 5 · `scoping` 4 ·
+  `floor` 4 · `tooling` 2 · `contract` 1 · `eval` 1, component-for-component with the corpus figures
+  `check-provenance.mjs` has published since #114. That is a **cross-check, not a floor op**: no checker
+  computes it, and it was re-derived by hand this run. `TYPE_ENUM` is **untouched** — the re-derivation
+  found no lesson needing a new member, so none was proposed (P7; the dropped `injection` precedent).
+  The 37 `concepts` tags are an **open vocabulary**, shape-checked and never enum-checked.
+
+  **The promote path deliberately was NOT used, and that sets a standing precedent.**
+  `/pharn-dev-memory-promote` structurally cannot annotate an existing entry: its duplicate-id check is a
+  deterministic RED on an id that already exists, Step 6 **appends** a whole entry rather than annotating
+  one, and `check-provenance.mjs` **never scans canon** — so a `retag` mode would have needed a new
+  canon-scanning primitive and a duplicate-id guard that **inverts by mode**, becoming its own opposite
+  when the mode is wrong. The retag therefore travelled the **ordinary gated build path** (declared in
+  `## Files`, scoped by `set-writes-scope.cjs --from-plan`, human-approved at the plan gate). The
+  division is now recorded where a future reader will look, in the promote command itself:
+  **annotating** an existing entry travels the ordinary gated build path; **promoting** a new entry
+  travels `/pharn-dev-memory-promote`, the sole path for an entry that ENTERS canon with provenance. A
+  retag creates no entry and no `provenance`, so `pharn/ARCHITECTURE.md §5`'s provenance-per-entry clause
+  is not triggered by one — which is why **no provenance was retro-filled**, and why §5 stays true as
+  written with no second canon-write path to document.
+
+  **The honest split (P0).** What is floor-backed is narrow, and narrower than "the build was gated":
+  the fix #7 writes-scope pinned every **`Write`/`Edit`** to the plan's declared paths (the setter
+  printed a path count read against the plan's own declared number — L20), but **one declared path was
+  never gated at all** — `docs/lessons-index.md` is produced by `npm run docs:generate`, a **Bash**
+  write, and the pre-write hook gates only `Write|Edit|MultiEdit`. That escape is **L19 exactly**, and
+  L19's own remedy is to **declare it rather than pretend the gate covered it**, which the plan does and
+  this entry now repeats rather than dropping. Alongside it, `check-lessons-index.mjs` holds the
+  committed index to **byte-equality** with what the core recomputes from canon — **consistency, never
+  correctness**. What is **not** guaranteed, stated rather than implied: whether a `type` or a
+  `concepts` tag actually **describes** its lesson is model-drafted and human-ratified at the plan gate
+  and is checked by **nothing** — **"typed `floor`" still never means "about the floor."** The #114
+  render residual is **narrowed, not closed**: the tag gate marks a bad value `?` rather than failing
+  and `docs:check` stays **exit 0** over one, so a GATE-2 fix pass added a live-canon assertion to
+  `.dev/floor/lessons-index-core.test.mjs` (`0 untagged · 0 malformed`) that makes a malformed tag line
+  fail **`npm test`** — per **L20**, a remedy that reduces to "remember to grep the header" has earned a
+  floor check. **Scoped honestly:** that pin covers **this repo's** canon only; a **user's**
+  `memory-bank/` has no equivalent, so the `lesson-tagline-render-check` follow-up still
+  stands. The now-false "a `-` is the expected, benign legacy shape" wording is corrected at its four
+  live sites — `CLAUDE.md`, `/pharn-dev-plan`, `/pharn-dev-memory-promote`, and the dev index core's
+  inline comment plus its rendered header (L1's meta-doc sweep). The **product** twins
+  (`pharn/floor/lessons-index-core.mjs`, `/pharn-memory-promote`, `pharn/floor/check-provenance.mjs`) are
+  **byte-unchanged**: their wording already reads correctly for a user's corpus, which may legitimately
+  hold hand-written entries.
+
+  **Honest trigger (P7), stated rather than hidden — and deliberately NOT called a dogfood failure.**
+  Like #114 and #115 before it, this was **identified at design time**: no dogfood run failed on an
+  untagged entry, no eval regressed, and `typed-lessons/PLAN.md` recorded the gap in advance as
+  "incomplete **by construction**." Its authorization is that it is the **named follow-up** #115 booked
+  (`retro-tag-legacy-lessons`), ratified by a human at the plan gate — not an observed failure. Also
+  deliberately **out of scope**: `L10`'s misplaced `**Provenance.**` block (`L11` carries two; `L10`'s
+  `promoted` column still renders `-`) stays a separate follow-up, since repairing it **moves** real
+  provenance and carries a different review question. Also **not bundled**, and named rather than
+  silently carried: `/pharn-dev-grill` still says _"today the registered set is the `testability`
+  griller"_ where `count-grillers.mjs` reports **13** — a live doc-vs-repo drift on a **different axis**
+  from this increment's, left as a follow-up so the diff spans one story. **`SKILLS_VERSION` is NOT
+  bumped** — every changed path is `.dev/**`, a `pharn-dev-*` command, a `*.test.*` file, `docs/`, or
+  repo-meta; no product-surface byte moves, so the README badge is unchanged too.
+
+  **Corrected at the GATE-2 fix pass, recorded rather than quietly folded in.** `/pharn-dev-grill` and
+  `/pharn-dev-review` each caught a P0 labelling defect in this increment's **own** artifacts: the
+  guarantee-audit row claiming the `type` enum was `FLOOR` when it only **marks** a bad value (it now
+  says so, and agrees with its own residual row), and this entry's honest-split paragraph asserting the
+  fix #7 guarantee one notch broader than the plan did (the L19 Bash-write narrowing above). Both were
+  fixed inside the approved scope. **The pipeline caught its own overclaims — which is the only reason
+  to run it.**
+
 - **`/pharn-review.md` Step 6 now mandates surfacing every `sources[]` contributor, not only the merged
   finding's top-level scalar.** When two lenses flag the same `(type, rule_id, file)` for different
   reasons, `pharn/floor/merge-findings.mjs` correctly collapses them into one finding — the scalar

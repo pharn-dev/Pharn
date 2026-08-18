@@ -98,10 +98,19 @@ Member meanings, so the choice is decidable rather than a vibe: `process` = pipe
 eval / measurement layer. Every member was ratified against the live L1–L17 corpus (each has ≥1 real
 instance); a proposed `injection` member was dropped at zero instances (P7).
 
-**Legacy entries are not retrofitted.** `check-provenance.mjs` keys on `candidate.json` and **never scans
-canon**, so the two fields are required of **NEW** candidates only — entries promoted before this contract
-stay untagged, deliberately (that decision avoids converting latent drift into active friction — L3). Any
-consumer reading the tag line must therefore tolerate untagged entries.
+**Legacy entries HAVE been retrofitted — but not by this command.** `check-provenance.mjs` keys on
+`candidate.json` and **never scans canon**, so the two fields are required of **NEW** candidates only. The
+legacy L1–L17 were retro-tagged by a separate increment travelling the **ordinary gated build path** —
+declared in its PLAN's `## Files`, scoped by `set-writes-scope.cjs --from-plan`, approved by a human at the
+plan gate — because this command structurally **cannot** do it: its duplicate-id check is a deterministic
+RED on an id that already exists, and Step 6 **appends** a whole entry rather than annotating one.
+
+**The standing division, so it need not be re-derived:** _annotating_ an existing entry travels the
+ordinary gated build path; _promoting_ a new entry travels **this** command, which remains the sole path
+for an entry that ENTERS canon with provenance. A retag creates no entry and no `provenance`, so
+`pharn/ARCHITECTURE.md §5`'s provenance-per-entry clause is not triggered by one — which is why a retag
+does **not** retro-fill provenance. Any consumer reading the tag line must still **tolerate untagged
+entries**: the checker never scans canon, so nothing here guarantees canon is uniformly tagged.
 
 ## Step 0 — Resolve the target, then set the writes-scope (fix #7, fail-closed)
 

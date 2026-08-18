@@ -95,8 +95,11 @@ chosen by a model. If a later write is blocked with the `writes-scope guard` mes
    > (`pharn/floor/check-plan-lessons.mjs`, Step 4), never against this index. If the index is stale or
    > absent, fall back to reading canon in full and say so — never plan from the index alone.
    > A `?` in the `type`/`concepts` column means a canon tag line **failed its gate** — read that
-   > entry in canon and flag it for a human; it is not a normal state. A `-` is the pre-#114 legacy
-   > shape: expected, benign, and says nothing about the lesson's relevance.
+   > entry in canon and flag it for a human; it is not a normal state. **A `-` is no longer normal
+   > either:** the legacy L1–L17 were retro-tagged, so every dev canon entry now carries a tag line and
+   > the index renders `0 untagged`. A `-` therefore means an entry reached canon without the promote
+   > gate's `type`/`concepts` — read that entry in canon and flag it too. Neither marker is a floor
+   > error (both regenerate cleanly at exit 0), and neither says anything about the lesson's relevance.
 
 5. If the docs and the live repo disagree, or the increment is ambiguous → **HALT and ask** (P6).
    Do not guess. When you ask, present the open questions as an **interactive multiple-choice form**
