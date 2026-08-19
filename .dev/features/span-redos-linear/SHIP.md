@@ -73,8 +73,13 @@ these verdicts describe the final tree, not an earlier one.
   scanners with nothing to notice. It is now **mirrored into all three suites**, making it mutual.
   Verified by injecting a one-token drift into one scanner and observing **all three** pins go red, then
   restoring. Test count 1443 → **1445**.
-- **F3 (minor, advisory) — OUTSTANDING.** `scan-plan-observability.mjs` homonym-matches "spans" on this
-  plan (regex spans, not telemetry spans). Not this increment's to fix; changed no verdict.
+- **F3 (minor, advisory) — WILL NOT FIX, investigated and recorded.** `scan-plan-observability.mjs`
+  homonym-matches "spans" on this plan (regex spans, not telemetry spans). Investigated on the human's
+  "fix everything" instruction and deliberately **not** changed: it is the scanner's already-documented
+  "incidental token" bound, nothing gates on its output (a committed eval fixture exists precisely to stop
+  `mentions:true` being trusted), and both candidate fixes are worse — dropping `spans` loses genuine
+  OpenTelemetry detection, and context-sensitivity would replace a floor-grade regex with LLM judgment.
+  P7: no verdict moved, no gate misfired, so there is no triggering failure. See `REVIEW.md` F3.
 
 ## Post-GATE-2 amendment
 

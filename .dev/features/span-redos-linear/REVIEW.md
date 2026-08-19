@@ -63,9 +63,18 @@ Verified the way the ★ ReDoS test was: a one-token drift (`DRIFTED`) was injec
 `scan-code-injection.mjs`'s `SPAN` and **all three** pins went red; restoring it returned all three to
 green. A pin never observed failing is not evidence that it can (L4). Test count 1443 → **1445**.
 
-Note the precedent this departs from: `.dev/floor/check-provenance.test.mjs` is equally single-sited and
-was cited as justification for leaving this one alone. That precedent is now the weaker of the two — a
-candidate follow-up, not something this increment changes.
+**Correction to this review's own earlier note.** An earlier revision said
+`.dev/floor/check-provenance.test.mjs` is "equally single-sited" and therefore "now the weaker of the
+two — a candidate follow-up." **That is wrong, and mirroring it would be a defect, not an improvement.**
+That guard is single-sited by **architectural necessity**: the product suite must stay runnable inside a
+user's install, where `.dev/**` does not exist (stripped at packaging), so a test comparing the two copies
+can only live in the copy that never ships — the dependency may point `.dev/` → `pharn/` and never the
+reverse (`.dev/floor/check-provenance.test.mjs:340-343`; `CLAUDE.md:461-463`).
+
+The F2 mirroring here is **not** the same case and is safe precisely because it does not cross that
+boundary: all three `scan-code-*` scanners and all three suites live in `pharn/floor/` and ship together.
+Recorded because the wrong version of this note would have sent a later reader to create a
+shipped-code → stripped-code dependency.
 
 ### F3 — the observability plan-scanner reports a homonym hit on this feature
 
@@ -78,8 +87,27 @@ candidate follow-up, not something this increment changes.
   evidence: '{"mentions":true,"hits":[{"line":1,"term":"spans"}, …]}'
 ```
 
-Carried forward from `GRILL.md`, unresolved and not this increment's to resolve. It changed no verdict
-(`LIMITS.md §5` already bounds that scanner to plan-time mentions).
+**Status: WILL NOT FIX — and that is the finding, not a deferral.** Investigated on the human's
+"fix everything" instruction; the investigation says the scanner is correct and a change would make it
+worse. Three grounds, each read live:
+
+1. **It is already the documented bound, not an undocumented gap.** The scanner's own HONEST BOUND says
+   it does not decide "that a present token is REAL / ADEQUATE / for what the plan builds **vs
+   incidental**" (`scan-plan-observability.mjs:13-16`). A homonym hit _is_ the incidental case. It is
+   a vocabulary-**presence** detector, and the vocabulary was present.
+2. **Nothing gates on it, by design.** The griller treats `mentions:true` as advisory evidence and is
+   explicitly forbidden to auto-pass on it — there is a committed eval fixture whose entire purpose is
+   that `mentions:true` is launderable and must not be trusted
+   (`grillers/observability/evals/expected/plan-fake-observability-injection.md`). A false `true`
+   moves nothing.
+3. **Both available fixes are worse.** Dropping `spans` from the term set loses genuine OpenTelemetry
+   span detection — `spans` is the real term, and this plan is the unusual caller. Making the match
+   context-sensitive requires deciding what a word _means_, which is LLM judgment and would destroy the
+   only property that makes this scanner floor-grade at all (P5, and the "manufactured floor" the
+   `input-validation` lens refused).
+
+Per **P7** an addition is triggered by a real failure, never a hypothetical: no verdict moved, no gate
+misfired, nothing broke. The correct output of this finding is a **recorded non-change**.
 
 ---
 
