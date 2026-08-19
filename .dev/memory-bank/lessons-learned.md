@@ -750,3 +750,40 @@ style-gate family it touches: L9 concerns gate **coverage**, L11 whole-repo **sc
   `/pharn-dev-verify` FAIL), with the `.prettierignore` remedy verified live by re-probing an expanded
   non-empty `failing_gates` against `format:check`
 - promoted: 2026-08-19 via gated `/pharn-dev-memory-promote` (human-approved).
+
+## L24 — A performance bound inherited from a superseded implementation is an unbacked claim — swapping the implementation mid-build is exactly when it gets inherited
+
+type: floor · concepts: [guarantee-audit, live-measurement, lesson-recurrence, regex-anchoring]
+
+**Lesson.** When a build REPLACES the artifact a claim describes, the claim is VOID until re-measured on
+an input chosen to break the NEW artifact — and a mid-build swap is precisely the moment this is missed,
+because the prose reads as still-true and only its subject changed. `scanner-nested-paren-span` planned
+the DISJOINT span, whose "disjoint branches ⇒ no exponential blowup" argument was SOUND. Mid-build that
+span broke two canonical nesting tests and was replaced with an OVERLAPPING one — but the ReDoS paragraph
+was carried across and merely SOFTENED (to "no EXPONENTIAL backtracking observed") rather than re-derived,
+and its supporting measurements were re-run on shapes that could not exhibit the new failure (`(a)`×800,
+`((a))`×800, unclosed `(`×800 — none has an ambiguous decomposition). The shipped result was false by ~9
+orders of magnitude: `fetch(` + `((a)`×28 took 7.26 s and ×40 extrapolates to ~7 hours, so ~120 bytes of
+crafted input hung the review floor across three floor files.
+
+**Why it matters.** This is [[L4]]'s "authored fixture passes by construction" at the PERFORMANCE-claim
+layer, and it is sharper here because the fixtures were not merely authored — they were INHERITED from a
+different regex, which is why re-running them proved nothing. The adversarial input for a regex is the
+AMBIGUOUS one, not the LARGE one: every inherited fixture was big, and none was ambiguous. Two
+corollaries, both earned live in the repair increment. (1) The repair's OWN first draft claimed "linear"
+while the per-line bound is quadratic (the engine retries at every sink-callee start) — the defect
+reproduced inside its own fix, so the remedy cannot be "be careful" ([[L20]]). (2) The reasoning error is
+nameable and reusable: the `)` wall bounds how FAR a span may range, never how many WAYS it may decompose
+what it ranges over. Remedy: when a regex or any perf-critical artifact is swapped, re-derive the bound
+from the NEW form's structure AND pin it with a regression test whose verdict is a MEMBERSHIP test
+(completed vs. killed under a subprocess timeout), never a stopwatch compared to a threshold — the
+timeout is also what keeps a red TERMINATING rather than a hang.
+
+**Provenance.**
+
+- feature: `span-redos-linear`
+- commit: `bc4769bb5d79caa3592f934fbc4a6b3055363e40`
+- source: `.dev/features/span-redos-linear/REVIEW.md` F1 (the repair's own overclaim) +
+  `.dev/features/scanner-nested-paren-span/REVIEW.md:75` (which recorded that PLAN and code disagreed
+  after the mid-build swap, without catching that the BOUND had gone stale with it)
+- promoted: 2026-08-19 via gated `/pharn-dev-memory-promote` (human-approved).
