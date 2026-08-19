@@ -18,7 +18,7 @@ import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
-import { mkdtempSync, writeFileSync, rmSync } from "node:fs";
+import { mkdtempSync, writeFileSync, rmSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -332,4 +332,55 @@ test('★ GUARD: taint INSIDE a nested call — db.query(wrap("WHERE id = " + id
     assert.equal(r.status, 0);
     assert.deepEqual(json(r), { found: true, hits: [{ line: 1, kind: "sql-injection" }] });
   });
+});
+
+// ---------------------------------------------------------------------------
+// ★ ReDoS REGRESSION — the span must not be exponential on AMBIGUOUS paren input. Mirrors the same test in
+// scan-code-ssrf.test.mjs (the three scanners share the SPAN by deliberate duplication; see the ✧ PIN there).
+//
+// The span this replaced (`(?:[^)]|\([^)]*\))*?`) had two branches that OVERLAPPED on `(`, so a chunk like
+// `((a)` had TWO valid parses and N chunks had 2^N — ~120 bytes of crafted input hung the review floor.
+//
+// WHY A SUBPROCESS TIMEOUT AND NOT A STOPWATCH: the verdict is a MEMBERSHIP test — the scan either COMPLETED
+// or the OS killed it — never a measured duration compared to a threshold, which would be machine-dependent
+// and flaky. It is also why this test cannot HANG: an exponential span is killed and FAILS, where a bare
+// wall-clock assertion would stall the whole `npm test` suite. A red must terminate.
+const REDOS_TIMEOUT_MS = 3000;
+
+test("★ ReDoS: 28 ambiguous `((a)` chunks after a query( sink → the scan COMPLETES (not killed)", () => {
+  withCode("const r = query(" + "((a)".repeat(28) + "\n", (p) => {
+    const r = spawnSync(process.execPath, [SCANNER, p], { encoding: "utf8", timeout: REDOS_TIMEOUT_MS });
+    assert.equal(r.signal, null, `scan did not terminate within ${REDOS_TIMEOUT_MS}ms — the span is backtracking`);
+    assert.equal(r.status, 0);
+    assert.deepEqual(json(r), { found: false, hits: [] });
+  });
+});
+
+// The same shape carrying REAL taint must still be FOUND — proves the ReDoS fix did not buy its speed by
+// narrowing detection (the failure mode of the disjoint-branch variant the header records as rejected).
+test("★ ReDoS fix did not narrow detection: taint inside a nested call → still found", () => {
+  withCode(`const r = query("SELECT " + esc(req.body.id));\n`, (p) => {
+    const r = spawnSync(process.execPath, [SCANNER, p], { encoding: "utf8", timeout: REDOS_TIMEOUT_MS });
+    assert.equal(r.signal, null);
+    assert.deepEqual(json(r), { found: true, hits: [{ line: 1, kind: "sql-injection" }] });
+  });
+});
+
+// ---------------------------------------------------------------------------
+// ✧ COPY-PAIR PIN — see the identical test in scan-code-ssrf.test.mjs for the full rationale.
+//
+// DELIBERATELY MIRRORED INTO ALL THREE SUITES, not written once: a single-sited pin is lost the moment its
+// one host file is deleted or renamed, taking the guarantee for all three scanners with it and leaving no
+// check to notice. Mirroring makes it MUTUAL — any surviving suite still enforces the agreement. The cost is
+// a triplicated assertion, which is the correct trade for a guard whose whole job is to survive edits to the
+// files it guards.
+test("✧ PIN: all three scan-code-* scanners declare a byte-identical SPAN", () => {
+  const files = ["scan-code-ssrf.mjs", "scan-code-injection.mjs", "scan-code-path-traversal.mjs"];
+  const spans = files.map((f) => {
+    const src = readFileSync(join(here, f), "utf8");
+    const m = src.match(/^const SPAN = .*$/m);
+    assert.ok(m, `${f}: no \`const SPAN = …\` declaration found`);
+    return m[0];
+  });
+  assert.equal(new Set(spans).size, 1, `SPAN drifted across the copy-pair:\n${files.map((f, i) => `  ${f}: ${spans[i]}`).join("\n")}`);
 });
