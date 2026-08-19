@@ -1,0 +1,119 @@
+# HUMAN-ONLY PATCH — .claude/hooks/set-writes-scope.cjs (add --clear)
+#
+# The agent CANNOT apply this: protect-trusted-paths.cjs (fix #2) denies every Write/Edit/MultiEdit
+# to this path at exit 2, verified live during this increment. A guard the agent may rewrite is not a
+# floor op, so the diff is delivered here for a human to apply by hand:
+#
+#     git apply .dev/features/writes-scope-lifecycle/set-writes-scope.patch
+#
+# Verified before delivery (sandbox copy, real hook never written):
+#   - the 31 existing set-writes-scope tests + 41 enforce tests: 75 pass / 3 fail, IDENTICAL to the
+#     unpatched control in the same sandbox (the 3 need repo files the sandbox lacks) — zero regression
+#   - --clear removes a present scope (exit 0); is idempotent when absent (exit 0)
+#   - --clear refuses to combine with --from-plan / --from-frontmatter / --target (exit 1, writes nothing)
+#   - the existing --from-frontmatter / --from-plan / control-surface-refusal paths are unchanged
+
+diff --git a/.claude/hooks/set-writes-scope.cjs b/.claude/hooks/set-writes-scope.cjs
+index 4343b48..898132b 100644
+--- a/.claude/hooks/set-writes-scope.cjs
++++ b/.claude/hooks/set-writes-scope.cjs
+@@ -11,6 +11,26 @@
+ //   node .claude/hooks/set-writes-scope.cjs --from-frontmatter <capability-or-command.md> [--target <path>]
+ //   node .claude/hooks/set-writes-scope.cjs --from-plan <PLAN.md>
+ //   ... [--allow-claude-dir]                      # opt in to scoping the write-guards' own control surface
++//   node .claude/hooks/set-writes-scope.cjs --clear   # run as a command's LAST step, after every write
++//
++// --clear DELETES .pharn/writes-scope.json, returning enforce-writes-scope.cjs to its fail-closed
++// DEFAULT_SAFE_SET. It exists because a SET scope REPLACES that safe-set: a command that finished and
++// left its scope behind is STRICTER than the default, so ordinary later work is silently denied
++// (measured: with a leftover one-path scope, `features/**`, `.dev/features/**` and `pharn/pharn-*/**`
++// paths the default PERMITS all exit 2). It takes no --target and REFUSES to combine with
++// --from-plan / --from-frontmatter: clearing and setting in one call is always a mistake, and the
++// refusal is louder than a silently-honored precedence rule. Absent file -> exit 0, no output change
++// (idempotent), so a command's last step is safe to run twice or after an early abort.
++//
++// TWO failure directions this flag must survive, both named because naming only one is how a partial
++// rationale narrows the next reader (.dev/memory-bank/lessons-learned.md L25):
++//   (1) It must not write `{"scope": []}` as a "cleared" marker. An EMPTY ARRAY IS TRUTHY, so
++//       enforce-writes-scope.cjs would compute allow = [...ALWAYS] and deny EVERYTHING outside
++//       `.pharn/**` — stricter than the stale scope this flag exists to remove. Deleting the file is
++//       the only shape that reaches the safe-set through the already-tested absent-file path.
++//   (2) It is a BASH call, so it is outside the PreToolUse gate entirely (L19). Running it is ADVISORY
++//       lifecycle hygiene; the FLOOR guarantee is unchanged and belongs to the reader, not to this
++//       writer — "no usable scope file => DEFAULT_SAFE_SET". Never write "--clear guarantees cleanup".
+ //
+ // `--target` resolves placeholder/glob `writes:` entries (e.g. features/<name>/PLAN.md) to one concrete
+ // file before emitting scope — so the hook allowlist is a single artifact path, not a broad directory.
+@@ -47,11 +67,17 @@ function parseArgs(argv) {
+   let file;
+   let target;
+   let allowClaudeDir = false;
++  let clear = false;
+   for (let i = 0; i < args.length; i++) {
+     const a = args[i];
+     if (a === "--target") {
+       if (!args[i + 1]) fail("--target requires a path");
+       target = args[++i];
++    } else if (a === "--clear") {
++      // Its OWN branch, ahead of the positional fallbacks — for the same reason --allow-claude-dir
++      // needs one: otherwise the flag is swallowed as the positional `mode` and `--clear` silently
++      // becomes an unknown-mode usage error instead of a clear.
++      clear = true;
+     } else if (a === "--allow-claude-dir") {
+       // Its OWN branch, ahead of the positional fallbacks — otherwise the flag is consumed as the
+       // positional `mode` or `file` and silently breaks --from-plan / --from-frontmatter parsing.
+@@ -64,7 +90,7 @@ function parseArgs(argv) {
+       fail(`unexpected argument: ${a}`);
+     }
+   }
+-  return { mode, file, target, allowClaudeDir };
++  return { mode, file, target, allowClaudeDir, clear };
+ }
+ 
+ // The two pre-write guards' own control surface: the settings file that WIRES both PreToolUse hooks, and
+@@ -230,9 +256,43 @@ function pathsFromPlanFiles(file) {
+ }
+ 
+ function main() {
+-  const { mode, file, target, allowClaudeDir } = parseArgs(process.argv);
++  const { mode, file, target, allowClaudeDir, clear } = parseArgs(process.argv);
++
++  // --clear is handled FIRST and returns, so it can never fall through into the scope-emitting path.
++  if (clear) {
++    if (mode || file || target) {
++      fail(
++        "--clear takes no other arguments (got: " +
++          [mode, file, target ? `--target ${target}` : null].filter(Boolean).join(" ") +
++          ")\n" +
++          "  Why: clearing and setting a scope in one call is always a mistake. Run the set and the\n" +
++          "       clear as separate calls — the set at a command's FIRST step, the clear at its LAST.\n" +
++          "  Nothing was written; .pharn/writes-scope.json is unchanged."
++      );
++    }
++    const scopePath = path.resolve(process.cwd(), ".pharn", "writes-scope.json");
++    // Idempotent: an absent file is the SAME end state, not an error — a command's last step must be
++    // safe to run twice, and safe to run after an early abort that never set a scope.
++    let existed = false;
++    try {
++      fs.unlinkSync(scopePath);
++      existed = true;
++    } catch (e) {
++      if (e && e.code !== "ENOENT") fail(`could not clear .pharn/writes-scope.json: ${e.message}`);
++    }
++    process.stdout.write(
++      existed
++        ? "writes-scope cleared: .pharn/writes-scope.json removed -> fail-closed default-safe-set active\n"
++        : "writes-scope cleared: no active scope (already absent) -> fail-closed default-safe-set active\n"
++    );
++    process.exit(0);
++  }
++
+   if (!mode || !file || (mode !== "--from-frontmatter" && mode !== "--from-plan")) {
+-    fail("usage: set-writes-scope.cjs (--from-frontmatter <file.md> [--target <path>] | --from-plan <PLAN.md>) [--allow-claude-dir]");
++    fail(
++      "usage: set-writes-scope.cjs (--from-frontmatter <file.md> [--target <path>] | --from-plan <PLAN.md>) [--allow-claude-dir]\n" +
++        "       set-writes-scope.cjs --clear"
++    );
+   }
+   if (!fs.existsSync(file)) fail(`file not found: ${file}`);
+ 

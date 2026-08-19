@@ -830,3 +830,21 @@ prescribing), and [[L24]] (a claim inherited across a swap).
   `.dev/features/entry-point-guard/GRILL.md` F1/F6, with the ten-file spread and the four-shape
   measurement reproduced live before and after the repair
 - promoted: 2026-08-19 via gated `/pharn-dev-memory-promote` (human-approved).
+
+## L26 — A patch verified against a copy OUTSIDE the repo is verified under different rules than the repo enforces — config-driven gates resolve by PATH
+
+type: tooling · concepts: [verification-fidelity, style-gates, human-only-patch, false-green]
+
+**Lesson.** A hook-protected file can only be patched by a human, so the agent verifies the change against a sandbox COPY. That copy reproduced both hook test suites faithfully — 75 pass / 3 fail, IDENTICAL to an unpatched control in the same sandbox, a genuine zero-regression proof — while running NONE of `eslint`, `prettier`, or `markdownlint`, because each resolves its configuration relative to the FILE'S PATH and the sandbox had no `eslint.config.mjs` and no `.prettierrc.json`. Two real defects reached the applied hook. The remedy is not "remember to lint the sandbox": verify at the REAL path — generate the patch, apply it in a throwaway `git worktree` of the repo, and run `npm run check` there — so the file is judged by the same config resolution the repo's own gates use.
+
+**Why it matters.** The failure presents as a COMPLETED verification. The sandbox run produced a correct, specific, reassuring number that matched its control exactly, and that number is what gets reported and believed; nothing in it hints that three whole gate families never executed. It is the false-GREEN twin of L16's false-RED — L16's bad expansion fabricates a red that MASKS a real one, this fabricates a green that HIDES an absent check. Confirmed twice in one increment, in opposite directions: (1) the delivered patch failed `lint` (`no-control-regex`) and `format:check` at /pharn-dev-verify; (2) the REPAIR for (1) then ran `prettier --write` on the scratchpad copy, where `.prettierrc.json`'s `printWidth: 140` again did not resolve — silently reformatting unrelated pre-existing lines and inflating the patch from 59/11 to 92/17. The fix for the first instance introduced a larger second one by the same mechanism, which is the sharpest evidence that the defect is the ENVIRONMENT, not the care taken. Distinct from L4 (an authored assertion passes by construction until measured — here the assertions WERE measured, and the gap was in WHICH CHECKS RAN AT ALL) and from L23 (a stage's artifact colliding with a gate that stage owns).
+
+**Provenance.**
+
+- feature: `writes-scope-lifecycle`
+- commit: `cd24dee7f560fdbe87f8a4347d67a24ceddd2767` (working-tree dogfood built on this commit; uncommitted at
+  promotion time)
+- source: `.dev/features/writes-scope-lifecycle/REVIEW.md` (proposed lesson candidate — the
+  verification-fidelity finding) + `.dev/features/writes-scope-lifecycle/VERIFY.md` (the first-pass
+  gate REDs), with both instances reproduced live
+- promoted: 2026-08-19 via gated `/pharn-dev-memory-promote` (human-approved).

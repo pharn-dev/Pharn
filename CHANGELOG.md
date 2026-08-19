@@ -46,6 +46,46 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Fixed
 
+- **A finished command's writes-scope no longer silently denies later work — `set-writes-scope.cjs`
+  gains `--clear`, every setter-invoking command declares a release step, and the deny message names
+  the stale scope's origin.** All 17 commands that set `.pharn/writes-scope.json` at their first step
+  did so with nothing ever clearing it. Because a **set** scope REPLACES `enforce-writes-scope.cjs`'s
+  fail-closed `DEFAULT_SAFE_SET`, a leftover scope is **stricter** than no scope at all: measured live,
+  a one-path scope from a finished run denied `.dev/features/*/PLAN.md`, `features/*/SPEC.md` and
+  `pharn/pharn-core/*` — three zones the default **permits** — in later sessions, with nothing in the
+  message connecting the denial to a run that had already ended.
+
+  **The fix is lifecycle hygiene plus a truthful message; `DEFAULT_SAFE_SET` is deliberately NOT
+  widened.** `--clear` deletes the scope file (idempotent when absent) and refuses to combine with
+  `--from-plan` / `--from-frontmatter` / `--target`. It deletes rather than writing a `{"scope": []}`
+  marker, because an empty array is **truthy**: enforce would compute `allow = [...ALWAYS]` and deny
+  everything outside `.pharn/**` — stricter still than the stale scope the flag exists to remove.
+
+  **Honest bounds (P0).** Running the release step is **ADVISORY**: it is a Bash call, outside the
+  `PreToolUse` gate entirely, so nothing on the floor forces it and an early abort skips it — it
+  degrades safely, since the next command's first-step _set_ overwrites a leftover scope. The floor
+  guarantee is unchanged and belongs to the **reader**: absence of a scope file = the fail-closed
+  default-safe-set. A new test pins that every command which sets a scope also **declares** the release
+  step **and** places it after every set invocation (placement is load-bearing — `/pharn-*memory-promote`
+  writes to canon _after_ its human accept/deny gate, so a release line above that write would get the
+  gated write denied). That test proves the line is **present and ordered**, never that a run
+  **executed** it.
+
+  **Also hardened, unrequested but adjacent (P2).** The deny message is returned to the **agent** as a
+  tool result, and `.pharn/**` is Bash-writable and outside the `PreToolUse` gate, so the record it
+  echoes is not trusted input. Every echoed value — the newly-added `set_by` / `set_at` **and** the
+  pre-existing `scope[]` entries, which were previously interpolated raw — is now rendered as DATA:
+  every C0 control, DEL, every C1 control, **and U+2028 / U+2029** folded to a single space, plus a
+  length cap. The fold is deliberately wider than "control characters": U+2028 LINE SEPARATOR and
+  U+2029 PARAGRAPH SEPARATOR are neither C0 nor C1, yet are line terminators in JavaScript and in
+  several renderers, so a C0/C1-only fold left the forge-a-message-line hole half open. It is
+  implemented as a char-code scan, matching `.dev/floor/check-provenance.mjs`'s `cleanScalar()` — the
+  repo's established idiom, and the only form its own `no-control-regex` lint gate admits. No
+  allow/deny branch reads any of these values; the verdict is unchanged.
+
+  `SKILLS_VERSION` 2.7.5 → **2.7.6** (patch: a lifecycle correction to product `.cjs` hook and product
+  `pharn-*` command bytes that already shipped).
+
 - **Ten floor CLIs silently checked nothing when invoked from a path containing a space or a
   non-ASCII character** — `SKILLS_VERSION` **2.7.4 → 2.7.5** (patch: a correction to bytes that already
   shipped; five product-floor checkers, behavior changed only for invocation paths that never worked).

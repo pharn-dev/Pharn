@@ -10,7 +10,7 @@ lessons to fetch; canon stays the source of truth and the floor's verification t
 applied, without fetching its full `## L<n>` entry from canon, is the P0 disease. "The index was
 consulted" never means "the relevant lessons were read".
 
-25 lessons · 25 tagged · 0 malformed · 0 untagged · ~15084 tokens total
+26 lessons · 26 tagged · 0 malformed · 0 untagged · ~15782 tokens total
 
 Columns: `id | type | concepts | title | promoted | ~tokens`. Every canon entry carries a tag line, so
 BOTH absence markers are unexpected: `-` = no tag line, i.e. an entry that reached canon without
@@ -45,4 +45,5 @@ L22 | tooling  | shell-portability,command-prescription,lesson-recurrence,false-
 L23 | process  | stage-artifact,gate-conflict,happy-path-latency,style-gates             | A stage that writes an artifact AND owns a whole-repo gate over it has a self-referential conflict invisible on the happy path | 2026-08-19 | ~620
 L24 | floor    | guarantee-audit,live-measurement,lesson-recurrence,regex-anchoring      | A performance bound inherited from a superseded implementation is an unbacked claim — swapping the implementation mid-build is exactly when it gets inherited | 2026-08-19 | ~730
 L25 | tooling  | lesson-recurrence,floor-escalation,command-prescription,doc-drift       | A rationale comment reaches only the file it sits in, and it is trusted for the defects it does NOT name | 2026-08-19 | ~839
+L26 | tooling  | verification-fidelity,style-gates,human-only-patch,false-green          | A patch verified against a copy OUTSIDE the repo is verified under different rules than the repo enforces — config-driven gates resolve by PATH | 2026-08-19 | ~698
 ```
