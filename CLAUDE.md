@@ -291,7 +291,14 @@ either blocks.
   `writes: [".dev/memory-bank/lessons-learned.md"]` unlocks exactly that file.
 - **When a write is blocked,** the fix is to **declare the path in `writes:` and re-run the
   scope-setter** — _never_ to bypass the hook. The deny message names the blocked path and the active
-  scope.
+  scope. **One exception, and the message now says so itself: a path that is NOT INSIDE the repo root**
+  (the agent scratchpad under `/private/tmp`, say). Every scope entry is repo-root-relative, so **no
+  `writes:` declaration can ever name such a path** and neither can the fail-closed default — the usual
+  remedy is not merely unhelpful there, it is unreachable, and so is `--clear`. `denyMessage()`
+  therefore branches on `toRel() === null` and offers only what works: put the file inside the repo and
+  declare it, or — for genuinely temporary/scratch files, and only those — write it through **Bash**,
+  which `PreToolUse` never sees. That is a jurisdiction boundary, not a sanctioned bypass: routing an
+  **in-repo** write through Bash to dodge the guard is still the thing you must not do.
 - **The setter refuses to scope the guards themselves.** `set-writes-scope.cjs` exits non-zero and
   writes nothing if the parsed scope names `.claude/settings.json` or one of the three hook scripts,
   unless `--allow-claude-dir` is passed. A `PLAN.md` is untrusted input, so without this an increment

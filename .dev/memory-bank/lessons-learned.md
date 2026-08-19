@@ -848,3 +848,73 @@ type: tooling · concepts: [verification-fidelity, style-gates, human-only-patch
   verification-fidelity finding) + `.dev/features/writes-scope-lifecycle/VERIFY.md` (the first-pass
   gate REDs), with both instances reproduced live
 - promoted: 2026-08-19 via gated `/pharn-dev-memory-promote` (human-approved).
+
+## L27 — A remedy added to a SHARED message is printed by every branch — check reachability per branch, or it trains the workaround
+
+type: process · concepts: [lesson-recurrence, floor-escalation, shared-message, fail-open]
+
+**Lesson.** `enforce-writes-scope.cjs`'s `denyMessage()` composes ONE message for every denial, so a FIX
+bullet added for one situation is printed for **all** of them — including situations where its remedy
+cannot possibly work. For a path outside the repo root, **three** of the four remedies were unreachable:
+"add it to the active Capability's `writes:`", "restart the command from the top", and the `--clear`
+staleness bullet added one increment earlier, all of which resolve to scope entries that are
+repo-root-RELATIVE and therefore inexpressible for such a path. The one route that does work — Bash,
+which `PreToolUse` never sees — was the only one the message did not name. Remedy: when a message serves
+multiple branches, **the reachability of each remedy is a property to assert per branch**, and the
+assertion form that works is "present in its own case AND absent from the other", not merely "present".
+
+**Why it matters.** The failure is invisible to every gate — unreachable advice is still a string, so
+tests, lint and the floor all stay green — and its only reader is an agent that follows the advice, fails,
+and reaches for whatever does work. **A guard that prints an impossible remedy trains the exact bypass it
+exists to prevent**, and trains it undirected, which is worse than naming the boundary. Note the shape of
+the recurrence, because it is what makes this a lesson rather than a bug report: `writes-scope-lifecycle`
+ADDED the staleness bullet without asking which denials could reach it, and this increment then set out to
+fix exactly one unreachable bullet — its approved PLAN pinned only that one — so the same blind spot
+produced both the defect and the too-narrow fix, one increment apart, in the same function. That is
+[[L20]]'s trigger already met, and the remedy is the kind [[L22]] and [[L25]] prescribe: an enforceable
+assertion, not a louder comment. Distinct from [[L2]] (a contract citing a floor op that is not live —
+there the CLAIM is false; here every sentence is true, and only its APPLICABILITY is empty).
+
+**Provenance.**
+
+- feature: `out-of-root-deny-message`
+- commit: `c7361da79a6946263b1571a5d9d9cf806cce7f5d` (working-tree dogfood built on this commit;
+  uncommitted at promotion time)
+- source: `.dev/features/out-of-root-deny-message/REVIEW.md` (proposed lesson Candidate A) +
+  `.dev/features/out-of-root-deny-message/GRILL.md` G2, with all three unreachable remedies reproduced
+  live before the fix
+- promoted: 2026-08-19 via gated `/pharn-dev-memory-promote` (human-approved).
+
+## L28 — The plan-scope setter's exclusion CUE fires on an authorized item's own WRAPPED line
+
+type: scoping · concepts: [writes-scope, plan-shape, cue-matching, false-red]
+
+**Lesson.** `set-writes-scope.cjs --from-plan` ends the authorized `## Files` list at a heading
+(Boundary 1) or at a head-less prose exclusion cue (Boundary 2). Boundary 2 is anchored to a
+non-path, non-blockquote line so that, in the comment's own words, "an authorized item's own description
+never trips it". **That holds for a single-line bullet and fails for a WRAPPED one.** A continuation line
+is not a path-item and not a blockquote, so an ordinary description that happens to contain
+`out of scope` / `not touched` / `not written` matches the cue and **truncates the list there**. Measured
+live: a bullet whose second line read "in-repo out-of-scope unchanged" cut a 5-path plan to **1 path**.
+Remedy: the cue must skip an item's own continuation lines (a line indented under an open list item is
+part of that item, not a section intro), or the exclusion boundary must be heading-only.
+
+**Why it matters.** It fails **CLOSED** — too few paths, a loud deny at the next write — so it is friction
+in the [[L3]] direction, not a power leak in the [[L7]] one. What makes it worth canon is how it hides:
+the setter prints `1 path(s)` and exits **0**, so the parse looks successful, and the only signal is the
+count disagreeing with the plan a human just approved. It was caught solely because [[L20]]'s discipline
+of running the setter and **reading the printed count** was followed. The comment beside the regex is what
+makes it invisible to a reader — it states the exemption as settled and complete, which is [[L25]]'s
+"trusted for the defects it does NOT name", here applied to a regex rationale rather than an entry-point
+guard. Note the second-order cost: a plan author who hits this learns to avoid ordinary vocabulary in
+their own `## Files` descriptions, which is exactly the "remedy is discipline" shape [[L20]] rejects.
+
+**Provenance.**
+
+- feature: `out-of-root-deny-message`
+- commit: `c7361da79a6946263b1571a5d9d9cf806cce7f5d` (working-tree dogfood built on this commit;
+  uncommitted at promotion time)
+- source: `.dev/features/out-of-root-deny-message/REVIEW.md` (proposed lesson Candidate B) +
+  `.dev/features/out-of-root-deny-message/PLAN.md` `## Known residuals`, with the 5→1 truncation
+  reproduced live at plan Step 4
+- promoted: 2026-08-19 via gated `/pharn-dev-memory-promote` (human-approved).
