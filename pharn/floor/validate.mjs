@@ -7,7 +7,8 @@
 // It checks structural invariants of the PHARN repo being BUILT:
 //   1. capability frontmatter present + required fields           (ARCHITECTURE §3.1)
 //   2. every capability has non-empty evals/cases + evals/expected (P1)
-//   3. every `enforces` rule_id is produced by >=1 eval case        (P1, fix #6)
+//   3. every `enforces` rule_id is produced by >=1 eval fixture — EXACT value membership, read from
+//      each fixture's structured location, never a substring scan  (P1, fix #6)
 //   4. `coupling` is a valid enum value where present               (enum check, §3.2)
 //   4b. `applies` is present AND every value is an archetype-enum member  (required + enum, §5)
 //   5. finding templates separate enum-gated from free-text fields  (fix #1, best-effort)
@@ -112,6 +113,80 @@ function capabilityDir(file) {
   return file.slice(0, file.lastIndexOf(sep));
 }
 
+// --- CHECK 3's rule_id extraction (fix #6) -------------------------------------------------------
+//
+// The enforces↔eval binding is a MEMBERSHIP fact, so it is read from the fixture's STRUCTURED
+// location and tested by EXACT equality — never by scanning concatenated fixture text for a
+// substring. The substring form this replaced was false-GREEN two ways, both reproduced live:
+//   * PREFIX COLLISION — `SEC-1` is a substring of `SEC-12`, so a capability declaring
+//     `enforces: ["security.md SEC-1"]` passed while its only fixture produced `SEC-12`.
+//   * FREE-TEXT LAUNDERING — any prose mention satisfied the binding, and the live fixtures are full
+//     of them (`semantic[].judge` sentences reading "reported as a FLOOR finding (rule_id P2)"), so a
+//     fixture that asserts nothing about a rule could still bind it.
+
+// JSON fixtures: the structured location pharn-contracts/eval-format.md defines — cited, not restated
+// (P4). Same shape check-structural.mjs executes: assertions.structural[] entries whose `kind` is
+// `field_equals` over `field: rule_id` contribute their `value`. A non-string `value` is not a rule id
+// and is dropped rather than coerced (String(v) would mint members like "[object Object]").
+function ruleIdsFromExpectedJson(parsed) {
+  const out = [];
+  if (!parsed || typeof parsed !== "object") return out;
+  const assertions = parsed.assertions;
+  if (!assertions || typeof assertions !== "object") return out;
+  if (!Array.isArray(assertions.structural)) return out;
+  for (const a of assertions.structural) {
+    if (!a || typeof a !== "object") continue;
+    if (a.kind !== "field_equals" || a.field !== "rule_id") continue;
+    if (typeof a.value !== "string") continue;
+    const v = a.value.trim();
+    if (v) out.push(v);
+  }
+  return out;
+}
+
+// Non-JSON fixtures: BEST-EFFORT, and deliberately weaker than the JSON path — say so rather than let
+// the two read as equivalent. eval-format.md writes `expected` as `evals/expected/*.md`, whose finding
+// block carries an anchored `rule_id: <value>` line, so dropping this path would false-RED a
+// contract-conformant .md-only capability. But markdown has no structured location to read: this is a
+// regex over free-form text, so a `rule_id:` line QUOTED from untrusted case content would bind. What
+// it does buy over the old substring scan is that a bare PROSE mention ("…(rule_id P2)…", a `purpose:`
+// sentence) no longer binds — the line must be shaped like a declaration.
+// Anchored per line under /m (where `$` matches before each \n, lessons-learned.md L14); the value is
+// trimmed and compared by equality, so this cannot re-admit substring behavior.
+const RULE_ID_LINE = /^[\s>*-]*rule_id:[ \t]*(?:"([^"\n]*)"|'([^'\n]*)'|([^#"'\n]*?))[ \t]*(?:#.*)?$/gm;
+function ruleIdsFromExpectedLines(text) {
+  const out = [];
+  RULE_ID_LINE.lastIndex = 0; // the /g regex is module-scoped: reset before every use
+  for (const m of text.matchAll(RULE_ID_LINE)) {
+    const v = (m[1] ?? m[2] ?? m[3] ?? "").trim();
+    if (v) out.push(v);
+  }
+  return out;
+}
+
+// True iff s contains any C0 control char or DEL (charcode < 32 or === 127). Charcode scan, not a
+// regex literal — the same idiom merge-findings.mjs uses, and for the same two reasons: a control-char
+// regex literal is unreadable in source, and eslint's no-control-regex forbids it.
+function hasControlChar(s) {
+  for (let i = 0; i < s.length; i++) {
+    const c = s.charCodeAt(i);
+    if (c < 32 || c === 127) return true;
+  }
+  return false;
+}
+
+// Name the values the fixtures DID declare — without this, a prefix collision reads as "SEC-1 has no
+// eval" while the fixture plainly says SEC-12 and the maintainer stares at it. Bounded on purpose:
+// control-char-bearing or over-long values are dropped rather than echoed into the report (L14), and
+// the list is capped, so a fixture cannot use this message as an output channel.
+function summarizeProduced(produced) {
+  const clean = [...produced].filter((v) => v.length <= 60 && !hasControlChar(v)).sort();
+  if (!clean.length) return " (no expected fixture declares any rule_id)";
+  const shown = clean.slice(0, 8);
+  const more = clean.length - shown.length;
+  return ` (fixtures declare: ${shown.join(", ")}${more ? `, +${more} more` : ""})`;
+}
+
 // ---------------------------------------------------------------------------
 
 const allMd = walk(TARGET);
@@ -189,20 +264,62 @@ for (const cap of capabilities) {
   // CHECK 3: every enforces rule_id is produced by >=1 eval case (fix #6)
   const enforces = Array.isArray(fm.enforces) ? fm.enforces : fm.enforces ? [fm.enforces] : [];
   if (enforces.length && hasExpected) {
-    const expectedText = readdirSync(expectedDir)
-      .map((f) => {
+    const produced = new Set(); // the rule_id VALUES the fixtures declare — exact membership, never substring
+    for (const name of readdirSync(expectedDir).sort()) {
+      if (name.startsWith(".")) continue; // dotfiles are not fixtures (mirrors nonEmptyDir)
+      const p = join(expectedDir, name);
+      // Directories are skipped, not read: this scan is one level deep, exactly as before. The skip
+      // is decided by the READ ITSELF — `readFileSync` on a directory throws `EISDIR` — and NOT by a
+      // preceding `statSync`. A stat-then-read pair is a time-of-check/time-of-use window (CodeQL
+      // `js/file-system-race`), and the stat bought nothing here: the read already refuses a
+      // directory, so one syscall replaces two and the window closes. FAIL-CLOSED, and stated: any
+      // other error code — including a directory reported as something other than EISDIR on a
+      // platform that does so — falls through to the blocking finding below, never to a silent skip.
+      let text;
+      try {
+        text = readFileSync(p, "utf8");
+      } catch (e) {
+        if (e.code === "EISDIR") continue; // a subdirectory is not a fixture
+        finding(
+          "blocking",
+          "P1/fix#6",
+          rel,
+          `expected fixture "${name}" is unreadable (${e.code || e.message}) — the enforces binding cannot be verified against it`
+        );
+        continue;
+      }
+      if (name.endsWith(".json")) {
+        let parsed;
         try {
-          return readFileSync(join(expectedDir, f), "utf8");
-        } catch {
-          return "";
+          parsed = JSON.parse(text);
+        } catch (e) {
+          // FAIL-CLOSED: a fixture that cannot be parsed is not evidence of a binding. Before this
+          // check existed the parse failure fell through to "" and a sibling fixture silently carried
+          // the binding. The message is free-text (fix #1) and may quote a short JSON snippet — DATA.
+          finding(
+            "blocking",
+            "P1/fix#6",
+            rel,
+            `expected fixture "${name}" is not parseable JSON (${e.message}) — the enforces binding cannot be verified against it`
+          );
+          continue;
         }
-      })
-      .join("\n");
+        for (const v of ruleIdsFromExpectedJson(parsed)) produced.add(v);
+      } else {
+        for (const v of ruleIdsFromExpectedLines(text)) produced.add(v);
+      }
+    }
     for (const id of enforces) {
-      // a rule_id is "produced" if it appears in any expected fixture (id is file-qualified or bare)
-      const bare = String(id).split(/\s+/).pop(); // "security.md SEC-1" -> "SEC-1"
-      if (!expectedText.includes(id) && !expectedText.includes(bare)) {
-        finding("blocking", "P1/fix#6", rel, `enforces rule_id "${id}" has no eval case that produces it`);
+      // "Produced" = the declared id (file-qualified) or its bare form is a MEMBER of the set above.
+      const declared = String(id).trim();
+      const bare = declared.split(/\s+/).pop(); // "security.md SEC-1" -> "SEC-1"
+      if (!produced.has(declared) && !produced.has(bare)) {
+        finding(
+          "blocking",
+          "P1/fix#6",
+          rel,
+          `enforces rule_id "${id}" has no eval case that produces it — no expected fixture declares that exact rule_id value${summarizeProduced(produced)}`
+        );
       }
     }
   } else if (enforces.length && !hasExpected) {

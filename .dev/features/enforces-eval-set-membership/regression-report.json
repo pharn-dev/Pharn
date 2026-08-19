@@ -1,0 +1,29 @@
+{
+  "base": "ab152d9af3252a0ea07c2f4a7810e8881f8c7a50",
+  "inside": [
+    ".dev/features/enforces-eval-set-membership/GRILL.md",
+    ".dev/features/enforces-eval-set-membership/PLAN.md",
+    "CHANGELOG.md",
+    "README.md",
+    "SKILLS_VERSION",
+    "pharn/floor/validate.mjs",
+    "pharn/floor/validate.test.mjs"
+  ],
+  "outside_gates": {
+    "structural:expected-injection-comment": {
+      "base": 0,
+      "head": 0
+    },
+    "tests": {
+      "base": 0,
+      "head": 0
+    },
+    "validate": {
+      "base": 0,
+      "head": 0
+    }
+  },
+  "regressions": [],
+  "pre_existing": [],
+  "verdict": "no-regressions"
+}
