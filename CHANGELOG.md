@@ -97,6 +97,20 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
   GREEN, judge-string-only → RED, malformed fixture → RED **by name** even when a sibling binds the id,
   `.md`-only `rule_id:` line → GREEN, and `.md` prose-only mention → RED.
 
+  **The fixture scan now reads each directory entry once, not twice — the TOCTOU pair this same
+  increment introduced is gone.** The first cut of the one-level-deep scan guarded the read with
+  `statSync(p).isDirectory()`. That is a check-then-use pair — CodeQL's `js/file-system-race`, raised
+  High on the PR — and the window is real: the entry can change between the stat and the read. It also
+  bought nothing, because `readFileSync` on a directory already throws `EISDIR`. The skip is decided by
+  the **read itself** now, so one syscall replaces two and the window closes. **FAIL-CLOSED, and
+  stated:** only `EISDIR` skips; every other error code still produces the blocking
+  unreadable-fixture finding, never a silent pass. Two further tests pin both halves of a skip that was
+  previously untested — a subdirectory under `evals/expected/` is passed over **silently** (no
+  unreadable RED), and a rule_id living **only** inside it does **not** bind.
+
+  **No `SKILLS_VERSION` move for that correction:** the `statSync` line never shipped — it was added by
+  this same unreleased entry, so `2.7.3` already versions these bytes.
+
 - **The Approved-input gate no longer disagrees with canon about what `state:` says — one spec parser
   now, not two** — `SKILLS_VERSION` **2.7.1 → 2.7.2** (patch: a correction to bytes that already
   shipped; two product-floor checkers).

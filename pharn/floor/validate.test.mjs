@@ -497,6 +497,45 @@ test("★ CHECK 3: EXACT MATCH — enforces SEC-1 with a fixture producing SEC-1
   );
 });
 
+// The fixture scan is ONE LEVEL DEEP, and the skip is decided by the READ ITSELF: `readFileSync` on a
+// directory throws EISDIR. There is deliberately no preceding `statSync(p).isDirectory()` — a
+// stat-then-read pair is the time-of-check/time-of-use window CodeQL names `js/file-system-race`.
+// These two pin BOTH halves of that skip, which was previously untested: the directory must be passed
+// over SILENTLY (no unreadable-fixture RED), and it must NOT contribute the ids it contains.
+test("★ CHECK 3: a SUBDIRECTORY under evals/expected is skipped silently — not reported as unreadable", () => {
+  withRepo(
+    {
+      "pharn-review/sample/sample.md": ENFORCING_CAP("security.md SEC-1"),
+      "pharn-review/sample/evals/cases/case-1.md": "# a case\n",
+      "pharn-review/sample/evals/expected/expected-1.json": EXPECTED_JSON("security.md SEC-1"),
+      // Writing one level deeper is what CREATES the `nested/` directory entry inside expected/.
+      "pharn-review/sample/evals/expected/nested/expected-2.json": EXPECTED_JSON("security.md SEC-9"),
+    },
+    (root) => {
+      const r = run(root);
+      assert.equal(r.status, 0);
+      assert.match(r.stdout, /FLOOR: GREEN — 1 capabilities checked/);
+      assert.doesNotMatch(r.stdout, /unreadable/);
+    }
+  );
+});
+
+test("★ CHECK 3: a rule_id living ONLY in a subdirectory fixture does not bind — the scan stays one level deep", () => {
+  withRepo(
+    {
+      "pharn-review/sample/sample.md": ENFORCING_CAP("security.md SEC-9"),
+      "pharn-review/sample/evals/cases/case-1.md": "# a case\n",
+      "pharn-review/sample/evals/expected/expected-1.json": EXPECTED_JSON("security.md SEC-1"),
+      "pharn-review/sample/evals/expected/nested/expected-2.json": EXPECTED_JSON("security.md SEC-9"),
+    },
+    (root) => {
+      const r = run(root);
+      assert.equal(r.status, 1);
+      assert.match(r.stdout, /enforces rule_id "security\.md SEC-9" has no eval case that produces it/);
+    }
+  );
+});
+
 // The binding must range over enum-gated positions ONLY. A semantic[] judge string is free text that
 // inherits the case's untrusted tag (finding-shape.md) — a rule id inside one is DATA about a rule,
 // never evidence that a fixture produces it.

@@ -268,16 +268,18 @@ for (const cap of capabilities) {
     for (const name of readdirSync(expectedDir).sort()) {
       if (name.startsWith(".")) continue; // dotfiles are not fixtures (mirrors nonEmptyDir)
       const p = join(expectedDir, name);
-      // Directories are skipped, not read: this scan is one level deep, exactly as before.
-      try {
-        if (statSync(p).isDirectory()) continue;
-      } catch {
-        // fall through to the read below, which reports the unreadable path itself
-      }
+      // Directories are skipped, not read: this scan is one level deep, exactly as before. The skip
+      // is decided by the READ ITSELF — `readFileSync` on a directory throws `EISDIR` — and NOT by a
+      // preceding `statSync`. A stat-then-read pair is a time-of-check/time-of-use window (CodeQL
+      // `js/file-system-race`), and the stat bought nothing here: the read already refuses a
+      // directory, so one syscall replaces two and the window closes. FAIL-CLOSED, and stated: any
+      // other error code — including a directory reported as something other than EISDIR on a
+      // platform that does so — falls through to the blocking finding below, never to a silent skip.
       let text;
       try {
         text = readFileSync(p, "utf8");
       } catch (e) {
+        if (e.code === "EISDIR") continue; // a subdirectory is not a fixture
         finding(
           "blocking",
           "P1/fix#6",
