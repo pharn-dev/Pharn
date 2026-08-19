@@ -45,12 +45,12 @@ function makeSpec({ spec_id = "my-feature", state = "Draft", hash, body = BODY, 
 }
 
 // Write the SPEC to a fresh temp dir, run the checker (default or --hash), clean up, return the spawn result.
-function runWith(specText, { hashMode = false, specIdMode = false } = {}) {
+function runWith(specText, { hashMode = false, specIdMode = false, stateMode = false } = {}) {
   const dir = mkdtempSync(join(tmpdir(), "pharn-spec-"));
   try {
     const specPath = join(dir, "SPEC.md");
     writeFileSync(specPath, specText);
-    const argv = hashMode ? ["--hash", specPath] : specIdMode ? ["--spec-id", specPath] : [specPath];
+    const argv = hashMode ? ["--hash", specPath] : specIdMode ? ["--spec-id", specPath] : stateMode ? ["--state", specPath] : [specPath];
     return spawnSync(process.execPath, [CHECK, ...argv], { encoding: "utf8" });
   } finally {
     rmSync(dir, { recursive: true, force: true });
@@ -326,4 +326,82 @@ test("comment TIGHTENS: a value that is ONLY a comment parses EMPTY, so 'spec_id
   const r = runWith(makeSpec({ spec_id: "# todo: name this" }));
   assert.equal(r.status, 1);
   assert.match(r.stdout, /RED — spec_id failed/);
+});
+
+// --- --state: the SPEC's lifecycle value, from the single SPEC parser ----------------------------
+//
+// The mode mirrors --hash / --spec-id and exists for the same P4 reason: check-spec-approved.mjs must
+// branch on `state` and must NOT parse frontmatter to get it. Before this mode existed that gate carried
+// its own first-wins, comment-blind readState() and the two checkers disagreed on the same bytes in both
+// directions — see the regression suite in check-spec-approved.test.mjs.
+
+test("--state: prints the frontmatter state and exits 0", () => {
+  const r = runWith(makeSpec({ state: "Approved", hash: bodyHash(BODY) }), { stateMode: true });
+  assert.equal(r.status, 0);
+  assert.equal(r.stdout.trim(), "Approved");
+});
+
+test("--state: LAST-wins across a DUPLICATE `state:` key (parseSpec's order, not a second opinion)", () => {
+  // The fail-open half of the defect, pinned at the source: whatever this prints IS the canonical state,
+  // and the gate now reports exactly this value.
+  const spec = `---\nspec_id: my-feature\nstate: Approved\nstate: Draft\n---\n${BODY}`;
+  const r = runWith(spec, { stateMode: true });
+  assert.equal(r.status, 0);
+  assert.equal(r.stdout.trim(), "Draft");
+});
+
+test("--state: strips the template's own trailing note ('Approved # ratified <date>')", () => {
+  // The false-RED half. readValue resolves the quote first, then the comment; both are exercised here.
+  const r = runWith(makeSpec({ state: "Approved # ratified 2026-08-18" }), { stateMode: true });
+  assert.equal(r.status, 0);
+  assert.equal(r.stdout.trim(), "Approved");
+});
+
+test("--state: a frontmatter with NO state prints an EMPTY line at exit 0 (the caller REDs on empty)", () => {
+  // Mirrors --spec-id's documented fail-closed courtesy. Unreachable through the gate — validate() REDs a
+  // state-less spec first — but --state is a public mode, so the branch is reachable directly and ships.
+  const spec = `---\nspec_id: my-feature\n---\n${BODY}`;
+  const r = runWith(spec, { stateMode: true });
+  assert.equal(r.status, 0);
+  assert.equal(r.stdout, "\n");
+});
+
+test("--state (fail-closed): a file with no frontmatter exits 1 and SAYS SO on stderr", () => {
+  const r = runWith("## Intent\n\nno frontmatter here\n", { stateMode: true });
+  assert.equal(r.status, 1);
+  assert.match(r.stderr, /no YAML frontmatter/);
+});
+
+test("--state (fail-closed): an unreadable path exits 1 and SAYS SO on stderr (L5 — not a silent exit)", () => {
+  // The one DELIBERATE divergence from --hash / --spec-id, which both exit 1 emitting nothing at all. A
+  // silent exit hands a shelling caller an exit code and nothing to surface; check-spec-approved.mjs
+  // echoes this child's output verbatim, so this message is what names the unreadable file.
+  const r = spawnSync(process.execPath, [CHECK, "--state", join(tmpdir(), "pharn-no-such-dir-xyz", "SPEC.md")], {
+    encoding: "utf8",
+  });
+  assert.equal(r.status, 1);
+  assert.match(r.stderr, /unreadable/);
+});
+
+test("--state: a missing path argument prints usage and exits 1", () => {
+  const r = spawnSync(process.execPath, [CHECK, "--state"], { encoding: "utf8" });
+  assert.equal(r.status, 1);
+  assert.match(r.stderr, /usage/);
+});
+
+test("--state does not disturb the other read-only modes: all three agree on one file", () => {
+  // --state reads frontmatter and --hash reads the body, so adding the mode must not move any digest.
+  const spec = makeSpec({ spec_id: "FEAT-9", state: "Approved", hash: bodyHash(BODY) });
+  const h = runWith(spec, { hashMode: true });
+  const s = runWith(spec, { specIdMode: true });
+  const st = runWith(spec, { stateMode: true });
+  assert.equal(h.stdout.trim(), bodyHash(BODY));
+  assert.equal(s.stdout.trim(), "FEAT-9");
+  assert.equal(st.stdout.trim(), "Approved");
+});
+
+test("--state: the bare usage line names all three read-only modes", () => {
+  const r = spawnSync(process.execPath, [CHECK], { encoding: "utf8" });
+  assert.equal(r.status, 1);
+  assert.match(r.stdout, /--state <SPEC\.md>/);
 });

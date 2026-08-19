@@ -36,8 +36,16 @@
 //                                                      into spec_content_hash on approval. SINGLE source of
 //                                                      body-extraction AND of the fold, so the pin and the
 //                                                      validate-time recompute can never disagree.
+//   node pharn/floor/check-spec.mjs --state <SPEC.md>  print the frontmatter `state` to stdout — the §6
+//                                                      lifecycle value the Approved gate branches on.
+//                                                      SINGLE source of the state read, exactly as --hash is
+//                                                      the single body-extraction: check-spec-approved.mjs
+//                                                      shells this mode INSTEAD of parsing frontmatter
+//                                                      itself, so the gate cannot disagree with validate
+//                                                      about what `state` IS (see emitState).
 //
-// Exit: 1 on any RED (validate) / on unreadable | no-frontmatter (--hash); 0 otherwise.
+// Exit: 1 on any RED (validate) / on unreadable | no-frontmatter (--hash, --spec-id, --state); 0 otherwise.
+// Only --state REPORTS that refusal (on stderr); --hash and --spec-id exit 1 silently. See emitState.
 
 import { readFileSync } from "node:fs";
 import { createHash } from "node:crypto";
@@ -189,6 +197,44 @@ function emitSpecId(specPath) {
   return 0;
 }
 
+// --- --state mode: emit the frontmatter `state`, the §6 lifecycle value the Approved gate branches on. ---
+// The SINGLE canonical read of `state`, exactly as --hash is the single body-extraction and --spec-id the
+// single identity read (P4). check-spec-approved.mjs shells this mode INSTEAD of parsing the frontmatter
+// itself. Before it did, that gate carried a private first-wins, comment-blind `readState()` and the two
+// checkers DISAGREED on the same bytes in BOTH directions: a duplicate `state:` key read `Approved` where
+// validate read `Draft` — a FAIL-OPEN on the one gate whose job is to admit only approved intent — and a
+// template-faithful `state: Approved # ratified …` read as a non-member, a false RED. Both are reproduced as
+// tests in check-spec-approved.test.mjs. Resolution order is parseSpec's, not a second opinion about it:
+// LAST-wins across duplicate keys, with the quote resolved before the comment (see readValue).
+//
+// WHY a print-mode and not "read the state out of validate's GREEN line", which is the cheaper-looking
+// alternative a future reader will propose: that line is PROSE, and a membership fact read by pattern-matching
+// free text is exactly the defect .dev/memory-bank/lessons-learned.md L6 names. The extra child process is the
+// price of reading the structured location; it is paid once per gate invocation and is the correct trade.
+//
+// Mirrors emitHash / emitSpecId in exit codes (unreadable → 1, no frontmatter → 1) and in reporting an ABSENT
+// field as an EMPTY LINE at exit 0 — the same fail-closed courtesy emitSpecId documents: validate() already
+// REDs a state-less spec, and the Approved gate REDs an empty state one branch later, so no caller must
+// distinguish "" from a real value. It DELIBERATELY DIFFERS from its two siblings in exactly one way, stated
+// here rather than left to be discovered: the unreadable path prints the collected RED to STDERR instead of
+// exiting 1 silently. A silent exit hands a shelling caller an exit code and nothing to surface — the
+// input-capture boundary L5 names — and check-spec-approved.mjs echoes this child's output verbatim, so this
+// message is what tells a user WHICH file could not be read.
+function emitState(specPath) {
+  const text = readText(specPath, "SPEC.md");
+  if (text === undefined) {
+    for (const r of reds) console.error(`check-spec: ${r.kind} failed: ${r.detail}`);
+    return 1;
+  }
+  const parsed = parseSpec(text);
+  if (!parsed) {
+    console.error(`check-spec: no YAML frontmatter in ${specPath} — cannot locate state`);
+    return 1;
+  }
+  process.stdout.write((parsed.fm.state || "") + "\n");
+  return 0;
+}
+
 // --- default mode: validate the SPEC's shape, state, identity, and (if Approved) its pin. ---
 function validate(specPath) {
   const text = readText(specPath, "SPEC.md");
@@ -254,8 +300,15 @@ function main() {
     }
     return emitSpecId(args[1]);
   }
+  if (args[0] === "--state") {
+    if (!args[1]) {
+      console.error("check-spec: usage: node pharn/floor/check-spec.mjs --state <SPEC.md>");
+      return 1;
+    }
+    return emitState(args[1]);
+  }
   if (!args[0]) {
-    console.log("RED — usage: node pharn/floor/check-spec.mjs <SPEC.md>  (or --hash <SPEC.md> | --spec-id <SPEC.md>)");
+    console.log("RED — usage: node pharn/floor/check-spec.mjs <SPEC.md>  (or --hash <SPEC.md> | --spec-id <SPEC.md> | --state <SPEC.md>)");
     return 1;
   }
   return validate(args[0]);
