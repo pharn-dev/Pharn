@@ -299,10 +299,22 @@ either blocks.
   guard; it is an argv flag, so no declared file can set it for itself. The check is **lexical** (it
   normalizes `./` and `a/../`, but does not resolve symlinks) — it is the loud early failure, not the
   last line of defense.
-- `.pharn/` is gitignored runtime state (created on first command run; delete it to reset to
-  fail-closed). fix #7 composes with fix #2 — the trusted docs, `CODEOWNERS`, and the four control
-  paths above stay denied regardless of any scope, so neutering the setter's refusal still does not
-  make a guard writable.
+- **Release the scope when a command finishes.** Each setter-invoking command's **last** step runs
+  `node .claude/hooks/set-writes-scope.cjs --clear`, after every write it performs — **including a
+  write that follows a human gate** (`/pharn-*memory-promote` writes canon _after_ its accept/deny
+  halt, so a release line above that write would get the gated write denied). This exists because a
+  **set** scope REPLACES the safe-set, making a finished run's leftover scope **stricter** than no
+  scope at all — it denies paths the default permits. `--clear` deletes the file and is idempotent;
+  it refuses to combine with `--from-plan` / `--from-frontmatter` / `--target`. It deletes rather than
+  writing `{"scope": []}`, which is **truthy** and would deny everything outside `.pharn/**`.
+  **ADVISORY** (P0): the release is a Bash call outside the `PreToolUse` gate (L19), so nothing forces
+  it and an early abort skips it — the next command's first-step _set_ overwrites a leftover scope
+  either way. A test pins that every setter-invoking command **declares** the step and orders it after
+  every set; that is presence + ordering, **never** proof a run executed it.
+- `.pharn/` is gitignored runtime state (created on first command run; `--clear` it, or delete it, to
+  reset to fail-closed). fix #7 composes with fix #2 — the trusted docs, `CODEOWNERS`, and the four
+  control paths above stay denied regardless of any scope, so neutering the setter's refusal still does
+  not make a guard writable.
 
 ## Architecture: the big picture
 

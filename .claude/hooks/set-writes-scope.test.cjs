@@ -480,3 +480,106 @@ test("✧ the control surface names exactly the wiring files plus the three hook
   assert.ok(set.includes(".claude/settings.local.json"), "the LOCAL wiring file must be covered too");
   assert.equal(set.filter((p) => p.startsWith(".claude/hooks/") && p.endsWith(".cjs")).length, 3, "all three hooks");
 });
+
+// ─────────────────────────────────────────────────────────────────────────────────────────────────
+// --clear — the writes-scope LIFECYCLE (feature `writes-scope-lifecycle`).
+//
+// A SET scope REPLACES enforce-writes-scope.cjs's fail-closed DEFAULT_SAFE_SET, so a command that
+// finished and left `.pharn/writes-scope.json` behind is STRICTER than no scope at all: paths the
+// default PERMITS start being denied in later sessions. `--clear` deletes the file, returning control
+// to that default. These tests pin the flag's behavior AND the enforce-side consequence, because the
+// flag's whole purpose lives in the other hook's fallback, not in its own exit code.
+// ─────────────────────────────────────────────────────────────────────────────────────────────────
+
+const ENFORCE = join(__dirname, "enforce-writes-scope.cjs");
+const SCOPE_REL = join(".pharn", "writes-scope.json");
+
+function enforce(cwd, filePath) {
+  return spawnSync(process.execPath, [ENFORCE], {
+    cwd,
+    encoding: "utf8",
+    input: JSON.stringify({ tool_name: "Edit", tool_input: { file_path: filePath } }),
+  });
+}
+
+function seedScope(cwd, record) {
+  fs.mkdirSync(join(cwd, ".pharn"), { recursive: true });
+  fs.writeFileSync(join(cwd, SCOPE_REL), JSON.stringify(record, null, 2) + "\n");
+}
+
+test("--clear removes a present scope and reports it", () => {
+  const cwd = tmp();
+  seedScope(cwd, { scope: [".dev/features/demo/SHIP.md"], set_by: "x.md", set_at: "t" });
+  const r = setter(cwd, "--clear");
+  assert.equal(r.status, 0);
+  assert.equal(fs.existsSync(join(cwd, SCOPE_REL)), false, "the scope file must be gone");
+  assert.match(r.stdout, /writes-scope cleared/);
+});
+
+test("--clear is IDEMPOTENT: with no scope file it still exits 0 (a last step must be safe to re-run)", () => {
+  const cwd = tmp();
+  const r = setter(cwd, "--clear");
+  assert.equal(r.status, 0);
+  assert.equal(fs.existsSync(join(cwd, SCOPE_REL)), false);
+});
+
+test("after --clear, enforce falls back to the DEFAULT_SAFE_SET — a safe-set path is ALLOWED again", () => {
+  const cwd = tmp();
+  // A one-path scope that does NOT cover `.dev/features/**` — the shape a finished command leaves.
+  seedScope(cwd, { scope: [".dev/features/demo/SHIP.md"], set_by: "x.md", set_at: "t" });
+  assert.equal(enforce(cwd, ".dev/features/other/PLAN.md").status, 2, "denied while the stale scope stands");
+  assert.equal(setter(cwd, "--clear").status, 0);
+  assert.equal(enforce(cwd, ".dev/features/other/PLAN.md").status, 0, "allowed once the scope is released");
+});
+
+test("after --clear, enforce is still FAIL-CLOSED — an out-of-safe-set path stays DENIED", () => {
+  const cwd = tmp();
+  seedScope(cwd, { scope: [".dev/features/demo/SHIP.md"], set_by: "x.md", set_at: "t" });
+  assert.equal(setter(cwd, "--clear").status, 0);
+  // Clearing returns to the DEFAULT, never to "anything goes": root files and the sensitive zones are
+  // outside DEFAULT_SAFE_SET and must remain denied.
+  assert.equal(enforce(cwd, "CHANGELOG.md").status, 2);
+  assert.equal(enforce(cwd, ".claude/settings.json").status, 2);
+  assert.equal(enforce(cwd, "pharn/floor/validate.mjs").status, 2);
+});
+
+test("--clear REFUSES to combine with --from-plan / --from-frontmatter / --target, and writes nothing", () => {
+  for (const extra of [
+    ["--from-plan", "PLAN.md"],
+    ["--from-frontmatter", "cap.md"],
+    ["--target", "a/b.md"],
+  ]) {
+    const cwd = tmp();
+    seedScope(cwd, { scope: ["keep/me.md"], set_by: "x.md", set_at: "t" });
+    const r = setter(cwd, "--clear", ...extra);
+    assert.equal(r.status, 1, `--clear ${extra[0]} must fail`);
+    assert.match(r.stderr, /--clear takes no other arguments/);
+    // Fail-closed in BOTH directions: it neither cleared nor set.
+    const rec = JSON.parse(fs.readFileSync(join(cwd, SCOPE_REL), "utf8"));
+    assert.deepEqual(rec.scope, ["keep/me.md"], "the existing scope must be untouched");
+  }
+});
+
+test("--clear never writes a `{scope: []}` marker — an empty array is TRUTHY and would deny everything", () => {
+  // The trap this flag had to avoid: enforce computes allow = [...ALWAYS, ...(scope || SAFE_SET)], so a
+  // present-but-empty scope[] yields ONLY `.pharn/**` — stricter than the stale scope --clear removes.
+  const cwd = tmp();
+  seedScope(cwd, { scope: [] });
+  assert.equal(enforce(cwd, ".dev/features/other/PLAN.md").status, 2, "empty-array scope denies the safe-set");
+  seedScope(cwd, { scope: [".dev/features/demo/SHIP.md"], set_by: "x.md", set_at: "t" });
+  setter(cwd, "--clear");
+  assert.equal(fs.existsSync(join(cwd, SCOPE_REL)), false, "--clear must DELETE, never leave an empty scope[]");
+});
+
+test("--clear surfaces a non-ENOENT unlink failure as an error, never as a silent success", () => {
+  // The catch treats ENOENT as the idempotent no-op and everything else as a real failure. Exercised
+  // by making `.pharn` a FILE, so unlinking `.pharn/writes-scope.json` fails with ENOTDIR rather than
+  // ENOENT. Without this, the branch's message and exit code were unverified — an error path that has
+  // never run is an assumption, not a behavior.
+  const cwd = tmp();
+  fs.writeFileSync(join(cwd, ".pharn"), "not a directory\n");
+  const r = setter(cwd, "--clear");
+  assert.notEqual(r.status, 0, "a non-ENOENT failure must not report success");
+  assert.match(r.stderr, /could not clear \.pharn\/writes-scope\.json/);
+  assert.doesNotMatch(r.stdout, /writes-scope cleared/, "it must not claim to have cleared anything");
+});

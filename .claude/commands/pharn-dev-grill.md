@@ -218,3 +218,24 @@ quoted as DATA. **No guaranteed decision rests on any field you emit** — and s
 advisory, no guaranteed decision rests on `/pharn-dev-grill` at all. The named residual (`LIMITS.md §2`,
 `THREAT-MODEL.md §5`): a downstream human or LLM reading your free-text could be steered by an
 injected quote — bounded (your output gates nothing) but not zeroed.
+
+## Final step — release the writes-scope (ADVISORY lifecycle hygiene)
+
+After every write this command performs — **including any write that follows a human gate** — release
+the active writes-scope so a finished run cannot leave a narrow scope behind:
+
+```bash
+node .claude/hooks/set-writes-scope.cjs --clear
+```
+
+**Why this exists.** A **set** scope REPLACES `enforce-writes-scope.cjs`'s fail-closed
+default-safe-set, so a leftover scope from a finished run is **stricter** than no scope at all: paths
+the default permits start being denied in later sessions, with nothing naming the cause.
+
+**ADVISORY (P0), and the bound is the point.** This is agent-run orchestration through **Bash**, so it
+sits outside the `PreToolUse` gate entirely (`.dev/memory-bank/lessons-learned.md` L19) — nothing on
+the floor forces it, and an early abort skips it. It degrades safely: the next command's first-step
+**set** overwrites a leftover scope, which is exactly today's behavior. The floor guarantee is
+unchanged and belongs to the **reader**, not to this step — **absence of a scope file = the
+fail-closed default-safe-set**. Never write "the command cleaned up"; write that it **declares** the
+release step.
