@@ -33,6 +33,21 @@
     // entry: probed the same way, `prettier --check .` does NOT traverse `.pharn/`, so there is no
     // trigger for one (P7 — no speculative additions).
     ".pharn/lessons-index.md",
+    // Human-authored scratch under gitignored `.pharn/` — fix-request writeups, review notes. Excluded
+    // for a DIFFERENT reason than the entry above: not "a --fix would damage a generated artifact" but
+    // "these files are not the repo's markdown and were never meant to face its style gate". The
+    // trigger is a real failure, not a hypothetical (P7): six such files RED'd `lint:md`, and through
+    // it the capability-catalog `style:` test, which is L11's shape exactly — a whole-repo gate failing
+    // on files unrelated to any increment blocks EVERY later feature's /pharn-dev-verify.
+    // Deliberately `.pharn/fixes` and NOT a blanket `.pharn/`: the narrower scope is what was
+    // authorized, and a blanket entry would silently also cover future load-bearing artifacts there.
+    ".pharn/fixes",
+    // The same scratch corpus, one stray copy of which sits at the `.pharn/` ROOT rather than under
+    // `fixes/` (byte-identical to `.pharn/fixes/FABLE_REVIEW.md`, verified live). Named explicitly
+    // instead of widening the entry above to a blanket `.pharn/`, so the exclusion stays an enumerated
+    // list of known scratch rather than a standing waiver over a directory that also holds the
+    // load-bearing product-index cache.
+    ".pharn/FABLE_REVIEW.md",
   ],
   "config": {
     "default": true,

@@ -684,3 +684,69 @@ L17 (the same checker's other defect), and L20 (the escalation rule this entry a
   false blocking finding reproduced live at the regress stage; reframed from a tooling-trap draft to an
   L20 escalation at the promote gate (human-directed)
 - promoted: 2026-08-17 via gated `/pharn-dev-memory-promote` (human-approved).
+
+## L22 — A command that prescribes a shell technique in PROSE accumulates wrong implementations — pin the command line
+
+type: tooling · concepts: [shell-portability, command-prescription, lesson-recurrence, false-red]
+
+**Lesson.** When a command tells the agent to achieve something through a shell technique described in
+**prose** — "feed `node --test` its list through `xargs`" — rather than pinning a **literal command
+line**, the choice it leaves open gets made wrong repeatedly. `/pharn-dev-regress` Step 2 said "through
+`xargs` (or a shell array / zsh `${=LIST}`)", which contains **no wrong instruction anywhere**, and
+**eight recorded runs still reached for `xargs -a <file>`** — a GNU flag that BSD `xargs` (the macOS
+default) rejects outright with `xargs: invalid option -- a`. Remedy: prescribe the exact command line,
+and name the wrong forms beside it, so the agent has nothing left to choose.
+
+**Why it matters.** The failure is silent in the worst available way. A bad expansion exits 1 at **both**
+base and head, so `check-regress.mjs` classifies it `pre_existing` rather than a regression — it evades a
+false alarm while **masking a real tests-gate one**. It is caught only if a red baseline on a
+believed-green repo is **investigated instead of recorded**, which is a habit, not a check. L16 already
+named this exact flag and L20 already established that a discipline-only remedy recurs; this entry names
+**what kind** of remedy replaces the discipline — not a louder warning but the **removal of the choice**.
+It generalizes past `xargs`: any command prose that _describes_ a shell technique instead of
+_prescribing_ one is an accumulating defect, and the cost is paid by whichever future run happens not to
+investigate. Complements L5 (the input-capture boundary), L16 (the specific trap), L20 (the escalation
+rule), and L21 (a checker must reject a malformed input rather than trust its caller).
+
+**Provenance.**
+
+- feature: `scope-file-case-guard`
+- commit: `40c3c98a8cc1bc1d7cbc72bcc694ca5ea970b89f`
+- source: `.dev/features/scope-file-case-guard/REVIEW.md` (proposed lesson Candidate A) +
+  `.dev/features/scope-file-case-guard/REGRESSION.md` (the fabricated `tests=1` baseline, investigated
+  rather than recorded), with the eighth recurrence reproduced live at the regress stage
+- promoted: 2026-08-19 via gated `/pharn-dev-memory-promote` (human-approved).
+
+## L23 — A stage that writes an artifact AND owns a whole-repo gate over it has a self-referential conflict invisible on the happy path
+
+type: process · concepts: [stage-artifact, gate-conflict, happy-path-latency, style-gates]
+
+**Lesson.** `/pharn-dev-verify` Step 4 requires `verify-report.json` to stay the floor helper's JSON
+**verbatim** — explicitly **not** formatted — while the **same command** runs whole-repo `format:check`
+as one of the gates that **owns its verdict**. The two requirements conflict, but only when
+`failing_gates` is non-empty: `JSON.stringify(…, null, 2)` expands `"failing_gates": ["test"]` across
+three lines where prettier wants it inline. Every run that ever reached that step did so with a `PASS`
+and an empty array, on which the two agree — so the conflict sat latent until the first FAIL, at which
+point the stage's own artifact reddened the gate the stage owns. Remedy: exempt the verbatim-required
+artifact in the gate's own config (`.prettierignore`), so "verbatim" is **enforced** rather than merely
+intended.
+
+**Why it matters.** The **FAIL branch of a gating stage is the least-exercised path in the pipeline**,
+and it is precisely the path that runs when something is already wrong — so a defect living there is
+discovered at the worst moment, compounding a red the operator is already trying to read. The shape
+generalizes: **any stage that both writes an artifact and owns a whole-repo gate covering that
+artifact's directory** carries this hazard, and no passing run can reveal it. It is the same family as
+the hook header's five "obviously correct in the source, false against the filesystem" defects, moved up
+a layer — correct on every input anyone reached, wrong on the first input nobody did. Distinct from the
+style-gate family it touches: L9 concerns gate **coverage**, L11 whole-repo **scope**, L12/L13 prevention
+**timing** — this one concerns a stage's output colliding with a gate that stage **owns**.
+
+**Provenance.**
+
+- feature: `scope-file-case-guard`
+- commit: `40c3c98a8cc1bc1d7cbc72bcc694ca5ea970b89f`
+- source: `.dev/features/scope-file-case-guard/REVIEW.md` (proposed lesson Candidate B) +
+  `.dev/features/scope-file-case-guard/SHIP.md` (the conflict reproduced on the run's first
+  `/pharn-dev-verify` FAIL), with the `.prettierignore` remedy verified live by re-probing an expanded
+  non-empty `failing_gates` against `format:check`
+- promoted: 2026-08-19 via gated `/pharn-dev-memory-promote` (human-approved).

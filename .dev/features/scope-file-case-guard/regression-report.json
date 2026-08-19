@@ -1,0 +1,44 @@
+{
+  "base": "461216dc01c08b09eec0dfc6f3effdfa30c95bb6",
+  "inside": [
+    ".claude/hooks/protect-trusted-paths.test.cjs",
+    ".dev/features/scope-file-case-guard/BASELINE-REPAIR.md",
+    ".dev/features/scope-file-case-guard/GRILL.md",
+    ".dev/features/scope-file-case-guard/PLAN.md",
+    ".dev/features/scope-file-case-guard/protect-trusted-paths.patch",
+    ".markdownlint-cli2.jsonc",
+    "CHANGELOG.md",
+    "CLAUDE.md",
+    "README.md",
+    "SKILLS_VERSION"
+  ],
+  "outside_gates": {
+    "format:check": {
+      "base": 0,
+      "head": 0
+    },
+    "lint": {
+      "base": 0,
+      "head": 0
+    },
+    "lint:md": {
+      "base": 0,
+      "head": 0
+    },
+    "structural:expected-injection-comment.json": {
+      "base": 0,
+      "head": 0
+    },
+    "tests": {
+      "base": 0,
+      "head": 0
+    },
+    "validate": {
+      "base": 0,
+      "head": 0
+    }
+  },
+  "regressions": [],
+  "pre_existing": [],
+  "verdict": "no-regressions"
+}

@@ -46,6 +46,47 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Fixed
 
+- **The writes-scope guard's own input is now write-protected, closing a self-escalation reachable
+  through a case-variant filename** — `SKILLS_VERSION` **2.7.0 → 2.7.1** (patch: a correction to
+  product `.cjs` hook bytes that already shipped)
+  ([`.claude/hooks/protect-trusted-paths.cjs`](./.claude/hooks/protect-trusted-paths.cjs),
+  [`.claude/hooks/protect-trusted-paths.test.cjs`](./.claude/hooks/protect-trusted-paths.test.cjs)).
+  `enforce-writes-scope.cjs` guarded `.pharn/writes-scope.json` — the list it reads to decide **every**
+  write — with a single **byte-exact** compare (`rel === SCOPE_FILE`), while its `ALWAYS` glob left the
+  rest of `.pharn/` writable. On a case-insensitive volume (macOS, Windows) `.pharn/WRITES-SCOPE.JSON`
+  is the **same file**, so the compare missed it: the Write tool could rewrite the active scope and
+  then write anywhere fix #2 does not backstop. Reproduced live before the fix — `enforce` exited **0**
+  on the upper-case spelling and **2** on the lower-case one.
+
+  **The remedy is one entry in `protect-trusted-paths.cjs`'s `DEFAULT_PROTECTED`, not a widened compare
+  in the hook that owns the constant.** That is the cheaper reduction: this hook already full-case-folds
+  (`toUpperCase().toLowerCase()`), strips Windows trailing dot/space, and resolves symlinks
+  **segment-wise**, so a single entry closes the case-variant **and** the dangling-symlink-alias vector
+  at once — both measured. `enforce-writes-scope.cjs` keeps its byte-exact compare (defense in depth),
+  and `set-writes-scope.cjs` is unaffected: it writes the file with `fs.writeFileSync`, which
+  `PreToolUse` never sees. The entry is deliberately the **one file** and not `.pharn/**` — the rest of
+  that directory is disposable runtime scratch stages legitimately write, and it holds the load-bearing
+  product lessons-index cache.
+
+  **Bounded, and stated (P0).** This closes the **Write-tool** vector. It is **not** a claim that the
+  scope file cannot be rewritten: Bash-tool writes bypass `PreToolUse` hooks entirely and reach it
+  exactly as they reach every other guarded path — the standing bound the hook's own HONEST BOUNDS
+  block and `CLAUDE.md` already record, neither weakened nor improved here.
+
+  **Five tests, measured rejecting before being trusted (L4).** Four of them **fail** against the
+  unpatched hook — the declared spelling, three case variants, the dangling alias, and a new **✧
+  cross-copy pin** asserting that `enforce-writes-scope.cjs`'s `SCOPE_FILE` is a member of
+  `DEFAULT_PROTECTED` (the literal now lives in two hooks; the existing `CONTROL_SURFACE` agreement
+  guard structurally cannot cover it, since it compares only `.claude/`-prefixed entries). The fifth
+  pins that `.pharn/` is **not** over-blocked and passes before and after, correctly — it is a
+  non-regression guard, not a fix-detector. The three ✧ tests already derived from `DEFAULT_PROTECTED`
+  pick the new entry up automatically.
+
+  **`CLAUDE.md`'s hard-constraint #1 enumeration is corrected in the same edit**, which had also been
+  understating the guard in a second, unrelated way: it named `.claude/settings.json` alone, while
+  `DEFAULT_PROTECTED` has carried `.claude/settings.local.json` since that file was recognized as a
+  loaded wiring file.
+
 - **The legacy lessons `L1`–`L17` are retro-tagged, so `docs/lessons-index.md` is selectable on more
   than the title** ([`.dev/memory-bank/lessons-learned.md`](./.dev/memory-bank/lessons-learned.md),
   [`.dev/floor/lessons-index-core.mjs`](./.dev/floor/lessons-index-core.mjs),

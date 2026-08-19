@@ -10,7 +10,7 @@ lessons to fetch; canon stays the source of truth and the floor's verification t
 applied, without fetching its full `## L<n>` entry from canon, is the P0 disease. "The index was
 consulted" never means "the relevant lessons were read".
 
-21 lessons · 21 tagged · 0 malformed · 0 untagged · ~12299 tokens total
+23 lessons · 23 tagged · 0 malformed · 0 untagged · ~13515 tokens total
 
 Columns: `id | type | concepts | title | promoted | ~tokens`. Every canon entry carries a tag line, so
 BOTH absence markers are unexpected: `-` = no tag line, i.e. an entry that reached canon without
@@ -41,4 +41,6 @@ L18 | scoping  | writes-scope,plan-shape,fail-open                              
 L19 | scoping  | writes-scope,bash-escape,formatter                                      | A stage's Bash-run tooling escapes `writes:` scope — repo-wide formatters are the live instance | 2026-08-05 | ~638
 L20 | process  | writes-scope,plan-shape,lesson-recurrence,floor-escalation              | A promoted lesson whose only remedy is discipline WILL recur — the second occurrence is the trigger to give it a floor check | 2026-08-07 | ~771
 L21 | process  | input-capture,lesson-recurrence,floor-escalation,writes-scope,git       | L5's input-capture boundary recurred through `git status` — a path-set checker must REJECT a directory-shaped input, not trust its caller | 2026-08-17 | ~792
+L22 | tooling  | shell-portability,command-prescription,lesson-recurrence,false-red      | A command that prescribes a shell technique in PROSE accumulates wrong implementations — pin the command line | 2026-08-19 | ~596
+L23 | process  | stage-artifact,gate-conflict,happy-path-latency,style-gates             | A stage that writes an artifact AND owns a whole-repo gate over it has a self-referential conflict invisible on the happy path | 2026-08-19 | ~620
 ```
