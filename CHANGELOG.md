@@ -46,6 +46,54 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Fixed
 
+- **Ten floor CLIs silently checked nothing when invoked from a path containing a space or a
+  non-ASCII character** — `SKILLS_VERSION` **2.7.4 → 2.7.5** (patch: a correction to bytes that already
+  shipped; five product-floor checkers, behavior changed only for invocation paths that never worked).
+
+  Every one of them guarded `main()` with
+  ``if (process.argv[1] && import.meta.url === `file://${process.argv[1]}`)``. `import.meta.url` is
+  **percent-encoded**; `process.argv[1]` is **raw**. The two therefore never compare equal once the
+  script's own path holds a space or a non-ASCII byte — so `main()` never ran and the process exited
+  **0 having checked nothing**. A checker that certifies by staying silent is the inverse of the floor's
+  whole purpose, and it fires precisely on the ordinary case of a clone living under `~/My Projects/`.
+
+  **Reproduced live before anything was changed.** From a directory named `space dir`,
+  `check-ship-briefing.mjs /nonexistent/BRIEFING.md` printed nothing and exited **0**, where the same
+  invocation from a normal path printed `RED — briefing is unreadable …` and exited **1**. The sharpest
+  instance is `check-lessons-index.mjs --verdict`, whose entire contract is to print one token from the
+  closed set `{NO_CANON, COLD, GREEN, STALE, ENUM_ERROR}`: from the spaced path it printed the **empty
+  string** at exit 0, and `/pharn-plan` branches on that token's membership.
+
+  **The repair is `import.meta.main` (Node ≥ 24.2), not `pathToFileURL(process.argv[1]).href`.** The
+  latter was the obvious fix and it is a **near-miss**: measured on a probe module invoked four ways, it
+  closes the space and non-ASCII cases but **still silently no-ops through a symlink**, because
+  `import.meta.url` is the resolved real path while `argv[1]` is the link. `import.meta.main` closes all
+  three. The form was already live and already explained in `.dev/floor/hash-doc.mjs`, whose header
+  documents exactly why the `file://` family is wrong — the repo had the right answer in one file and
+  the wrong one in ten, which is the whole shape of the defect.
+
+  Product surface (drives the bump): `pharn/floor/check-ship-briefing.mjs`, `render-ship-briefing.mjs`,
+  `render-cost-record.mjs`, `check-lessons-index.mjs`, `gen-lessons-index.mjs`. Apparatus (no bump):
+  `.dev/floor/gen-capability-catalog.mjs`, `check-capability-catalog.mjs`, `check-version-badge.mjs`,
+  `check-lessons-index.mjs`, `gen-lessons-index.mjs`. `.dev/floor/hash-doc.mjs` already had the correct
+  guard and its executable bytes are unchanged; only its header comment was reworded, because the repair
+  made that comment inaccurate (it called the removed form "the repo's older sibling idiom" when no
+  sibling was left using it) — **and because it had named only one of the form's two defects.** It
+  documented the symlink break and never the percent-encoding break, which is the one that actually bit,
+  and that omission is the most plausible reason ten copies survived for the whole 2.x line **beside a
+  file explaining why they were wrong**. Both defects are now named there, as is the reason
+  `pathToFileURL(...)` is banned rather than adopted.
+
+  **Pinned by a new family test**, `.dev/floor/entry-point-guard.test.mjs` (apparatus; never ships): it
+  bans **both** wrong spellings on any executable line under either floor, requires every guarded script
+  to spell its guard `import.meta.main`, and re-runs three behavioral probes through **four** path shapes
+  — normal, spaced, non-ASCII, and symlinked. One probe exists specifically for `render-cost-record.mjs`,
+  the only site of the ten that both passes arguments and forwards a return value
+  (`process.exit(main(process.argv.slice(2)))`), so dropping the slice or the exit propagation cannot
+  pass unnoticed. **Honest bound, stated in the test:** most floor scripts carry no entry guard at all
+  (5 of 48 under `pharn/floor/`, 6 of 12 under `.dev/floor/`), so the sweep is vacuously green over the
+  rest and pins a **vocabulary**, not a behavior — a novel wrong spelling would pass untouched.
+
 - **The three `scan-code-*` argument spans were exponential, and the "no EXPONENTIAL backtracking
   observed" bound they shipped was false** — `SKILLS_VERSION` **2.7.3 → 2.7.4** (patch: a correction to
   bytes that already shipped; three product-floor checkers, matched language, changed only in time).

@@ -77,7 +77,14 @@ function main() {
 //     guard is false, and the tool prints NOTHING at exit 0 — the silent empty digest this file's own
 //     "Exit:" contract forbids) and it misses a symlink under another name; conversely it FIRES when an
 //     unrelated module named `my-hash-doc.mjs` imports this one, exiting the importer.
-//   • `import.meta.url === \`file://${process.argv[1]}\`` — the repo's older sibling idiom. It fixes the
-//     casing and importer cases but still breaks through a symlink, because import.meta.url is the
-//     resolved real path while argv[1] is the link.
+//   • `import.meta.url === \`file://${process.argv[1]}\`` — the idiom ten sibling floor CLIs shipped for
+//     the whole 2.x line. It was eliminated repo-wide in SKILLS_VERSION 2.7.5 and is now BANNED by
+//     `.dev/floor/entry-point-guard.test.mjs`, so no sibling uses it any more. It fixes the casing and
+//     importer cases, but it has TWO defects, and this comment named only the second until 2.7.5 — which
+//     is precisely why ten copies of it survived here beside the correct form. (1) It breaks on ANY path
+//     holding a space or a non-ASCII character: import.meta.url is PERCENT-ENCODED and argv[1] is raw, so
+//     they never compare equal and the tool exits 0 having done nothing. (2) It still breaks through a
+//     symlink, because import.meta.url is the resolved real path while argv[1] is the link.
+//     `pathToFileURL(process.argv[1]).href` is the obvious repair and is ALSO banned: it closes (1) and
+//     leaves (2) open, so adopting it would put two spellings of one guard back into the repo.
 if (import.meta.main) process.exit(main());
