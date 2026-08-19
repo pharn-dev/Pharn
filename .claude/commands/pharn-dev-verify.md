@@ -211,7 +211,7 @@ Scoped to **this stage's own artifact** — never a repo-wide formatter, whose w
 scope through Bash (`.dev/memory-bank/lessons-learned.md` **L19**, cited not restated — P4).
 `--ignore-unknown` keeps a non-prettier path from erroring the step. **ADVISORY** (P0): running a formatter is orchestration, not a
 floor op; it never blocks, and the deterministic style gate remains `/pharn-dev-verify`'s
-`check-verify.mjs` gate map (L9) — and `verify-report.json` is deliberately **NOT** formatted, for the same verbatim reason.
+`check-verify.mjs` gate map (L9) — and `verify-report.json` is deliberately **NOT** formatted, for the same verbatim reason. That exemption is **enforced, not merely intended**: `verify-report.json` is listed in `.prettierignore`, because leaving it unformatted otherwise conflicts with the whole-repo `format:check` **this same command runs as a verdict-owning gate**. The conflict only fires when an array is non-empty (`JSON.stringify(…, null, 2)` expands `"failing_gates": ["test"]` where prettier wants it inline), so it stayed latent through every PASSing run — the stage's own artifact reddening the gate the stage owns, on the FAIL branch nobody had reached.
 
 Then **end your turn.** `/pharn-dev-verify` does **not** invoke `/pharn-dev-ship` and does not gate it — the human reads the
 report and the verdict's exit code decides the stage.

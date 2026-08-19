@@ -18,6 +18,20 @@ docs/lessons-index.md
 .claude/settings.json
 .claude/settings.local.json
 
+# Machine stage-reports that /pharn-dev-regress and /pharn-dev-verify must write VERBATIM — each is its
+# floor helper's stdout JSON, deliberately NOT formatted so the recorded verdict is the helper's own
+# bytes. Without these entries those two requirements conflict with whole-repo `format:check`, which the
+# SAME commands run as a verdict-owning gate — but only when an array is non-empty: `JSON.stringify(…,
+# null, 2)` expands `"failing_gates": ["test"]` across three lines where prettier wants it inline. Every
+# run that reached those steps with a PASS had `[]`, on which the two agree, so the conflict sat latent
+# until the first FAIL — at which point the stage's own artifact reddened the gate the stage owns.
+# The product twins are listed too: same requirement, same latency, and no reason to wait for the first
+# product-pipeline FAIL to discover it.
+.dev/features/*/verify-report.json
+.dev/features/*/regression-report.json
+features/*/verify-report.json
+features/*/regression-report.json
+
 # Trusted spec docs: human-only, hook-protected. Excluded from the formatter
 # so style fixes can never mutate their content-hash (fix #4 / spec-drift).
 # They may still be formatted by hand; they are out of the formatter's scope only.

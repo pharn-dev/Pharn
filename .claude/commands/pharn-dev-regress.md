@@ -156,12 +156,30 @@ git worktree remove --force "$TMP"
   style-skip rule) and apply it to both.
 - **The core gates are stdlib-only** (`node --test`, `validate`, `check-structural`) — they run in the
   baseline worktree **without `npm ci`**.
-- **Expand the `tests` list SAFELY (L5).** Feed `node --test` its `<outside_tests...>` through `xargs` (or a
-  shell array / zsh `${=LIST}`) — **never** `node --test $LIST` with an unquoted variable: under **zsh** (the
-  macOS default shell) an unquoted `$LIST` is NOT word-split, so the whole list is passed as one bogus
-  argument → `Could not find …` → exit 1 at **both** base and head; being equal on both sides it fabricates a
-  false `pre-existing` red and **masks** a real tests-gate regression (`.dev/memory-bank/lessons-learned.md`
-  L5 — cite, don't restate, P4).
+- **Expand the `tests` list SAFELY (L5 / L16). Use exactly this, and do not improvise an equivalent:**
+
+  ```bash
+  # outside-tests.txt = one path per line. THE ONLY FORM PRESCRIBED HERE.
+  cat outside-tests.txt | xargs node --test > /dev/null 2>&1; T=$?
+  ```
+
+  **Two wrong forms, each of which has actually been run and each of which FABRICATES a red:**
+  - `node --test $LIST` (unquoted variable) — under **zsh** (the macOS default) `$LIST` is NOT
+    word-split, so the whole list arrives as one bogus argument → `Could not find …` → exit 1.
+  - `xargs -a outside-tests.txt node --test` — **`-a` is GNU-only**; BSD `xargs` (macOS default) rejects
+    it outright with `xargs: invalid option -- a` → exit 1.
+
+  Either way the red is **equal at base and head**, so `check-regress.mjs` classifies it `pre_existing`
+  rather than a regression — evading a false alarm while **masking a real one**. This snippet is literal
+  because the prose form ("through `xargs`") left the choice open and the choice kept being made wrong:
+  `xargs -a` has now been hit in **eight** recorded runs despite **L16** naming that exact flag
+  (`.dev/memory-bank/lessons-learned.md` L5 / L16 — cite, don't restate, P4). Per **L20**, a remedy that
+  reduces to "remember the lesson" is the wrong kind; removing the choice is the point of pinning the
+  command line here.
+
+  **A red baseline on a repo you believe is green is a signal to investigate the harness, never to
+  record the number.**
+
 - **Style-gate skip (deterministic optimization, P5/P7).** Run `lint` / `format:check` / `lint:md`
   **only if** `inside` touches a shared style config (`eslint.config.mjs`, `.prettierrc.json`,
   `.prettierignore`, `.markdownlint-cli2.jsonc`). Rationale: over the **outside** files (byte-identical

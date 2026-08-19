@@ -70,8 +70,12 @@ file). It does **not** version the build apparatus.
 
 ## Hard constraints (these will bite you)
 
-1. **The four trusted docs are write-protected and human-only.** `pharn/CONSTITUTION.md`,
-   `pharn/ARCHITECTURE.md`, `THREAT-MODEL.md`, `LIMITS.md` cannot be edited by the agent. A `PreToolUse`
+1. **The four trusted docs are human-only, enforced against the Write/Edit/MultiEdit surface.**
+   `pharn/CONSTITUTION.md`, `pharn/ARCHITECTURE.md`, `THREAT-MODEL.md`, `LIMITS.md` cannot be edited by
+   the agent **through those tools**. The heading says it that way on purpose: an unqualified
+   "write-protected and human-only" is what a reader remembers, and it is **false for the Bash tool**,
+   which reaches every one of these paths — see the bound restated at the end of this item. A
+   `PreToolUse`
    hook (`.claude/hooks/protect-trusted-paths.cjs`) is **wired and active** in `.claude/settings.json`
    and will deny any Write/Edit/MultiEdit to them (exit 2). Do not try to edit them or work around the
    hook — if a change is genuinely needed, say so and let a human edit them outside the agent loop.
