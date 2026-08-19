@@ -46,6 +46,61 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Fixed
 
+- **The three `scan-code-*` argument spans were exponential, and the "no EXPONENTIAL backtracking
+  observed" bound they shipped was false** — `SKILLS_VERSION` **2.7.3 → 2.7.4** (patch: a correction to
+  bytes that already shipped; three product-floor checkers, matched language, changed only in time).
+
+  `scan-code-ssrf.mjs`, `scan-code-injection.mjs` and `scan-code-path-traversal.mjs` shared
+  `SPAN = (?:[^)]|\([^)]*\))*?`. Its two branches **overlap on `(`** — `[^)]` accepts it and the group
+  branch requires it — so a chunk like `((a)` has **two** valid parses and N chunks have 2^N. **Reproduced
+  live before anything was changed:** `fetch(` + `((a)`×20/24/28 → **0.05 s / 0.47 s / 7.26 s**, ≈3.9× per
+  +2 repetitions; ×40 extrapolates to **~7 hours**. About **120 bytes** of crafted input in a scanned file
+  therefore hung the review floor — a denial-of-service reachable from the untrusted input the scanner
+  exists to read.
+
+  The shipped claim — _"no EXPONENTIAL backtracking observed, bounded by the `)` wall"_ — was **false**,
+  and because it asserted a bound inside a floor file it was a **P0 violation** in its own right. Its
+  supporting measurement was real but tested only **non-ambiguous** shapes (`(a)`×800, `((a))`×800,
+  unclosed `(`×800), so it proved those fixtures were well-formed, never that the span was safe
+  (`.dev/memory-bank/lessons-learned.md` **L4** — an authored fixture passes by construction). The
+  reasoning error is specific and worth naming: the `)` wall bounds how **far** the span may range, never
+  how many **ways** it may decompose what it ranges over.
+
+  The span is now `SPAN = (?:[^)]*\([^()]*\))*?[^)]*?`. Each iteration consumes exactly one `)`, so the
+  iteration count is fixed by the input rather than chosen; within a segment `[^()]*` forbids parens,
+  forcing the opening `\(` to be the **last** `(` before that `)`. One decomposition per input means nothing
+  to backtrack over, so **from a fixed start position** the span scan is **linear** — measured across 11
+  adversarial paren families up to ~480 KB lines (2× input → ~2× time; worst family 2.93 ms at 480 KB). The
+  same repro now scans in **0.026 s**.
+
+  **The per-line bound is quadratic, not linear, and the headers say so** — claiming otherwise would be the
+  same overclaim in the other direction. The engine retries the pattern at every position the sink callee can
+  start, so a line costs O(sink-callee occurrences × length): `fetch(`×8000 on a 56 KB line measures 999 ms.
+  What this fix removes is the **exponential** term, not the polynomial one — and the polynomial term is
+  pre-existing and was strictly worse before, the old span being **cubic** on that shape (1531 ms at ×1000
+  where the new form takes 17 ms).
+
+  **The matched language is unchanged**, verified by differential fuzz (200 000 inputs, **0** divergences),
+  so this is a **time** fix and not a coverage change: the one-level-nesting bound, the ★ GUARD against
+  over-spanning to `[^;]*?`, and the documented depth > 1 true-negative all hold exactly as before. This
+  is why the obvious linear rewrite — the disjoint `(?:[^()]|\([^)]*\))*?` — was **not** taken: it skips a
+  nested group as an opaque unit and measurably drops `fetch(new URL(req.query.url))` and
+  `fs.readFile(path.join(base, req.params.x))`, both ★-pinned, which is the same coverage loss the
+  scanner headers already record as rejected.
+
+  Each scanner gains a **ReDoS regression test** whose verdict is a membership test — the scan either
+  completed or the OS killed it — rather than a stopwatch reading compared to a threshold, which would be
+  machine-dependent. That choice is also what keeps a red **terminating**: a reverted span is killed at
+  the 3 s subprocess timeout and fails, where a bare wall-clock assertion would stall `npm test` for
+  hours. The detector was itself verified against a scratch copy carrying the old span (SIGTERM → fail).
+  A **✧ pin** now holds the three `SPAN` literals byte-identical, per **L20**: the constant and its bound
+  paragraph have now been hand-edited across all three files twice, and a discipline-only remedy that has
+  recurred has earned a floor check. The pin is **mirrored into all three suites rather than written once** —
+  a single-sited guard is lost the moment its one host file is deleted, taking the guarantee for all three
+  scanners with it and leaving nothing to notice; mirroring makes it mutual, so any surviving suite still
+  enforces the agreement. Verified by injecting a one-token drift into one scanner and observing all three
+  pins go red.
+
 - **fix #6's `enforces`↔evals binding is a set-membership test now, not a substring scan** —
   `SKILLS_VERSION` **2.7.2 → 2.7.3** (patch: a correction to bytes that already shipped; one
   product-floor checker).

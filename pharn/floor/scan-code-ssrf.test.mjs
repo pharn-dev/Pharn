@@ -23,7 +23,7 @@ import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
-import { mkdtempSync, writeFileSync, rmSync } from "node:fs";
+import { mkdtempSync, writeFileSync, rmSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -367,4 +367,66 @@ test("★ DOCUMENTED LIMIT: nesting depth > 1 — fetch(a(b(c())) + req.query.u)
     assert.equal(r.status, 0);
     assert.deepEqual(json(r), { found: false, hits: [] });
   });
+});
+
+// ---------------------------------------------------------------------------
+// ★ ReDoS REGRESSION — the span must not be exponential on AMBIGUOUS paren input.
+//
+// The span this replaced (`(?:[^)]|\([^)]*\))*?`) had two branches that OVERLAPPED on `(`, so a chunk
+// like `((a)` had TWO valid parses and N chunks had 2^N. Reproduced before the fix: `fetch(` +
+// `((a)`×20/24/28 → 0.05 s / 0.47 s / 7.26 s (≈3.9× per +2 reps). ~120 bytes hung the review floor.
+//
+// WHY A SUBPROCESS TIMEOUT AND NOT A STOPWATCH: the verdict here is a MEMBERSHIP test — the scan either
+// COMPLETED or the OS killed it — never a measured duration compared to a threshold, which would be
+// machine-dependent and flaky. It is also why this test cannot HANG: an exponential span is killed at the
+// timeout and FAILS, where a bare wall-clock assertion would stall the whole `npm test` suite (the old span
+// at 28 reps takes 7.26 s; at 40 reps it extrapolates to ~7 hours). A red must terminate.
+//
+// The margin is decisive in both directions and stays correct on a slow machine: the current span scans this
+// input in ~0.026 s (≈115× under the timeout), while the old one exceeds it by ≥2.4× — and a slower box only
+// pushes the old span further past the limit.
+const REDOS_TIMEOUT_MS = 3000;
+const REDOS_LINE = "const x = fetch(" + "((a)".repeat(28) + "\n";
+
+test("★ ReDoS: 28 ambiguous `((a)` chunks after a fetch( sink → the scan COMPLETES (not killed)", () => {
+  withCode(REDOS_LINE, (p) => {
+    const r = spawnSync(process.execPath, [SCANNER, p], { encoding: "utf8", timeout: REDOS_TIMEOUT_MS });
+    // `signal` is set (SIGTERM) only when the timeout fired — i.e. catastrophic backtracking returned.
+    assert.equal(r.signal, null, `scan did not terminate within ${REDOS_TIMEOUT_MS}ms — the span is backtracking`);
+    assert.equal(r.status, 0);
+    // Unbalanced parens carry no request source, so the honest verdict is a clean miss.
+    assert.deepEqual(json(r), { found: false, hits: [] });
+  });
+});
+
+// The same shape carrying a REAL source must still be FOUND — proves the ReDoS fix did not buy its speed by
+// narrowing detection (the failure mode of the disjoint-branch variant the header records as rejected).
+test("★ ReDoS fix did not narrow detection: nested group WITH a source → still found", () => {
+  withCode(`await fetch(new URL(req.query.url));\n`, (p) => {
+    const r = spawnSync(process.execPath, [SCANNER, p], { encoding: "utf8", timeout: REDOS_TIMEOUT_MS });
+    assert.equal(r.signal, null);
+    assert.deepEqual(json(r), { found: true, hits: [{ line: 1, kind: "fetch" }] });
+  });
+});
+
+// ---------------------------------------------------------------------------
+// ✧ COPY-PAIR PIN — the three scan-code-* scanners share the ARGUMENT SPAN by DELIBERATE duplication
+// (the check-provenance.mjs precedent: separate copies, pinned to agree by test rather than shared through
+// an import, because these scanners are independently-runnable floor scripts with no shared core).
+//
+// L20: a lesson whose only remedy is discipline WILL recur, and the second occurrence is the trigger to give
+// it a floor check. This IS that second occurrence — the SPAN constant and its bound paragraph have now been
+// hand-edited across all three files twice. Byte-equality here is the escalation.
+//
+// NARROWED, and stated: this pins that the three SPAN LITERALS agree, never that the span is CORRECT, and it
+// says nothing about the surrounding prose in each header.
+test("✧ PIN: all three scan-code-* scanners declare a byte-identical SPAN", () => {
+  const files = ["scan-code-ssrf.mjs", "scan-code-injection.mjs", "scan-code-path-traversal.mjs"];
+  const spans = files.map((f) => {
+    const src = readFileSync(join(here, f), "utf8");
+    const m = src.match(/^const SPAN = .*$/m);
+    assert.ok(m, `${f}: no \`const SPAN = …\` declaration found`);
+    return m[0];
+  });
+  assert.equal(new Set(spans).size, 1, `SPAN drifted across the copy-pair:\n${files.map((f, i) => `  ${f}: ${spans[i]}`).join("\n")}`);
 });

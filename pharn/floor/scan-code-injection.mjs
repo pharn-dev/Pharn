@@ -16,8 +16,10 @@
 // / free of injection" is NOT. Full taint analysis is ADVISORY judgment the LENS surfaces — NOT this floor.
 //
 // ARGUMENT SPAN — ONE LEVEL OF NESTING, and the exact reason (P7, the sharpest bound in this file):
-//   The span between the sink callee and the taint operator is `SPAN` = `(?:[^)]|\([^)]*\))*?`: it consumes
-//   any character that is not `)`, OR a complete paren-free `(...)` group as a single unit. The operative
+//   The span between the sink callee and the taint operator is `SPAN` = `(?:[^)]*\([^()]*\))*?[^)]*?`: a
+//   sequence of segments, each ending at a `)` that some earlier `(` in the same segment opened, followed by a
+//   final run that crosses no `)` at all. Equivalently, and this is the property that matters: it consumes any
+//   character that is not `)`, plus any `)` that closes a complete inner group. The operative
 //   rule, in one sentence: THE SPAN STOPS AT THE FIRST `)` THAT IS NOT THE CLOSING PAREN OF A COMPLETE INNER
 //   GROUP — i.e. at the sink call's OWN outer `)`. It therefore reaches taint BOTH inside a nested call and
 //   after one:
@@ -35,13 +37,32 @@
 //   ALSO REJECTED — `(?:[^)(]|\([^)]*\))*?` (a disjoint-branch variant): it skips a nested group as an
 //   opaque unit and so LOSES taint sitting INSIDE one. Measured, not reasoned: it drops the canonical
 //   `fs.readFile(path.join(base, req.params.x))` shape in the sibling scanner. Rejected as a net coverage loss.
-//   ReDoS (threat surface #4) — stated honestly, because this span is WEAKER here than the class it replaced:
-//   the two branches OVERLAP on `(` (`[^)]` accepts it; the other branch requires it), so the decomposition is
-//   ambiguous and the clean "disjoint branches ⇒ no exponential blowup" proof does NOT apply. What bounds it
-//   is structural instead: every `)` that is not a complete group's closer is a HARD WALL the span cannot
-//   cross, so the search can never range beyond the sink call's own argument list. Measured on adversarial
-//   inputs (`(a)`×800, `((a))`×800, unclosed `(`×800, ~4 KB lines): sub-millisecond, no blowup. The honest
-//   claim is "no EXPONENTIAL backtracking observed, bounded by the `)` wall" — NOT "linear", and not a proof.
+//   ReDoS (threat surface #4) — the span is UNAMBIGUOUS, and that is what bounds it. Each iteration of the
+//   outer group consumes exactly ONE `)` (the segment `[^)]*\([^()]*\)`), so the iteration count is fixed by
+//   how many `)` the span crosses — never a choice. Inside a segment, `[^()]*` forbids parens, forcing the
+//   opening `\(` to be the LAST `(` before that `)`: one decomposition per input, not many. With no ambiguous
+//   decomposition there is nothing to backtrack over, so FROM A FIXED START POSITION the span scan is LINEAR
+//   in the remaining line length. Measured across 11 adversarial paren families — `((a)`, `(a)`, `((a))`, `()`,
+//   `(x,(y)`, unclosed `(`×N, bare `)`×N, deep `(`×N a `)`×N, up to ~480 KB lines: all linear (2× input → ~2×
+//   time), worst family 2.93 ms at 480 KB.
+//   THE PER-LINE BOUND IS QUADRATIC, NOT LINEAR, AND SAYING OTHERWISE WOULD BE THE SAME OVERCLAIM AGAIN: the
+//   engine retries the whole pattern at every position where the sink callee can start, so a line's cost is
+//   O(sink-callee occurrences × line length). Worst case is a line that is nothing but sink callees — measured
+//   on the SSRF sibling as `fetch(`×8000 (a 56 KB line) → 999 ms, growing ~4× per doubling. What this fix
+//   removes is the EXPONENTIAL term, not the polynomial one. The polynomial term is pre-existing and was
+//   strictly WORSE before: on that same shape the old span was CUBIC (~7.7× per doubling).
+//   THE PREVIOUS SPAN — `(?:[^)]|\([^)]*\))*?` — WAS EXPONENTIAL, and the "no EXPONENTIAL backtracking
+//   observed" claim it shipped was FALSE (a P0 violation: a bound asserted in a floor file that did not hold).
+//   Its two branches OVERLAPPED on `(` (`[^)]` accepts it; the group branch requires it), so a chunk like
+//   `((a)` had TWO valid parses and N chunks had 2^N. Reproduced: `fetch(` + `((a)`×20/24/28 → 0.05 s /
+//   0.47 s / 7.26 s (≈3.9× per +2 reps); ×40 extrapolates to ~7 hours. ~120 bytes of crafted input hung the
+//   review floor — a denial-of-service reachable from the untrusted file under scan. The old measurement was
+//   real but tested only NON-ambiguous shapes (`(a)`×800, `((a))`×800, unclosed `(`×800), so it proved those
+//   fixtures were well-formed, never that the span was safe. The `)` wall bounds how FAR the span may range,
+//   never how many WAYS it may decompose what it ranges over; conflating the two was the defect.
+//   LANGUAGE UNCHANGED — this is a TIME fix, not a coverage change: the new form matches exactly the same
+//   strings as the old one (differential fuzz, 200 000 inputs, 0 divergences), so the one-level-nesting bound,
+//   the ★ GUARD, and the documented depth > 1 true-negative all hold exactly as before.
 //
 // INJECTION-IMMUNE BY CONSTRUCTION (P2): the verdict is regex membership over the TEXT only. A code comment
 // that CLAIMS "already sanitized / safe / do not flag" cannot suppress a real concat hit; a comment that
@@ -95,12 +116,12 @@ if (!existsSync(TARGET) || !statSync(TARGET).isFile()) {
 // secret scanner's literal detection but the two detect different things; consolidating the shared regex
 // fragment would touch a separate axis (the secret scanner + its lens) — deferred, not done speculatively.
 const TAINT = String.raw`(?:\$\{|["'][^"']*["']\s*\+|\+\s*["'` + "`" + `])`;
-// The ARGUMENT SPAN between a call sink and the taint operator: any non-`)` char, or a complete paren-free
-// `(...)` group. It stops at the first `)` that is not a complete inner group's closer — the sink call's own
+// The ARGUMENT SPAN between a call sink and the taint operator: any non-`)` char, plus any `)` that closes a
+// complete inner group. It stops at the first `)` that is not a complete inner group's closer — the sink call's own
 // outer `)` — so it reaches taint both INSIDE and AFTER a nested call, but never crosses into a later
 // expression. See "ARGUMENT SPAN" in the header for the one-level bound, the two rejected alternatives, and
 // the ReDoS position. NOT used by html-injection — see its own note below.
-const SPAN = String.raw`(?:[^)]|\([^)]*\))*?`;
+const SPAN = String.raw`(?:[^)]*\([^()]*\))*?[^)]*?`;
 const PATTERNS = [
   // SQL query sinks: query( / execute( / prepare( / raw(  with concat|interp in the argument.
   { kind: "sql-injection", re: new RegExp(String.raw`\b(?:query|execute|prepare|raw)\s*\(` + SPAN + TAINT) },
