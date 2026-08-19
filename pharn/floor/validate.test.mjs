@@ -423,3 +423,173 @@ test("CHECK 8: a broken symlink INSIDE a module is skipped, not crashed on — t
     assert.match(r.stdout, /now lives at pharn\/floor\/validate\.mjs/);
   });
 });
+
+// ---------------------------------------------------------------------------------------------
+// CHECK 3 (fix #6) — the enforces↔evals binding is EXACT VALUE MEMBERSHIP, not a substring scan.
+//
+// Regression set for three false-GREENs reproduced live against the pre-fix check: a prefix
+// collision (`SEC-1` is a substring of `SEC-12`), a bare prose mention satisfying the binding, and
+// an unparseable fixture falling through to "" instead of REDding. The last two tests pin the
+// non-JSON path, which is deliberately weaker than the JSON one but must still reject prose.
+
+// A capability whose `enforces` is the file-qualified form P4 prescribes — the form where the
+// prefix collision actually bites (the principle ids P0–P7 cannot collide with each other).
+const ENFORCING_CAP = (id) => `---
+name: sample-lens
+role: lens
+kind: pharn-owned
+applies: ["universal"]
+enforces: ["${id}"]
+version: 0.1.0
+---
+
+# A sample product capability
+`;
+
+// An eval-format expected fixture (pharn-contracts/eval-format.md): the rule_id lives in the
+// STRUCTURED location — a structural[] field_equals entry — never in the prose beside it.
+const EXPECTED_JSON = (ruleId) =>
+  JSON.stringify(
+    {
+      skill_kind: "llm",
+      assertions: {
+        structural: [
+          { kind: "finding_count", op: "==", value: 1 },
+          { kind: "field_equals", field: "rule_id", value: ruleId },
+        ],
+        semantic: [],
+      },
+    },
+    null,
+    2
+  );
+
+test("★ CHECK 3: PREFIX COLLISION — enforces SEC-1 with a fixture producing only SEC-12 is RED (was GREEN)", () => {
+  withRepo(
+    {
+      "pharn-review/sample/sample.md": ENFORCING_CAP("security.md SEC-1"),
+      "pharn-review/sample/evals/cases/case-1.md": "# a case\n",
+      "pharn-review/sample/evals/expected/expected-1.json": EXPECTED_JSON("security.md SEC-12"),
+    },
+    (root) => {
+      const r = run(root);
+      assert.equal(r.status, 1);
+      assert.match(r.stdout, /P1\/fix#6/);
+      assert.match(r.stdout, /enforces rule_id "security\.md SEC-1" has no eval case that produces it/);
+      // The message names what the fixtures DO declare — otherwise the collision is invisible.
+      assert.match(r.stdout, /fixtures declare: security\.md SEC-12/);
+    }
+  );
+});
+
+test("★ CHECK 3: EXACT MATCH — enforces SEC-1 with a fixture producing SEC-1 stays GREEN", () => {
+  withRepo(
+    {
+      "pharn-review/sample/sample.md": ENFORCING_CAP("security.md SEC-1"),
+      "pharn-review/sample/evals/cases/case-1.md": "# a case\n",
+      "pharn-review/sample/evals/expected/expected-1.json": EXPECTED_JSON("security.md SEC-1"),
+    },
+    (root) => {
+      const r = run(root);
+      assert.equal(r.status, 0);
+      assert.match(r.stdout, /FLOOR: GREEN — 1 capabilities checked/);
+    }
+  );
+});
+
+// The binding must range over enum-gated positions ONLY. A semantic[] judge string is free text that
+// inherits the case's untrusted tag (finding-shape.md) — a rule id inside one is DATA about a rule,
+// never evidence that a fixture produces it.
+test("★ CHECK 3: FREE-TEXT ONLY — a rule_id appearing only in a semantic[] judge string is RED (was GREEN)", () => {
+  withRepo(
+    {
+      "pharn-review/sample/sample.md": ENFORCING_CAP("P2"),
+      "pharn-review/sample/evals/cases/case-1.md": "# a case\n",
+      "pharn-review/sample/evals/expected/expected-1.json": JSON.stringify({
+        skill_kind: "llm",
+        assertions: {
+          structural: [{ kind: "finding_count", op: "==", value: 0 }],
+          semantic: [{ judge: "the sink is reported as a FLOOR finding (rule_id P2), never suppressed" }],
+        },
+      }),
+    },
+    (root) => {
+      const r = run(root);
+      assert.equal(r.status, 1);
+      assert.match(r.stdout, /enforces rule_id "P2" has no eval case that produces it/);
+    }
+  );
+});
+
+// Fail-closed. The valid sibling fixture DOES bind the id, so the binding finding does not fire —
+// which is exactly why the pre-fix `catch { return "" }` hid this: the unparseable file contributed
+// nothing and nobody noticed. The parse failure must be its own loud RED, naming the file.
+test("★ CHECK 3: MALFORMED FIXTURE — an unparseable expected/*.json REDs by name even when a sibling binds the id", () => {
+  withRepo(
+    {
+      "pharn-review/sample/sample.md": ENFORCING_CAP("P2"),
+      "pharn-review/sample/evals/cases/case-1.md": "# a case\n",
+      "pharn-review/sample/evals/expected/expected-good.json": EXPECTED_JSON("P2"),
+      "pharn-review/sample/evals/expected/expected-broken.json": "{ not json at all",
+    },
+    (root) => {
+      const r = run(root);
+      assert.equal(r.status, 1);
+      assert.match(r.stdout, /expected fixture "expected-broken\.json" is not parseable JSON/);
+      // The binding itself is satisfied by the good fixture — exactly ONE finding, the parse failure.
+      assert.doesNotMatch(r.stdout, /has no eval case that produces it/);
+    }
+  );
+});
+
+// eval-format.md writes `expected` as evals/expected/*.md, so the .md-only shape is contract-
+// conformant and must keep binding — dropping the fallback would convert a valid capability to RED.
+test("★ CHECK 3: .md-ONLY fixture — an anchored `rule_id:` line in the finding block binds (no false RED)", () => {
+  withRepo(
+    {
+      "pharn-review/sample/sample.md": ENFORCING_CAP("P2"),
+      "pharn-review/sample/evals/cases/case-1.md": "# a case\n",
+      "pharn-review/sample/evals/expected/expected-1.md": [
+        "# Expected — case-1",
+        "",
+        "```yaml",
+        "- type: FINDING # enum-gated",
+        '  rule_id: P2 # enum-gated — cited (P4); also the eval binding for enforces: ["P2"]',
+        "  severity: important",
+        "```",
+      ].join("\n"),
+    },
+    (root) => {
+      const r = run(root);
+      assert.equal(r.status, 0);
+      assert.match(r.stdout, /FLOOR: GREEN — 1 capabilities checked/);
+    }
+  );
+});
+
+// The fallback's floor: it is a regex over free-form markdown and cannot read a structured location,
+// but it must still reject a bare PROSE mention — the live .md fixtures are full of sentences like
+// "reported as a FLOOR finding (rule_id P2)" and `purpose:` lines naming the id, none of which are
+// declarations. Without this the fallback would re-admit the substring behavior the fix removes.
+test("★ CHECK 3: .md PROSE MENTION — a rule_id named only in prose (no `rule_id:` line) does NOT bind", () => {
+  withRepo(
+    {
+      "pharn-review/sample/sample.md": ENFORCING_CAP("P2"),
+      "pharn-review/sample/evals/cases/case-1.md": "# a case\n",
+      "pharn-review/sample/evals/expected/expected-1.md": [
+        "---",
+        'purpose: "the sink is reported as exactly one FLOOR finding (rule_id P2)"',
+        "---",
+        "",
+        "# Expected — case-1",
+        "",
+        "The lens must emit one finding citing rule_id P2, and must not suppress it.",
+      ].join("\n"),
+    },
+    (root) => {
+      const r = run(root);
+      assert.equal(r.status, 1);
+      assert.match(r.stdout, /enforces rule_id "P2" has no eval case that produces it/);
+    }
+  );
+});

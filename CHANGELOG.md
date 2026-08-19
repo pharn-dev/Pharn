@@ -46,6 +46,57 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Fixed
 
+- **fix #6's `enforces`↔evals binding is a set-membership test now, not a substring scan** —
+  `SKILLS_VERSION` **2.7.2 → 2.7.3** (patch: a correction to bytes that already shipped; one
+  product-floor checker).
+
+  `pharn/floor/validate.mjs` CHECK 3 decided whether an `enforces` rule_id is "produced by ≥1 eval" by
+  concatenating every `evals/expected/*` file into one string and asking `expectedText.includes(id)`.
+  A substring scan is not a membership test (`.dev/memory-bank/lessons-learned.md` **L6**), and it was
+  false-GREEN two ways. **Both were reproduced live at `rc=0` before anything was changed:**
+  - **Prefix collision.** `SEC-1` is a substring of `SEC-12`, so a capability declaring
+    `enforces: ["security.md SEC-1"]` passed the floor while its only fixture produced `SEC-12` — the
+    binding certified a rule no eval exercises. Principle ids `P0`–`P7` cannot collide with each
+    other, which is why this survived: every capability in this repo declares the bare principle
+    form, and the file-qualified form `pharn/CONSTITUTION.md` P4 prescribes for stack rules
+    (`security.md SEC-1`) is the one that bites.
+  - **Free-text laundering.** Any prose mention satisfied the binding, and the live fixtures are full
+    of them — `semantic[].judge` strings reading "reported as a FLOOR finding (rule_id P2)", `purpose:`
+    lines naming the id. So a fixture asserting _nothing_ about a rule still bound it, which is
+    precisely the enum-gated/free-text split (fix #1) failing at the membership layer.
+
+  **The fix reads the structured location instead.** For an `expected/*.json` fixture that is the
+  location `pharn/pharn-contracts/eval-format.md` defines — `assertions.structural[]` entries with
+  `kind: field_equals` over `field: rule_id` contribute their `value` — cited, not restated (P4), and
+  the same shape `pharn/floor/check-structural.mjs` already executes. The collected values form a
+  `Set`; the declared id (file-qualified **or** bare, both forms kept) must be an exact member. A
+  non-string `value` is dropped rather than coerced, so `String(v)` cannot mint a member like
+  `"[object Object]"`.
+
+  **An unparseable fixture is now its own loud RED, named.** The old `catch { return "" }` swallowed a
+  parse failure, so a broken fixture contributed nothing and a _sibling_ fixture silently carried the
+  binding — the failure was invisible on exactly the input where verification was impossible. It is
+  fail-closed now: a fixture that cannot be read or parsed cannot be evidence.
+
+  **The non-JSON path is BEST-EFFORT and labeled as such, in the code and here.** `eval-format.md`
+  writes `expected` as `evals/expected/*.md`, so a `.md`-only fixture set is contract-conformant and
+  must keep binding — dropping the fallback would convert a valid capability to RED. But markdown has
+  no structured location to read: it matches an anchored `rule_id: <value>` line, which means a
+  `rule_id:` line **quoted from untrusted case content would bind**. What it does buy over the old
+  scan is that a bare prose mention no longer does. Weaker than the JSON path, and not presented as
+  equivalent.
+
+  **Blast radius, audited rather than asserted.** All **35** `enforces`-declaring capabilities in this
+  repo were simulated under the new rule before the change was written: **0 would-RED**, and
+  `validate.mjs .` is GREEN over all 36 capabilities after it. Stated bound: that audit covers _this
+  repo_. A downstream install whose `expected/*.json` is shaped as something other than eval-format —
+  or whose fixtures are `.yaml`/`.txt` — now REDs where it previously passed on a substring. That is
+  the fail-closed direction, but it is a behavior change, not only a bug fix.
+
+  Six regression tests in `pharn/floor/validate.test.mjs` pin it: prefix collision → RED, exact match →
+  GREEN, judge-string-only → RED, malformed fixture → RED **by name** even when a sibling binds the id,
+  `.md`-only `rule_id:` line → GREEN, and `.md` prose-only mention → RED.
+
 - **The Approved-input gate no longer disagrees with canon about what `state:` says — one spec parser
   now, not two** — `SKILLS_VERSION` **2.7.1 → 2.7.2** (patch: a correction to bytes that already
   shipped; two product-floor checkers).
