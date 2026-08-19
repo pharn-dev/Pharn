@@ -46,6 +46,78 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Fixed
 
+- **The Approved-input gate no longer disagrees with canon about what `state:` says — one spec parser
+  now, not two** — `SKILLS_VERSION` **2.7.1 → 2.7.2** (patch: a correction to bytes that already
+  shipped; two product-floor checkers).
+
+  `pharn/floor/check-spec-approved.mjs` — the deterministic gate `/pharn-plan` runs to decide whether a
+  SPEC may be planned from — carried a private `readState()` that parsed `state` **first-wins across
+  duplicate keys, with no comment strip**, while the canonical `pharn/floor/check-spec.mjs` `parseSpec`
+  is **last-wins with the quote resolved before the comment**. Two checkers, one file, two answers — in
+  **both** directions, and **both were reproduced live before anything was changed**:
+  - **Fail-OPEN (the serious one).** A frontmatter carrying `state: Approved` followed by
+    `state: Draft` resolves LAST-wins to `Draft`, so `check-spec.mjs` returned GREEN for a valid
+    **unpinned Draft** — while the gate returned **exit 0, "Approved and un-drifted"**. The one gate
+    whose entire job is to let only human-approved intent downstream admitted a spec that was neither
+    approved-effective **nor** pinned.
+  - **False-RED.** A template-faithful `state: Approved # ratified 2026-08-18` on a correctly pinned
+    spec is GREEN to `check-spec.mjs` and was a RED to the gate — `"Approved # ratified 2026-08-18"` is
+    not a member of the state enum.
+
+  **The fix is a seam, not a second implementation.** `check-spec.mjs` gains a **`--state`** print-mode
+  mirroring `--hash` and `--spec-id`, and the gate **shells it** and holds no frontmatter parser at all —
+  the `readState`/`FM_RE`/`stripQuotes` trio and the `node:fs` import are **deleted**, not ported. Hand-
+  porting the last-wins/comment-strip logic would have produced a third parser, which is the defect, not
+  the remedy. **`--state` deliberately differs from its two siblings in exactly one way,** stated in the
+  code rather than left to be discovered: the unreadable path prints the collected RED to **stderr**
+  instead of exiting 1 silently as `--hash` and `--spec-id` do — a silent exit hands a shelling caller an
+  exit code and nothing to surface, the input-capture boundary `.dev/memory-bank/lessons-learned.md`
+  **L5** names, and the gate echoes this child's output verbatim.
+
+  **The whole downstream chain is fixed without being touched.** `check-plan-spec-agree.mjs` shells
+  `check-spec-approved.mjs` and holds no `state` parser of its own — verified by reading it this run, not
+  assumed — so the four stages that re-verify the spec→plan chain (`/pharn-grill`, `/pharn-build`,
+  `/pharn-regress`, `/pharn-verify`) inherit the correction with **zero** diff. Two chain tests pin it
+  end-to-end, three processes deep.
+
+  **Why the previously-recorded decision to leave this alone was wrong, and the entry corrected in
+  place.** The 2.5.0 entry below states that `readState` "is deliberately **left unchanged** … the
+  asymmetry fails **closed** (a false RED, never a false GREEN) — so P7 supplies no trigger". That claim
+  is **false** and is now marked as corrected at its own site rather than only superseded here: only the
+  comment-strip half fails closed; the duplicate-key half is a **false GREEN**. The trigger existed the
+  whole time and was simply not looked for. This is `.dev/memory-bank/lessons-learned.md` **L20** exactly
+  — a defect left with a discipline-only bound recurred, in the dangerous direction — so the remedy is
+  removal of the duplicate rather than a louder comment.
+
+  **Honestly bounded (P0), in the same terms `bodyHash` already uses for the hash.** Agreement is now
+  structural: there is one parse, and the gate has nothing to disagree with. That no **third** parse is
+  ever re-introduced is **DISCIPLINE, not a floor op** — the tests **DETECT** a divergent
+  re-implementation, they do not **PREVENT** one. The previous bound on this very defect was also prose,
+  was also correct when written, and is what rotted; so the bound is written into the module and pinned
+  by a **structural** test that strips comments and asserts the gate's source contains no
+  frontmatter-fence regex, no `node:fs` import, and no re-implemented value parsing — because two
+  behavioural fixtures cannot distinguish "no second parser" from "a second parser that happens to agree
+  on these two inputs".
+
+  **19 tests added, and the defect-killing ones are mutation-proved.** Restoring the pre-fix gate against
+  the new suite fails **4 of 5** new gate tests (duplicate-key, trailing-comment, the cross-check, and
+  the structural pin). The fifth — a `★` P2 fixture putting a raw `ESC` plus the gate's own verdict text
+  **inside the `state:` value** — passes against both versions **by design and is labeled as such**: it
+  guards the newly-created child-stdout→parent transport, and `check-spec.mjs`'s enum gate REDs that spec
+  one layer earlier, so it is a trust-fence guard, **not** a defect-killer. It asserts no line of output
+  consists solely of the GREEN verdict, so an untrusted frontmatter value quoted as DATA cannot forge the
+  checker's own conclusion. The cross-check asserts the **biconditional** (`--state` prints `Approved`
+  ⟺ the gate exits 0) over one set of bytes per fixture, so a future one-sided regression fails loudly.
+  Also corrected: the gate's RED message used `state ?? "(none)"`, which could never fire once the value
+  arrives over a transport that always yields a string — an absent field would have printed a bare `""`.
+
+  **Patch, not minor, and the distinction from the 2.5.0 precedent is deliberate.** That entry took a
+  **minor** for adding `--spec-id`, where the new mode was the _point_ and gave a user surface they did
+  not have. Here `--state` exists **only** as the internal seam that removes a duplicate parser; the
+  shipped defect being corrected is the increment. `*.test.mjs` files are apparatus and drive no bump.
+  **Zero committed `SPEC.md` files exist in this repo**, so no in-tree verdict moves — the beneficiaries
+  are downstream user repos and future specs.
+
 - **The writes-scope guard's own input is now write-protected, closing a self-escalation reachable
   through a case-variant filename** — `SKILLS_VERSION` **2.7.0 → 2.7.1** (patch: a correction to
   product `.cjs` hook bytes that already shipped)
@@ -244,7 +316,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
   **Two-directional, stated plainly.** The comment strip turns a template-faithful PLAN from a **false RED into GREEN** (a rescue); the identity assertion turns a PLAN whose `spec_id` genuinely disagrees with its SPEC from a **false GREEN into a correct RED**. A well-formed PLAN carries the SPEC's own id, so nothing correct newly-REDs — only a genuinely mislabeled plan does, which is the point. The strip is also a **tightening nobody asked for and everybody wanted**: `spec_id: # todo` previously parsed to the non-empty string `"# todo"` and **passed** the presence check — a spec with no real identity going GREEN — and now correctly REDs.
 
-  **Honestly bounded (P0).** The identity check is floor — `pharn/ARCHITECTURE.md §2` primitive #3, a byte equality asking whether the PLAN's declared id is the single member of the set the SPEC defines — and it is **never** a comparison of what either name _means_: no similarity, no case-folding, no Unicode normalization, so two ids a human would call "the same feature" that differ by one byte are a RED, deliberately. The parse is a pragmatic frontmatter reader, **not** a YAML library: the closing quote is found by a plain scan, so a value containing an **escaped** quote ends at the escape rather than the real terminator, and an **unterminated** quote falls through to the unquoted path rather than fabricate an interior. No template emits either shape, and both fail toward a visibly wrong value the id/hash gates reject — never toward a silent pass. `check-spec-approved.mjs`'s `readState` is a **third** copy of the same field parse and is deliberately **left unchanged** — no template puts a comment on `state:`, and the asymmetry fails **closed** (a false RED, never a false GREEN) — so P7 supplies no trigger to widen the change; the bound is written into the module rather than quietly fixed. A defensive empty-`specSpecId` branch was written and then **deleted rather than shipped**: mutation testing proved nothing could kill it, and analysis showed it redundant — an empty SPEC id can only equal an empty PLAN id, which the plan-side guard REDs one branch earlier. Unreachable code no test through the public surface can pin is not a safety net, and the comment now says so.
+  **Honestly bounded (P0).** The identity check is floor — `pharn/ARCHITECTURE.md §2` primitive #3, a byte equality asking whether the PLAN's declared id is the single member of the set the SPEC defines — and it is **never** a comparison of what either name _means_: no similarity, no case-folding, no Unicode normalization, so two ids a human would call "the same feature" that differ by one byte are a RED, deliberately. The parse is a pragmatic frontmatter reader, **not** a YAML library: the closing quote is found by a plain scan, so a value containing an **escaped** quote ends at the escape rather than the real terminator, and an **unterminated** quote falls through to the unquoted path rather than fabricate an interior. No template emits either shape, and both fail toward a visibly wrong value the id/hash gates reject — never toward a silent pass. `check-spec-approved.mjs`'s `readState` is a **third** copy of the same field parse and is deliberately **left unchanged** — no template puts a comment on `state:`, and the asymmetry fails **closed** (a false RED, never a false GREEN) — so P7 supplies no trigger to widen the change; the bound is written into the module rather than quietly fixed. **[CORRECTED in 2.7.2 — the claim in this sentence was FALSE.]** The asymmetry did **not** fail closed. `readState` was **first-wins** where `parseSpec` is **last-wins**, so a frontmatter carrying `state: Approved` followed by `state: Draft` made the Approved GATE read `Approved` while validate read `Draft` — a **false GREEN**, i.e. a fail-OPEN, on the one gate whose job is to admit only human-approved intent. Only the comment-strip half failed closed; the duplicate-key half was never examined. The P7 trigger this sentence said was absent existed the whole time and was simply not looked for. See the 2.7.2 entry. A defensive empty-`specSpecId` branch was written and then **deleted rather than shipped**: mutation testing proved nothing could kill it, and analysis showed it redundant — an empty SPEC id can only equal an empty PLAN id, which the plan-side guard REDs one branch earlier. Unreachable code no test through the public surface can pin is not a safety net, and the comment now says so.
 
   **An adversarial pass over the fix found two defects in the fix itself, both of which its own comments had claimed were impossible.** Neither was reachable by reading the diff; both came from attacking it. **(a) The identity equality was ASYMMETRIC.** The SPEC's id crosses a stdout boundary, so the reader must `.trim()` it to drop the newline `emitSpecId` appends — but the PLAN's id was not trimmed, so a quoted `spec_id` whose value carries deliberate edge spaces kept them on the PLAN side and lost them in transport, and two **byte-identical** files REDs as an identity mismatch: a false RED of exactly the class this change exists to remove. Both sides are now trimmed, which is symmetric and cannot merge two distinct ids — pinned by a matching pair going GREEN and by `FEAT-1` vs `FEAT-2` still REDing however padded. **(b) `readCarried` was FIRST-wins while `parseSpec` and YAML are LAST-wins.** A PLAN could declare `spec_id:` twice — the right spec on line one, a different one on line two — and this checker compared the first while every other reader sees the second, so the assertion passed on an id that was not the plan's effective one. It now reads the last match, which is what makes the module's "the two never disagree on what a field is" sentence **true** rather than merely intended. **The same read governs the carried hash, and there it closes a fail-open that exists on `main` today** — reproduced both ways: a PLAN whose first `spec_content_hash` line is current and whose second, effective one is stale goes **GREEN** on `main` and REDs after this change, because the checker now compares the pin every other reader sees. That half was pre-existing rather than introduced here; it is fixed as a consequence of making the two parsers agree, and it is pinned by its own test. A third report — that the deliberate "identity before content" ordering was pinned by no test — was **exit-code-invariant** and therefore not a defect, but it was a real gap in the fixture set: a both-wrong PLAN now asserts the reader is sent to the identity mismatch and **not** to `chain BROKEN`, because telling someone their hash is stale sends them to re-plan against the wrong spec.
 

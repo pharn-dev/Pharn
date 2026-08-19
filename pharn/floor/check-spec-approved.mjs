@@ -15,6 +15,23 @@
 // sibling import, P3 — the same separation check-regress / check-verify use to re-run other floor
 // gates), so the content-hash logic lives in exactly ONE place and can never drift between the two.
 //
+// THE SAME NOW HOLDS FOR `state`, AND IT DID NOT USED TO — the correction is worth stating, because the
+// sentence above was true of the hash and FALSE of the state enum for as long as both were written here.
+// This file carried a private `readState()`: FIRST-wins across duplicate keys, no comment strip, against
+// check-spec's LAST-wins + comment-stripped parseSpec. Two checkers, one file, two answers — in BOTH
+// directions. A frontmatter with `state: Approved` followed by `state: Draft` made validate read Draft
+// while this GATE read Approved and returned exit 0 "Approved and un-drifted": a FAIL-OPEN, on the one
+// gate whose entire job is to let only human-approved intent downstream. And a template-faithful
+// `state: Approved # ratified 2026-08-18` made this gate RED a spec validate called GREEN. Both are now
+// reproduced as tests. The state is read through `check-spec.mjs --state` — the same CLI shell-out, the
+// same single-source discipline — and this file holds NO frontmatter parser of its own.
+//
+// Honestly bounded (P0), in the same terms check-spec.mjs's bodyHash already uses for the hash: that no
+// THIRD parse of `state` is ever re-introduced is DISCIPLINE, not a floor op. The tests DETECT a divergent
+// re-implementation (one asserts this source contains no frontmatter-parse construct at all); they do not
+// PREVENT one. That bound is written here rather than upgraded into a claim the floor cannot back — the
+// previous bound on this very defect was also prose, was also correct when written, and is what rotted.
+//
 // NON-LLM. Node stdlib only (child_process to invoke the sibling CLI; no network, no eval, no deps).
 //
 // Honest scope (P0): it guarantees a SPEC is Approved + un-drifted + well-shaped — the deterministic
@@ -36,7 +53,6 @@
 //
 // Exit: 0 only for an Approved, un-drifted, well-shaped SPEC; 1 on every refusal (fail-closed).
 
-import { readFileSync } from "node:fs";
 import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
@@ -47,27 +63,12 @@ import { dirname, join } from "node:path";
 const here = dirname(fileURLToPath(import.meta.url));
 const CHECK_SPEC = join(here, "check-spec.mjs");
 
-// The leading YAML frontmatter block — the same FM_RE mechanism as check-spec.mjs / set-writes-scope.cjs,
-// re-implemented IN-FILE (no sibling import, P3). We need exactly one field from it: `state`.
-const FM_RE = /^---\r?\n([\s\S]*?)\r?\n---\r?\n?/;
 const STATE_APPROVED = "Approved"; // the one member of the {Draft, Approved} state enum a plan may come from
 
-function stripQuotes(v) {
-  return v.replace(/^["']|["']$/g, "");
-}
-
-// Extract the frontmatter `state` value (or undefined when there is no frontmatter / no state line),
-// using check-spec.mjs's exact key/value parse so the two never disagree on what the field is.
-// Deterministic; no LLM.
-function readState(text) {
-  const m = text.match(FM_RE);
-  if (!m) return undefined;
-  for (const line of m[1].split(/\r?\n/)) {
-    const kv = line.match(/^([A-Za-z_][\w-]*):[ \t]*(.*)$/);
-    if (kv && kv[1] === "state") return stripQuotes(kv[2].trim());
-  }
-  return undefined;
-}
+// DELIBERATELY ABSENT: any frontmatter regex, key/value split, or quote/comment handling. `state` is read
+// ONLY through `check-spec.mjs --state` (see gate step 2). Re-adding a parse here — even one that looks
+// equivalent today — re-creates the divergence documented in this file's header. The test suite asserts
+// this absence structurally, not merely behaviourally.
 
 function red(msg) {
   console.log(`RED — ${msg}`);
@@ -95,16 +96,33 @@ function gate(specPath) {
   // (2) check-spec said GREEN ⇒ state ∈ {Draft, Approved} and (if Approved) the pin matches. Add the
   //     ONE assertion check-spec omits: the spec MUST be Approved. A Draft is intent NOT yet
   //     human-approved — planning from it would let unapproved intent flow downstream.
-  let text;
-  try {
-    text = readFileSync(specPath, "utf8");
-  } catch (e) {
-    return red(`SPEC.md became unreadable (${specPath}): ${e.message}`);
+  //
+  //     The state comes from check-spec.mjs --state — the SAME parse validate just used, one process
+  //     later — never from a read of our own. This is the whole point of the file's header note. The
+  //     capture is pinned to the exact shape check-plan-spec-agree.mjs already uses for --hash/--spec-id
+  //     (L22: prescribe the command line, do not leave a technique to be re-derived), and it is an
+  //     input-capture boundary (L5): a spawn failure or a non-zero child exit is a RED, never a state.
+  const s = spawnSync(process.execPath, [CHECK_SPEC, "--state", specPath], { encoding: "utf8" });
+  if (s.error) {
+    return red(`could not run check-spec.mjs --state (${CHECK_SPEC}): ${s.error.message}`);
   }
-  const state = readState(text);
+  if (s.status !== 0) {
+    const out = (s.stdout || "") + (s.stderr || "");
+    if (out.trim()) process.stdout.write(out.endsWith("\n") ? out : out + "\n");
+    return red(`could not read the spec state from ${specPath} (see check-spec's output above)`);
+  }
+  // .trim() strips the transport's trailing newline. It is the identity map on any value check-spec would
+  // emit — readValue already trims — so the capture cannot silently alter a value that survived the
+  // canonical parse; and the kv regex ends at `$` (JS `.` excludes \r and \n), so a frontmatter value
+  // cannot carry a newline and cannot forge a second stdout line. Pinned by a hostile-value test.
+  const state = (s.stdout || "").trim();
   if (state !== STATE_APPROVED) {
     return red(
-      `spec state ${JSON.stringify(state ?? "(none)")} is not ${JSON.stringify(STATE_APPROVED)} — ` +
+      // `state` is now always a string (the transport cannot yield undefined), so the old `?? "(none)"`
+      // could never fire and an absent field would have printed a bare `""`. Test the empty string
+      // explicitly instead. JSON.stringify escapes control characters, so an untrusted frontmatter value
+      // reaching this message as DATA cannot forge a verdict line in this checker's own stdout (P2).
+      `spec state ${JSON.stringify(state === "" ? "(none)" : state)} is not ${JSON.stringify(STATE_APPROVED)} — ` +
         `approve the intent via /pharn-spec before planning (a Draft is not yet human-approved)`
     );
   }

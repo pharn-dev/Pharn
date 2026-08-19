@@ -389,3 +389,28 @@ test("fail-closed: a CR inside a frontmatter value makes the LINE unparseable �
   assert.equal(r.status, 1);
   assert.match(r.stdout, /no spec_id|UNPINNED/i);
 });
+
+test("chain: a SPEC whose `state:` carries a trailing note reaches the OUTERMOST consumer (exit 0)", () => {
+  // The end-to-end proof that the state-parser unification propagates. This checker shells
+  // check-spec-approved.mjs, which now shells check-spec.mjs --state — three processes deep, one parse.
+  // Before the unification the middle link carried a comment-blind readState(), so this exact spec
+  // false-RED'd here even though check-spec called it GREEN, and every downstream stage that re-verifies
+  // the chain (grill, build, regress, verify) inherited that false RED. No code in this file changed.
+  const body = bodyFrom();
+  const h = bodyHash(body);
+  const r = runWith(makePlan({ hash: h }), makeSpec({ state: "Approved # ratified 2026-08-18", hash: h, body }));
+  assert.equal(r.status, 0, r.stdout + r.stderr);
+  assert.match(r.stdout, /GREEN — spec→plan hash chain holds/);
+});
+
+test("chain: a DUPLICATE `state:` key no longer fails OPEN through the chain (exit 1)", () => {
+  // The fail-open direction, at the outermost consumer. `state: Approved` then `state: Draft` resolves
+  // LAST-wins to Draft, so the chain must REFUSE. Before the unification the middle link read Approved
+  // and the chain passed — an unapproved, unpinned spec authorizing a plan four stages downstream.
+  const body = bodyFrom();
+  const h = bodyHash(body);
+  const spec = `---\nspec_id: my-feature\nstate: Approved\nstate: Draft\nspec_content_hash: ${h}\n---\n${body}`;
+  const r = runWith(makePlan({ hash: h }), spec);
+  assert.equal(r.status, 1, r.stdout + r.stderr);
+  assert.match(r.stdout, /"Draft" is not "Approved"/);
+});
