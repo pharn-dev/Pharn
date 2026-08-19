@@ -1,0 +1,57 @@
+--- a/.claude/hooks/protect-trusted-paths.cjs
++++ b/.claude/hooks/protect-trusted-paths.cjs
+@@ -14,6 +14,17 @@
+ // overwriting one disarms that guard on the very next write, and either settings file can unwire both.
+ // A guard the agent may rewrite is not a floor op — it is a suggestion (P0).
+ //
++// The control surface includes the writes-scope guard's INPUT, not only its code. .pharn/writes-scope.json
++// is the file enforce-writes-scope.cjs reads to decide EVERY write. That hook guards it with a single
++// byte-EXACT compare (rel === SCOPE_FILE) while its ALWAYS glob leaves the rest of .pharn/ writable, so
++// on a case-insensitive volume .pharn/WRITES-SCOPE.JSON named the same inode and slipped past: the Write
++// tool could rewrite the active scope and then write anywhere fix #2 does not backstop. Reproduced live
++// (enforce → 0 on the upper-case spelling, 2 on the lower-case one). The entry is added HERE rather than
++// by widening that compare because this hook already full-case-folds, strips Windows trailing dot/space,
++// and resolves symlinks segment-wise — one entry closes the case-variant AND the broken-symlink-alias
++// vector at once. enforce-writes-scope.cjs keeps its own compare (defense in depth), and
++// set-writes-scope.cjs is unaffected: it writes the file with fs.writeFileSync, which PreToolUse never sees.
++//
+ // ── MATCHING ────────────────────────────────────────────────────────────────────────────────────────
+ // REPO-RELATIVE, EXACT, CASE- AND UNICODE-FOLDED. Every default entry is a path relative to a guarded
+ // root, and a write is denied only when the target's own relative path equals one of them under the
+@@ -63,6 +74,9 @@
+ //   identical with — the filesystem's own equivalence.
+ // • Root-level entries (THREAT-MODEL.md, LIMITS.md, CODEOWNERS) still over-block a user's own
+ //   same-named file at the guarded root. That is structural: PHARN's own copies live there.
++// • The .pharn/writes-scope.json entry closes the WRITE-TOOL vector only. The claim is "the Write-tool
++//   self-escalation is closed", NEVER "the scope file cannot be rewritten" — see the Bash bound below,
++//   which reaches it exactly as it reaches every other guarded path.
+ // • Bash-tool writes bypass PreToolUse hooks ENTIRELY. That is by far the largest hole in this guard
+ //   and no amount of path matching narrows it.
+ // • PHARN vendored at a SUBPATH of a larger project is not guarded: Claude Code loads .claude/ from
+@@ -70,9 +84,12 @@
+ // • A symlink inside a guarded root that points OUT of it is allowed — deliberately, since a second
+ //   checkout's CONSTITUTION.md is a different repo's file, and denying it was the original over-match.
+ //
+-// Composes with set-writes-scope.cjs, which REFUSES to emit a scope naming these same control paths
++// Composes with set-writes-scope.cjs, which REFUSES to emit a scope naming the .claude/ control paths
+ // unless --allow-claude-dir is passed. The two are independent: this denylist holds no matter what scope
+-// was set, so neutering the setter's refusal still does not make a control file writable.
++// was set, so neutering the setter's refusal still does not make a control file writable. The setter's
++// CONTROL_SURFACE deliberately does NOT carry .pharn/writes-scope.json: the two sets are pinned equal on
++// the .claude/-prefixed entries by a ✧ test in set-writes-scope.test.cjs, and a scope naming the file is
++// inert anyway — both this hook and enforce-writes-scope.cjs deny the write regardless of scope.
+ //
+ // Wired via .claude/settings.json (PreToolUse matcher: Write|Edit|MultiEdit|NotebookEdit).
+ 
+@@ -144,6 +161,11 @@
+   ".claude/hooks/protect-trusted-paths.cjs",
+   ".claude/hooks/enforce-writes-scope.cjs",
+   ".claude/hooks/set-writes-scope.cjs",
++  // The writes-scope guard's INPUT (see the header). Deliberately this ONE file and not ".pharn/**":
++  // the rest of .pharn/ is disposable runtime scratch that stages legitimately write, and the
++  // product lessons-index cache lives there too. First entry naming a GENERATED file rather than a
++  // committed one — the deny is by path, so it holds whether or not the file exists yet.
++  ".pharn/writes-scope.json",
+ ];
+ 
+ const extra = (process.env.PHARN_PROTECTED || "")

@@ -78,9 +78,20 @@ file). It does **not** version the build apparatus.
    The same hook also protects `CODEOWNERS` (the GitHub-layer write-guard itself — "guarding the
    guard"), and `main` carries GitHub branch protection requiring Code-Owner review, so a `CODEOWNERS`
    change cannot be merged without the human owner's approval. **It also protects the two guards' own
-   control surface** — `.claude/settings.json` (which wires both hooks) and the three hook scripts
-   (`protect-trusted-paths.cjs`, `enforce-writes-scope.cjs`, `set-writes-scope.cjs`). Each hook is
-   re-read fresh on every tool call, so a write to one would disarm that guard on the very next write.
+   control surface** — **both** settings files that wire the hooks (`.claude/settings.json` and
+   `.claude/settings.local.json`, which is loaded too and can wire or override the same hooks), the
+   three hook scripts (`protect-trusted-paths.cjs`, `enforce-writes-scope.cjs`,
+   `set-writes-scope.cjs`), **and the writes-scope guard's own INPUT, `.pharn/writes-scope.json`**.
+   Each hook is re-read fresh on every tool call, so a write to one would disarm that guard on the very
+   next write; and the scope file is the list `enforce-writes-scope.cjs` reads to decide **every**
+   write, so a Write-tool edit of it was a self-escalation — that hook guards it with one byte-exact
+   compare while `ALWAYS` leaves the rest of `.pharn/` writable, so on a case-insensitive volume
+   `.pharn/WRITES-SCOPE.JSON` named the same file and slipped past. It is covered **here** instead
+   because this hook already case-folds, strips Windows trailing dot/space, and resolves symlinks
+   segment-wise, which closes the case-variant and dangling-alias vectors together;
+   `enforce-writes-scope.cjs` keeps its own compare as defense in depth, and `set-writes-scope.cjs` is
+   unaffected because it writes via `fs.writeFileSync`, which `PreToolUse` never sees. Deliberately the
+   one file, **not** `.pharn/**` — the rest is disposable runtime scratch stages legitimately write.
    `.claude/commands/**` and the hooks' own `*.test.cjs` are deliberately **not** protected — the
    commands are edited every increment. **Bounded, and stated:** this covers the Write/Edit/MultiEdit
    surface only; Bash-tool writes bypass `PreToolUse` hooks entirely, exactly as for the trusted docs.

@@ -613,6 +613,66 @@ test("✧ .claude/settings.local.json is guarded — it configures the very hook
   assert.equal(run({ tool_name: "Write", tool_input: { file_path: "src/settings.local.json" } }).status, 0);
 });
 
+// --- CONTROL SURFACE: the writes-scope guard's INPUT, not only its code ---
+//
+// WHY THESE EXIST. enforce-writes-scope.cjs guards its own input with ONE byte-exact compare
+// (rel === SCOPE_FILE) while its ALWAYS glob leaves the rest of .pharn/ writable. On a case-insensitive
+// volume .pharn/WRITES-SCOPE.JSON is the SAME FILE, so that compare missed it and the Write tool could
+// rewrite the active scope, then write anywhere fix #2 does not backstop. Reproduced live before the
+// fix: enforce → 0 on the upper-case spelling, 2 on the lower-case one.
+//
+// The remedy is an entry in THIS hook's DEFAULT_PROTECTED rather than a widened compare over there,
+// because this hook already full-case-folds, strips Windows trailing dot/space, and resolves symlinks
+// segment-wise — so one entry closes the case-variant AND the dangling-alias vector at once. These
+// assertions are deliberately literal (not derived): a derived test cannot fail before the entry
+// exists, and an assertion that cannot fail is worthless (L4). Measured rejecting the UNPATCHED hook
+// before being trusted.
+
+test("✧ the writes-scope guard's own input is protected at its declared spelling", () => {
+  assert.equal(run({ tool_name: "Write", tool_input: { file_path: ".pharn/writes-scope.json" } }).status, 2);
+});
+
+test("✧ REGRESSION: a case-variant of the scope file is denied (same inode on a case-insensitive volume)", () => {
+  for (const p of [".pharn/WRITES-SCOPE.JSON", ".pharn/Writes-Scope.Json", ".pharn/writes-scope.JSON"]) {
+    assert.equal(run({ tool_name: "Write", tool_input: { file_path: p } }).status, 2, `${p} must be denied`);
+  }
+});
+
+test("✧ protecting the scope file does NOT over-block the rest of .pharn/", () => {
+  // .pharn/ is disposable runtime scratch that stages legitimately write, and it also holds the
+  // load-bearing product lessons-index cache. Over-blocking here would break the pipeline, so the
+  // entry is one path and not a ".pharn/**" glob.
+  for (const p of [".pharn/foo.json", ".pharn/lessons-index.md", ".pharn/writes-scope.json.bak", "src/.pharn/writes-scope.json"]) {
+    assert.equal(run({ tool_name: "Write", tool_input: { file_path: p } }).status, 0, `${p} must be ALLOWED`);
+  }
+});
+
+test("✧ a dangling symlink cannot be used to CREATE the scope file under another name", () => {
+  const sb = sandbox();
+  fs.mkdirSync(join(sb, ".pharn"), { recursive: true });
+  fs.symlinkSync("writes-scope.json", join(sb, ".pharn", "alias.json")); // target absent = dangling
+  assert.equal(runIn(sb, { tool_name: "Write", tool_input: { file_path: ".pharn/alias.json" } }).status, 2);
+});
+
+// ✧ Derived cross-copy pin, the check-provenance / CONTROL_SURFACE precedent (see the ✧ agreement guard
+// in set-writes-scope.test.cjs). The literal ".pharn/writes-scope.json" now lives in TWO hooks: as
+// SCOPE_FILE in enforce-writes-scope.cjs and as a DEFAULT_PROTECTED entry here. Two copies drift; this
+// converts "drifts silently" into "drifts loudly". It CANNOT be folded into the existing agreement test,
+// which deliberately compares only the `.claude/`-prefixed entries.
+//
+// NOT guaranteed (P0): that the two hooks BEHAVE alike on that path — this one case-folds and resolves
+// symlinks, the other compares bytes. It pins the declarations, not the logic.
+test("✧ the two guards name the SAME scope file: enforce-writes-scope SCOPE_FILE == a DEFAULT_PROTECTED entry", () => {
+  const src = fs.readFileSync(join(__dirname, "enforce-writes-scope.cjs"), "utf8").replace(/^[ \t]*\/\/.*$/gm, "");
+  const m = src.match(/^const SCOPE_FILE = "([^"]*)";/m);
+  assert.ok(m, 'enforce-writes-scope.cjs must declare a top-level `const SCOPE_FILE = "…";`');
+  assert.ok(
+    declaredProtected().includes(m[1]),
+    `enforce-writes-scope.cjs guards ${JSON.stringify(m[1])} but protect-trusted-paths.cjs does not declare it — ` +
+      "the scope guard's input would be reachable again through a case variant; change BOTH copies"
+  );
+});
+
 // --- WINDOWS TRAILING DOT/SPACE: the OS drops them, so they name the real file there ---
 
 for (const p of ["LIMITS.md.", "LIMITS.md ", "pharn/CONSTITUTION.md.", "pharn/CONSTITUTION.md  "]) {
