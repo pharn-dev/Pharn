@@ -226,6 +226,8 @@ function pathsFromPlanFiles(file) {
   const start = lines.findIndex((l) => /^##\s+Files\b/.test(l));
   if (start === -1) fail(`no \`## Files\` heading in ${file}`);
   const out = [];
+  // Whether a path-item's body is still open (see Boundary 2). Reset by a blank line.
+  let inPathItemBody = false;
   for (let i = start + 1; i < lines.length; i++) {
     const line = lines[i];
     // Boundary 1 — STRUCTURAL: any markdown heading of ANY level (`##`, `###`, …) ends the authorized
@@ -233,8 +235,25 @@ function pathsFromPlanFiles(file) {
     // is its own heading, so its paths are NEVER scanned — independent of the exclusion's wording.
     if (/^\s{0,3}#{1,6}\s/.test(line)) break;
     // Boundary 2 — CUE fallback for a HEAD-LESS prose exclusion intro (`Files NOT written:`), anchored
-    // to a NON-path line so an authorized item's own description ("… the public API is not touched")
-    // never trips it. `\W*` (not `\s+`) tolerates markdown markup, e.g. `**not** touched`.
+    // to a NON-path line. `\W*` (not `\s+`) tolerates markdown markup, e.g. `**not** touched`.
+    //
+    // "A NON-path line" was NOT enough, and the previous version of this comment said it was. An item's
+    // description that WRAPS puts ordinary vocabulary on a following line which is neither a path-item nor
+    // a blockquote — so a bullet reading "… an in-repo out-of-scope path unchanged" matched `out of scope`
+    // and TRUNCATED the authorized list. Measured live: a 5-path plan parsed as 1. Fails CLOSED (a loud
+    // deny at the next write), so it was friction rather than a hole, and it was caught only because the
+    // printed path count was read. Promoted as .dev/memory-bank/lessons-learned.md L28.
+    //
+    // The exemption is deliberately NARROW: only a line that continues an OPEN path-item's own text — an
+    // indented, non-blank line with NO intervening blank line since that item began. A blank line closes
+    // the item's body, so an INDENTED exclusion intro after one still breaks. The wide rule ("exempt every
+    // indented line") was rejected for exactly that case: it would let an indented exclusion sub-list enter
+    // scope, which fails OPEN, and this parser's failures must land on the friction side.
+    //
+    // HONEST BOUND, stated because the last version of this comment omitted its own: a LAZY continuation —
+    // an UNINDENTED line continuing an item's paragraph, which markdown permits — is still not exempt and
+    // still trips the cue. Prettier formats every PLAN in this repo and indents continuations, so the lazy
+    // form does not arise here; closing it needs a real markdown parser and has no triggering failure (P7).
     // A blockquote line (`> …`) is EXPLANATORY commentary, never an exclusion-section intro, so it is
     // EXEMPT: an explanatory note under `## Files` that mentions "not touched" (e.g. a reference to the
     // `### Explicitly not touched` subsection) must NOT truncate the authorized list. Only blockquotes
@@ -242,9 +261,15 @@ function pathsFromPlanFiles(file) {
     // `## Files` still fail closed (CF-E, .dev/features/product-pipeline-probe/PROBE.md).
     const isPathItem = /^\s*-\s+`[^`]+`/.test(line);
     const isBlockquote = /^\s*>/.test(line);
+    // An indented, non-blank line while a path-item's body is still open is that item's own wrapped text.
+    // A blank line closes the body; a heading already ended the scan above.
+    const isWrappedContinuation = inPathItemBody && !isPathItem && /^\s+\S/.test(line);
+    if (isPathItem) inPathItemBody = true;
+    else if (!line.trim()) inPathItemBody = false;
     if (
       !isPathItem &&
       !isBlockquote &&
+      !isWrappedContinuation &&
       /\bnot\W*(touch|writ|modif|edit|chang)|\bexplicitly\W*excluded|\bout\W*of\W*scope|\boff\W*limits/i.test(line)
     ) {
       break;

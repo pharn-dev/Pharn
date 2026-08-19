@@ -1,0 +1,51 @@
+{
+  "feature": "out-of-root-deny-message",
+  "base": "c7361da79a6946263b1571a5d9d9cf806cce7f5d",
+  "base_rationale": "git status --porcelain non-empty -> working-tree dogfood -> base = HEAD (deterministic state test, Step 1.1)",
+  "inside": [
+    ".claude/hooks/enforce-writes-scope.cjs",
+    ".claude/hooks/enforce-writes-scope.test.cjs",
+    ".dev/features/out-of-root-deny-message/GRILL.md",
+    ".dev/features/out-of-root-deny-message/PLAN.md",
+    ".dev/features/out-of-root-deny-message/REGRESSION.md",
+    ".dev/features/out-of-root-deny-message/REVIEW.md",
+    ".dev/features/out-of-root-deny-message/SHIP.md",
+    ".dev/features/out-of-root-deny-message/VERIFY.md",
+    ".dev/features/out-of-root-deny-message/enforce-writes-scope.patch",
+    ".dev/features/out-of-root-deny-message/regression-report.json",
+    ".dev/features/out-of-root-deny-message/verify-report.json",
+    "CHANGELOG.md",
+    "CLAUDE.md",
+    "README.md",
+    "SKILLS_VERSION"
+  ],
+  "outside_gates": {
+    "structural:expected-injection-comment.json": {
+      "base": 0,
+      "head": 0
+    },
+    "tests": {
+      "base": 0,
+      "head": 0
+    },
+    "validate": {
+      "base": 0,
+      "head": 0
+    }
+  },
+  "outside_tests_count": 67,
+  "style_gates": "skipped",
+  "style_gates_rationale": "no shared style config in `inside` (eslint.config.mjs / .prettierrc.json / .prettierignore / .markdownlint-cli2.jsonc), so an outside style result cannot flip; absent from BOTH maps",
+  "regressions": [],
+  "pre_existing": [],
+  "verdict": "no-regressions",
+  "scope_check": {
+    "exit": 1,
+    "escaped": [
+      ".claude/hooks/enforce-writes-scope.cjs"
+    ],
+    "escape_exempt_count": 8,
+    "disposition": "ONE escape remains and it is the human-applied hook patch, disproven with live evidence as in pass 1 (fix #2 denies Write/Edit/MultiEdit on it; the landed file hashes 396ea124d64b9debfb10dd090ea3a57b08319a6c97e4b27adca4fde2b36f90db, identical to the worktree copy npm run check passed at exit 0; PLAN.md pre-declares it under an exclusion heading). The pass-1 second escape \u2014 the .patch handoff record \u2014 is GONE, because REVIEW.md F4 was fixed by declaring it in ## Files. That the escape list shrank from 2 to 1 is the deterministic confirmation that F4 is closed."
+  },
+  "pass": 2
+}

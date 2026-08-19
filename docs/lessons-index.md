@@ -10,7 +10,7 @@ lessons to fetch; canon stays the source of truth and the floor's verification t
 applied, without fetching its full `## L<n>` entry from canon, is the P0 disease. "The index was
 consulted" never means "the relevant lessons were read".
 
-26 lessons · 26 tagged · 0 malformed · 0 untagged · ~15782 tokens total
+28 lessons · 28 tagged · 0 malformed · 0 untagged · ~17096 tokens total
 
 Columns: `id | type | concepts | title | promoted | ~tokens`. Every canon entry carries a tag line, so
 BOTH absence markers are unexpected: `-` = no tag line, i.e. an entry that reached canon without
@@ -46,4 +46,6 @@ L23 | process  | stage-artifact,gate-conflict,happy-path-latency,style-gates    
 L24 | floor    | guarantee-audit,live-measurement,lesson-recurrence,regex-anchoring      | A performance bound inherited from a superseded implementation is an unbacked claim — swapping the implementation mid-build is exactly when it gets inherited | 2026-08-19 | ~730
 L25 | tooling  | lesson-recurrence,floor-escalation,command-prescription,doc-drift       | A rationale comment reaches only the file it sits in, and it is trusted for the defects it does NOT name | 2026-08-19 | ~839
 L26 | tooling  | verification-fidelity,style-gates,human-only-patch,false-green          | A patch verified against a copy OUTSIDE the repo is verified under different rules than the repo enforces — config-driven gates resolve by PATH | 2026-08-19 | ~698
+L27 | process  | lesson-recurrence,floor-escalation,shared-message,fail-open             | A remedy added to a SHARED message is printed by every branch — check reachability per branch, or it trains the workaround | 2026-08-19 | ~690
+L28 | scoping  | writes-scope,plan-shape,cue-matching,false-red                          | The plan-scope setter's exclusion CUE fires on an authorized item's own WRAPPED line | 2026-08-19 | ~624
 ```
