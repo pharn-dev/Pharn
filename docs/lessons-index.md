@@ -10,7 +10,7 @@ lessons to fetch; canon stays the source of truth and the floor's verification t
 applied, without fetching its full `## L<n>` entry from canon, is the P0 disease. "The index was
 consulted" never means "the relevant lessons were read".
 
-24 lessons · 24 tagged · 0 malformed · 0 untagged · ~14245 tokens total
+25 lessons · 25 tagged · 0 malformed · 0 untagged · ~15084 tokens total
 
 Columns: `id | type | concepts | title | promoted | ~tokens`. Every canon entry carries a tag line, so
 BOTH absence markers are unexpected: `-` = no tag line, i.e. an entry that reached canon without
@@ -44,4 +44,5 @@ L21 | process  | input-capture,lesson-recurrence,floor-escalation,writes-scope,g
 L22 | tooling  | shell-portability,command-prescription,lesson-recurrence,false-red      | A command that prescribes a shell technique in PROSE accumulates wrong implementations — pin the command line | 2026-08-19 | ~596
 L23 | process  | stage-artifact,gate-conflict,happy-path-latency,style-gates             | A stage that writes an artifact AND owns a whole-repo gate over it has a self-referential conflict invisible on the happy path | 2026-08-19 | ~620
 L24 | floor    | guarantee-audit,live-measurement,lesson-recurrence,regex-anchoring      | A performance bound inherited from a superseded implementation is an unbacked claim — swapping the implementation mid-build is exactly when it gets inherited | 2026-08-19 | ~730
+L25 | tooling  | lesson-recurrence,floor-escalation,command-prescription,doc-drift       | A rationale comment reaches only the file it sits in, and it is trusted for the defects it does NOT name | 2026-08-19 | ~839
 ```

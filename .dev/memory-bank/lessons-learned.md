@@ -787,3 +787,46 @@ timeout is also what keeps a red TERMINATING rather than a hang.
   `.dev/features/scanner-nested-paren-span/REVIEW.md:75` (which recorded that PLAN and code disagreed
   after the mid-build swap, without catching that the BOUND had gone stale with it)
 - promoted: 2026-08-19 via gated `/pharn-dev-memory-promote` (human-approved).
+
+## L25 — A rationale comment reaches only the file it sits in, and it is trusted for the defects it does NOT name
+
+type: tooling · concepts: [lesson-recurrence, floor-escalation, command-prescription, doc-drift]
+
+**Lesson.** `.dev/floor/hash-doc.mjs` carried a twelve-line header explaining why comparing
+`import.meta.url` against a `` `file://${process.argv[1]}` `` template is the wrong entry-point guard —
+and **ten sibling floor CLIs shipped that exact guard anyway**, for the whole 2.x line, with nothing
+detecting it. Two
+failures, and the second is the sharp one, found only while repairing the first. (1) The explanation
+had **no reach**: its only remedy was "read the other file before writing this line", which is
+discipline. (2) The explanation was **incomplete in a load-bearing way**: it named the **symlink**
+break and never the **percent-encoding** break — and percent-encoding is the defect that actually bit,
+silently no-op'ing ten checkers on any path holding a space or a non-ASCII byte. A partial rationale is
+worse than an absent one, because it reads as a completed analysis and quietly narrows what the next
+reader thinks to check. The remedy is not a better comment: make the rationale **enforceable** (here,
+`.dev/floor/entry-point-guard.test.mjs` bans both wrong spellings on any executable line under either
+floor), and when the thing a comment describes is repaired, **re-derive what the comment claims** rather
+than carrying it across — [[L24]]'s "the claim is void until re-measured", applied to prose.
+
+**Why it matters.** The failure mode is the quietest one a floor can have: `check-lessons-index.mjs
+--verdict` printed the **empty string at exit 0**, and `/pharn-plan` branches on that token's membership
+in a closed set — a checker certifying by staying silent, which is the exact inverse of what the floor
+exists to do. It reached ten files **beside** the file that explained why it was wrong, which is the
+evidence standard [[L20]] sets: the reminder was not too quiet, it was the wrong KIND of remedy.
+Sharper than [[L22]] in one respect — L22 covers a **command** prescribing a shell technique in prose,
+where the wrong implementations at least differ each time; here a **source comment** prescribed an idiom
+**by example**, and ten copies were byte-identical, so no reviewer diffing them would see anything
+anomalous. Note also the near-miss the repair itself had to survive: `pathToFileURL(process.argv[1]).href`
+is the obvious fix and closes only defect (2)'s sibling — it still no-ops through a symlink — so a repair
+guided by the incomplete comment would have shipped a second spelling of the same guard and re-created
+the condition. Complements [[L20]] (the escalation rule), [[L22]] (prose that describes instead of
+prescribing), and [[L24]] (a claim inherited across a swap).
+
+**Provenance.**
+
+- feature: `entry-point-guard`
+- commit: `435414098575cbf6deb602545fc93f40ba407161`
+- source: `.dev/features/entry-point-guard/REVIEW.md` (proposed lesson Candidate A + the iteration-2
+  disposition table, where the comment's omission was found while closing the drift finding) +
+  `.dev/features/entry-point-guard/GRILL.md` F1/F6, with the ten-file spread and the four-shape
+  measurement reproduced live before and after the repair
+- promoted: 2026-08-19 via gated `/pharn-dev-memory-promote` (human-approved).
