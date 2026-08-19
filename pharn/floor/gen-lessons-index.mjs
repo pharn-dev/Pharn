@@ -78,7 +78,8 @@ function main() {
   process.exit(0);
 }
 
-// Run as CLI only when invoked directly (not when imported by a test).
-if (process.argv[1] && import.meta.url === `file://${process.argv[1]}`) {
+// Run as CLI only when invoked directly (not when imported by a test). `import.meta.main` — NOT a
+// `file://` + argv[1] compare, which silently no-ops on spaced/non-ASCII/symlinked paths.
+if (import.meta.main) {
   main();
 }

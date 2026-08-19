@@ -153,6 +153,9 @@ function main() {
   process.exit(1);
 }
 
-if (process.argv[1] && import.meta.url === `file://${process.argv[1]}`) {
+// Run as CLI only when invoked directly (not when imported by a test). `import.meta.main` — NOT a
+// `file://` + argv[1] compare, which silently no-ops on spaced/non-ASCII/symlinked paths. That defect
+// was sharpest HERE: `--verdict` printed nothing at exit 0, and /pharn-plan branches on token membership.
+if (import.meta.main) {
   main();
 }
