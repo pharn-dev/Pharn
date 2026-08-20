@@ -13,7 +13,7 @@ import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
-import { mkdtempSync, writeFileSync, rmSync } from "node:fs";
+import { mkdtempSync, writeFileSync, mkdirSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 
 import * as checker from "./check-ship-briefing.mjs";
@@ -336,6 +336,251 @@ test("✧ parity: readJsonVerdict agrees for present/absent/malformed/non-member
     for (const [path, content] of cases) {
       if (content !== null) writeFileSync(path, content);
       assert.equal(checker.readJsonVerdict(path, enumSet), renderer.readJsonVerdict(path, enumSet));
+    }
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+// ── ⟲ CODEC PARITY + the per-field round trip ─────────────────────────────────────────────────────────
+// render-ship-briefing.mjs escapes `\` and `"` into the briefing's frontmatter; nothing here ever undid
+// it, so a quote-bearing field read back as `…\"…`, never equalled its live source, and a briefing
+// rendered seconds earlier REDded as "stale" against an input that had not changed. These tests pin the
+// decoder, its parity with the writer's copy, and — per branch — that the two readers over files the
+// renderer never encoded were NOT changed (L27).
+//
+// EMITTED_FIELDS is the set the round-trip rule ranges over, materialized in ONE place and iterated by
+// every rule below, so a field added to the renderer later is covered without anyone remembering to
+// revisit these tests (L29). `quote_reachable` records whether that field's SOURCE can contain a `"` or
+// `\` today; it is data the rules branch on, not a judgment re-made per test. `briefing_contract_version`
+// is deliberately absent — the renderer emits it as a raw literal, not through the codec.
+const EMITTED_FIELDS = [
+  { field: "feature", quote_reachable: true, source: "the <name> CLI argument" },
+  { field: "spec_id", quote_reachable: true, source: "SPEC.md frontmatter (cleanScalar <=128)" },
+  { field: "spec_state", quote_reachable: false, source: "SPEC.md `state`, collapsed to Approved|n/a" },
+  { field: "grill_verdict", quote_reachable: true, source: "GRILL.md's ADVISORY VERDICT line (free text)" },
+  { field: "regress_verdict", quote_reachable: false, source: "regression-report.json, enum-closed" },
+  { field: "verify_verdict", quote_reachable: false, source: "verify-report.json, enum-closed" },
+  { field: "rendered_at_commit", quote_reachable: false, source: "git rev-parse — hex, or the literal `unknown`" },
+];
+
+const CODEC_CORPUS = [
+  "plain",
+  "n/a",
+  "",
+  'has a " quote',
+  'ends with a quote "',
+  '"fully wrapped"',
+  "has a \\ backslash",
+  "ends with a backslash \\",
+  "ends with two backslashes \\\\",
+  'the literal escape \\" sequence',
+  '\\"',
+  "\\",
+  '"',
+  'ADVISORY VERDICT: 0 concerns — not "grill passed".',
+  "C:\\Users\\x",
+];
+
+test("✧ parity: yamlScalar / isQuotedScalar / yamlUnscalar agree between both copies over CODEC_CORPUS", () => {
+  for (const v of CODEC_CORPUS) {
+    assert.equal(checker.yamlScalar(v), renderer.yamlScalar(v), `yamlScalar diverged for ${JSON.stringify(v)}`);
+    const raw = renderer.yamlScalar(v);
+    assert.equal(checker.isQuotedScalar(raw), renderer.isQuotedScalar(raw));
+    assert.equal(checker.yamlUnscalar(raw), renderer.yamlUnscalar(raw));
+  }
+  // and on inputs the writer never produces, where a divergent fallback would be just as damaging
+  for (const raw of ["", '"', "unquoted", '"a\\"', "'single'", '"x" # note']) {
+    assert.equal(checker.isQuotedScalar(raw), renderer.isQuotedScalar(raw), `isQuotedScalar diverged for ${JSON.stringify(raw)}`);
+    assert.equal(checker.yamlUnscalar(raw), renderer.yamlUnscalar(raw), `yamlUnscalar diverged for ${JSON.stringify(raw)}`);
+  }
+});
+
+test("⟲ round-trip through the checker's copy: yamlUnscalar(yamlScalar(v)) === v over CODEC_CORPUS", () => {
+  for (const v of CODEC_CORPUS) {
+    assert.equal(checker.yamlUnscalar(checker.yamlScalar(v)), v, `round-trip failed for ${JSON.stringify(v)}`);
+  }
+});
+
+// ── The per-field rules, iterating EMITTED_FIELDS (L29) ───────────────────────────────────────────────
+
+function renderWith(base, name, files) {
+  const dir = join(base, name);
+  mkdirSync(dir, { recursive: true });
+  for (const [rel, content] of Object.entries(files)) writeFileSync(join(dir, rel), content);
+  return renderer.renderBriefing(name, { base });
+}
+
+const PAYLOAD = 'a " quote and a \\ backslash and a trailing \\';
+
+test("⟲ EVERY yamlScalar-emitted field renders as a COMPLETE quoted scalar — a raw-literal field would fail here", () => {
+  const base = scratchDir();
+  try {
+    const r = renderWith(base, "feat", {
+      "PLAN.md": ["---", 'spec_id: "FEAT-1"', "state: Approved", "---", "", "## Files", "", "- a.mjs — x", ""].join("\n"),
+      "SPEC.md": ["---", 'spec_id: "FEAT-1"', "state: Approved", "---", "", "# SPEC", ""].join("\n"),
+      "GRILL.md": "**ADVISORY VERDICT: 0 concerns.**",
+      "regression-report.json": JSON.stringify({ verdict: "no-regressions" }),
+      "verify-report.json": JSON.stringify({ verdict: "PASS" }),
+    });
+    assert.equal(r.ok, true);
+    const fm = r.markdown.match(/^---\r?\n([\s\S]*?)\r?\n---/)[1];
+    for (const { field } of EMITTED_FIELDS) {
+      const line = fm.split(/\r?\n/).find((l) => l.startsWith(`${field}:`));
+      assert.ok(line, `field ${field} is not emitted at all`);
+      const raw = line.slice(field.length + 1).trim();
+      assert.equal(checker.isQuotedScalar(raw), true, `${field} is not a complete quoted scalar: ${raw}`);
+    }
+  } finally {
+    rmSync(base, { recursive: true, force: true });
+  }
+});
+
+test("⟲ every QUOTE-REACHABLE field survives render→readEnvelope byte-for-byte", () => {
+  for (const { field, quote_reachable } of EMITTED_FIELDS.filter((f) => f.quote_reachable)) {
+    assert.equal(quote_reachable, true);
+    const base = scratchDir();
+    try {
+      // Drive the payload into THIS field's own source, leaving the others at their defaults.
+      const name = field === "feature" ? `fe${PAYLOAD}` : "feat";
+      const specText = ["---", `spec_id: ${field === "spec_id" ? PAYLOAD : "FEAT-1"}`, "state: Approved", "---", "", "# SPEC", ""].join(
+        "\n"
+      );
+      const grillText = `**ADVISORY VERDICT: ${field === "grill_verdict" ? PAYLOAD : "0 concerns."}**`;
+      const r = renderWith(base, name, {
+        "PLAN.md": ["---", "state: Approved", "---", "", "## Files", "", "- a.mjs — x", ""].join("\n"),
+        "SPEC.md": specText,
+        "GRILL.md": grillText,
+        "regression-report.json": JSON.stringify({ verdict: "no-regressions" }),
+        "verify-report.json": JSON.stringify({ verdict: "PASS" }),
+      });
+      assert.equal(r.ok, true, `render failed for ${field}`);
+
+      // `want` is what the RENDERER read from the source, computed with the renderer's own reader — not
+      // the payload as authored. SPEC.md and GRILL.md are files the renderer never encoded, so their
+      // readers do not decode (L27); the property under test is that the ENVELOPE hands back exactly the
+      // value the renderer copied, which is also the value the checker compares against live.
+      const want =
+        field === "feature"
+          ? name
+          : field === "spec_id"
+            ? renderer.readHeaderField(specText, "spec_id")
+            : renderer.grillVerdictLine(grillText);
+      assert.ok(want.includes('"') || want.includes("\\"), `precondition: ${field}'s payload must carry an escapable char`);
+      const line = r.markdown.split(/\r?\n/).find((l) => l.startsWith(`${field}:`));
+      assert.match(line, /\\/, `precondition: ${field} must actually be ESCAPED in the rendered bytes, else this is vacuous`);
+      const got = checker.readEnvelope(r.markdown).get(field);
+      assert.equal(got, want, `${field} did not survive the round trip`);
+    } finally {
+      rmSync(base, { recursive: true, force: true });
+    }
+  }
+});
+
+// ── End-to-end: the defect's own reproduction, as a test ──────────────────────────────────────────────
+
+test("⟲ a quote- AND backslash-bearing briefing renders and CHECKS GREEN against its own live sources", () => {
+  const dir = scratchDir();
+  try {
+    const verdict = 'ADVISORY VERDICT: the plan says "escape it" and uses a back\\slash';
+    const specId = 'FEAT-"1"\\x';
+    const files = {
+      "PLAN.md": ["---", "state: Approved", "---", "", "## Files", "", "- a.mjs — x", ""].join("\n"),
+      "SPEC.md": ["---", `spec_id: ${renderer.yamlScalar(specId)}`, "state: Approved", "---", "", "# SPEC", ""].join("\n"),
+      "GRILL.md": `**${verdict}**`,
+      "regression-report.json": JSON.stringify({ verdict: "no-regressions" }),
+      "verify-report.json": JSON.stringify({ verdict: "PASS" }),
+    };
+    mkdirSync(join(dir, "feat"), { recursive: true });
+    for (const [rel, content] of Object.entries(files)) writeFileSync(join(dir, "feat", rel), content);
+    const r = renderer.renderBriefing("feat", { base: dir });
+    assert.equal(r.ok, true);
+    const briefing = join(dir, "feat", "BRIEFING.md");
+    writeFileSync(briefing, r.markdown);
+    // the escapes really are in the rendered bytes — otherwise this test would pass vacuously
+    assert.match(r.markdown, /grill_verdict: ".*\\"escape it\\".*back\\\\slash"/);
+    const res = run(briefing);
+    assert.equal(res.status, 0, `expected GREEN, got:\n${res.stdout}`);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+// ── L27: per branch — the decode landed on ONE reader, and provably not on the other two ──────────────
+
+test("⟲ the decode did NOT leak into readHeaderField or grillVerdictLine — both still agree with the renderer", () => {
+  // These read files the renderer never encoded. A blanket unescape inside clean() would change them and
+  // silently break their parity; assert per branch, in its own case AND absent from the others.
+  const spec = ["---", 'spec_id: "FEAT-\\"1\\""', "---", ""].join("\n");
+  assert.equal(checker.readHeaderField(spec, "spec_id"), renderer.readHeaderField(spec, "spec_id"));
+  assert.equal(checker.readHeaderField(spec, "spec_id"), 'FEAT-\\"1\\"'); // literal, NOT decoded
+
+  const grill = '**ADVISORY VERDICT: a \\" literal**';
+  assert.equal(checker.grillVerdictLine(grill), renderer.grillVerdictLine(grill));
+  assert.equal(checker.grillVerdictLine(grill), 'ADVISORY VERDICT: a \\" literal'); // literal, NOT decoded
+
+  // ...while the envelope reader, whose input the renderer DID encode, decodes.
+  const fm = ["---", `grill_verdict: ${renderer.yamlScalar('a " and a \\')}`, "---", ""].join("\n");
+  assert.equal(checker.readEnvelope(fm).get("grill_verdict"), 'a " and a \\');
+});
+
+// ── L14: the decoder is layered BEFORE the shape guard, never in place of it ──────────────────────────
+
+test("⟲ a decoded value is still shape-guarded — a control char behind an escape does not launder through", () => {
+  const dir = scratchDir();
+  try {
+    const del = String.fromCharCode(0x7f); // built, never written as a raw byte in this source
+    const fm = [
+      "---",
+      'feature: "feat"',
+      'spec_id: "n/a"',
+      'spec_state: "n/a"',
+      `grill_verdict: "bad${del}value"`,
+      'regress_verdict: "n/a"',
+      'verify_verdict: "n/a"',
+      'rendered_at_commit: "abcdef1"',
+      'briefing_contract_version: "0.1.0"',
+      "---",
+    ].join("\n");
+    const p = join(dir, "BRIEFING.md");
+    writeFileSync(p, fm + GOOD_BODY);
+    const r = run(p);
+    assert.equal(r.status, 1);
+    assert.match(r.stdout, /grill_verdict.*control-char-free/);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("⟲ an over-long value is still length-guarded AFTER decoding — the bound applies to the decoded string", () => {
+  const dir = scratchDir();
+  try {
+    // 200 escaped quotes decode to 200 characters, well under 256; 300 decode to 300, over it. The bound
+    // must be read on the DECODED value, or the escaping would inflate a legal value past its own limit.
+    for (const [n, wantStatus] of [
+      [200, 0],
+      [300, 1],
+    ]) {
+      const decoded = '"'.repeat(n);
+      mkdirSync(join(dir, String(n)), { recursive: true });
+      const d = join(dir, String(n));
+      writeFileSync(join(d, "GRILL.md"), `**ADVISORY VERDICT: ${decoded}**`);
+      const live = renderer.grillVerdictLine(readFileSync(join(d, "GRILL.md"), "utf8"));
+      const fm = [
+        "---",
+        'feature: "feat"',
+        'spec_id: "n/a"',
+        'spec_state: "n/a"',
+        `grill_verdict: ${renderer.yamlScalar(live)}`,
+        'regress_verdict: "n/a"',
+        'verify_verdict: "n/a"',
+        'rendered_at_commit: "abcdef1"',
+        'briefing_contract_version: "0.1.0"',
+        "---",
+      ].join("\n");
+      const p = join(d, "BRIEFING.md");
+      writeFileSync(p, fm + GOOD_BODY);
+      assert.equal(run(p).status, wantStatus, `n=${n}`);
     }
   } finally {
     rmSync(dir, { recursive: true, force: true });

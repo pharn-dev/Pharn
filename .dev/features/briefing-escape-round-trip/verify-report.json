@@ -1,0 +1,31 @@
+{
+  "feature": "briefing-escape-round-trip",
+  "gates": {
+    "format:check": 0,
+    "lint": 0,
+    "lint:md": 0,
+    "structural:pharn/pharn-review/trust-fence/evals/expected/expected-injection-comment.json": 0,
+    "test": 0,
+    "validate": 0
+  },
+  "verdict": "PASS",
+  "failing_gates": [],
+  "declared_files_present": [
+    "pharn/floor/render-ship-briefing.mjs",
+    "pharn/floor/check-ship-briefing.mjs",
+    "pharn/floor/render-ship-briefing.test.mjs",
+    "pharn/floor/check-ship-briefing.test.mjs",
+    "SKILLS_VERSION",
+    "CHANGELOG.md",
+    "README.md"
+  ],
+  "declared_files_absent": [],
+  "verifiers": {
+    "registered": 0,
+    "verifiers": [],
+    "findings": [],
+    "note": "role: verifier membership is FLOOR (count-verifiers.mjs reads frontmatter, never prose). Zero are authored (P7), so the advisory layer contributed nothing. A verifier finding could never have flipped the verdict regardless — check-verify.mjs's only input is the gate->exit-code map (fix #3)."
+  },
+  "test_count": 1506,
+  "test_count_note": "Read live from `npm test` this run, never asserted from a doc (P6). Baseline at the base commit was 1492; this increment adds 14."
+}
