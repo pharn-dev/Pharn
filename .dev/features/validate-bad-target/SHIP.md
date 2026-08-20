@@ -81,10 +81,37 @@ and GATE 1 was not re-entered.**
   remains accurate verbatim.
 - **`/pharn-dev-verify` re-run from scratch** → **`PASS`**, six gates all 0, `failing_gates[]` empty.
   `verify-report.json` already matched and was not rewritten.
-- **`REVIEW.md` amended, not reissued** — a clearly-marked post-GATE-2 section records F1 as resolved;
-  the findings as originally issued were left intact. **F2 and F3 remain open.**
+- **`REVIEW.md` amended, not reissued** — clearly-marked post-GATE-2 sections record what was resolved;
+  the findings as originally issued were left intact.
 
 `npm run check` (the aggregate gate) exits **0**.
+
+## Second GATE-2 pass — F2 and F3 also fixed
+
+The human then directed that the remaining findings be fixed, the lesson promoted, and a PR opened.
+All three were carried out; this section is the record, and it supersedes an earlier line here that
+said F2 and F3 remained open.
+
+- **F2 fixed, inside this increment's `## Files`.** Both renders that echo the target now quote and
+  escape it. The fix went wider than the finding: F2 cited only the new refusal render, but the
+  long-standing GREEN line carries the same property, and fixing one call site would have left the
+  other free to reintroduce it.
+- **F3 fixed as a SEPARATE increment** — `.dev/features/build-step2b-lint/`, with its own `PLAN.md`
+  (floor-checked `applied_lessons`), its own writes-scope, and its own `PASS` verify. It is separate
+  because `.claude/commands/pharn-dev-build.md` sits outside this increment's approved `## Files`, and
+  folding it in would have meant retroactively rewriting a human-approved scope — the one move
+  `/pharn-dev-regress` names as structurally undetectable. **GATE 1 for that increment was the human's
+  "fix everything" instruction rather than a fresh plan halt; that substitution is recorded here rather
+  than left implicit.**
+- **Lesson promoted to canon as `L30`** by a gated `/pharn-dev-memory-promote` run —
+  `check-provenance.mjs` GREEN, id unique, scope pinned to the single canon file, canon style repaired
+  by hand rather than with an auto-fixer. `docs/lessons-index.md` regenerated (30 lessons, 30 tagged,
+  0 untagged) so `docs:check` stays GREEN.
+- **PR #157 opened**, all 8 CI checks green — including the `check` and `floor` jobs.
+
+**Still open, and deliberately so:** an unreadable (`chmod 000`) directory passes the target guard and
+still reports GREEN over zero capabilities. The human chose the narrowing remedy over a readability
+probe at the first GATE 2, so this is a **stated limit**, named at three sites, not an oversight.
 
 ## Standing decision
 

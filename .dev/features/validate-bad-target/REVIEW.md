@@ -110,13 +110,33 @@ stronger option — an actual readability probe that would also RED a `chmod 000
 deliberately **not** taken, so the residual is now a **stated limit rather than a fixed defect**, which
 is what P7 asks of a limit. `/pharn-dev-verify` re-issued **PASS** over all six gates afterwards.
 
-**F2 and F3 stand unresolved and are unchanged by this.** F2 (unescaped path in the human render) is a
-minor advisory the increment inherits from the pre-existing GREEN line. F3 (Step 2b's unmechanized
-`eslint`) is a finding against `.claude/commands/pharn-dev-build.md`, outside this increment's approved
-`## Files`; it was worked around by hand this run (Step 2b was run complete, `eslint` included, before
-the re-verify) and remains open as the lesson candidate below.
+### Second amendment — F2 and F3 also resolved
+
+An earlier version of this section said F2 and F3 stood unresolved. That was true when written and is
+no longer, so it is corrected here rather than left to read as current: an audit artifact asserting a
+state the repo contradicts is the drift this increment exists to argue against.
+
+**F2 — fixed in this increment.** Both call sites that echo the target now render it as quoted DATA
+(`JSON.stringify`), so a newline-bearing path cannot forge a line shaped like a finding. The fix went
+**wider than the finding**: F2 cited only the new refusal render at `validate.mjs:52`, but the
+long-standing `FLOOR: GREEN — … checked in <target>` line carries the same property, and fixing one
+would have left the other free to reintroduce it. Regression tests exercise both renders and were
+mutation-tested by restoring the raw splice, which each caught.
+
+**F3 — fixed in a SEPARATE increment,** `.dev/features/build-step2b-lint/`, because
+`.claude/commands/pharn-dev-build.md` is outside this increment's approved `## Files` and folding it in
+would have meant retroactively rewriting a human-approved scope — the one move `/pharn-dev-regress`
+names as structurally undetectable. Step 2b now runs eslint over its scoped paths, and
+`.dev/floor/command-hygiene.test.mjs` holds the three gates as one enumerated set the rules iterate.
 
 ## Proposed lesson candidate (NOT written to canon here)
+
+> **Status update — this candidate was ACCEPTED and is now canon `L30`.** It was promoted by a separate
+> gated `/pharn-dev-memory-promote` run (`check-provenance.mjs` GREEN, id unique, scope pinned to the one
+> canon file, human-accepted), and the promoted entry's title was sharpened from the draft below to
+> `A step that RUNS some of the gates it names and ASKS for the rest will fail on the ones it asks for`.
+> The proposal is left unedited beneath, because the promoted entry cites this file as its `source` and
+> a source that has been rewritten to match its own outcome is no longer evidence.
 
 `/pharn-dev-review` writes no canon. This is a proposal for a separate, human-gated
 `/pharn-dev-memory-promote` run to accept or deny.
