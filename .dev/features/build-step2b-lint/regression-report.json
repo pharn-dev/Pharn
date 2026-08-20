@@ -1,0 +1,43 @@
+{
+  "base": "fcf3f5b1a604b296f6de55fbdb6954f0916792f0",
+  "inside": [
+    ".claude/commands/pharn-dev-build.md",
+    ".dev/features/build-step2b-lint/PLAN.md",
+    ".dev/features/build-step2b-lint/SHIP.md",
+    ".dev/features/build-step2b-lint/VERIFY.md",
+    ".dev/features/build-step2b-lint/verify-report.json",
+    ".dev/features/validate-bad-target/GRILL.md",
+    ".dev/features/validate-bad-target/PLAN.md",
+    ".dev/features/validate-bad-target/REGRESSION.md",
+    ".dev/features/validate-bad-target/REVIEW.md",
+    ".dev/features/validate-bad-target/SHIP.md",
+    ".dev/features/validate-bad-target/VERIFY.md",
+    ".dev/features/validate-bad-target/regression-report.json",
+    ".dev/features/validate-bad-target/verify-report.json",
+    ".dev/floor/command-hygiene.test.mjs",
+    ".dev/memory-bank/lessons-learned.md",
+    "CHANGELOG.md",
+    "README.md",
+    "SKILLS_VERSION",
+    "docs/lessons-index.md",
+    "pharn/floor/validate.mjs",
+    "pharn/floor/validate.test.mjs"
+  ],
+  "outside_gates": {
+    "structural:expected-injection-comment": {
+      "base": 0,
+      "head": 0
+    },
+    "tests": {
+      "base": 0,
+      "head": 0
+    },
+    "validate": {
+      "base": 0,
+      "head": 0
+    }
+  },
+  "regressions": [],
+  "pre_existing": [],
+  "verdict": "no-regressions"
+}

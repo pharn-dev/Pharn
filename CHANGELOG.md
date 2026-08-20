@@ -46,6 +46,73 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Fixed
 
+- **The floor's flagship gate refuses a target it cannot walk, instead of reporting GREEN over
+  nothing** (`SKILLS_VERSION` 2.7.11 → **2.7.12**, patch). `pharn/floor/validate.mjs` resolved
+  `TARGET = process.argv[2] || "."` and walked it with no existence check, while `walk()` swallows a
+  failing `readdirSync` by design. The two composed into a fabricated pass: `validate.mjs /no/such/dir`
+  printed `FLOOR: GREEN — 0 capabilities checked in /no/such/dir` and **exited 0**, as did a target
+  that was a file rather than a directory. A typo'd path, a wrong cwd, or a moved checkout therefore
+  reported a clean floor having checked nothing — and `ci.yml` reads the exit code only, so the whole
+  class was invisible to the one consumer that runs on every PR. The target is now validated **before**
+  the capability walk: an absent path, or one that is not a readable directory, emits a `P6/bad-target`
+  finding in the canonical shape (`pharn/ARCHITECTURE.md §8`) and exits 1. Floor primitive #3 (presence
+  - type test), the same class as the checks already in the file — no new primitive.
+
+  Two branches, not one, and each carries a message true for **it** and absent from the other: an
+  unreadable target cannot be _shown_ to be a directory, so `statSync` is caught rather than left to
+  throw, since an uncaught stack trace is not the finding shape a reader of this floor is entitled to
+  (its exit code would have been non-zero either way). The refusal also claims **no capability count**
+  — printing "0 capabilities checked" on a refusal would reproduce, inside the RED, the same
+  fabricated-scan reading the guard exists to remove. `pharn/floor/validate.test.mjs` enumerates the
+  branches in one array that every rule iterates, so a third inherits all of them; the
+  present-in-its-own-case **and absent-from-the-other** assertion was mutation-tested by collapsing
+  both branches onto one message, which it caught.
+
+  **The echoed path is now rendered as quoted DATA, on both renders.** A path may legally contain a
+  newline, and splicing it raw into the report let one forge an extra `- [blocking] …` line that no
+  check produced — a fabricated line shaped exactly like a real finding. Found by this increment's own
+  review and reproduced live before the fix. Both call sites that echo the target now quote and escape
+  it (the refusal above and the long-standing `FLOOR: GREEN — … checked in <target>` line), because the
+  property belongs to the path rather than to the call site the defect was reported against; the
+  regression tests exercise **both** renders and were mutation-tested by restoring the raw splice,
+  which each caught. **Bounded, and stated:** every consumer in this repo — `ci.yml`,
+  `/pharn-dev-build`, `/pharn-dev-ship`, `/pharn-dev-review` — branches on the exit code and never on
+  this text, so the impact was always to the human render, never to a gate.
+
+  **Narrowed, and stated.** GREEN now means the target existed and was a **directory** — not that it
+  was readable, and not that it was the right one. Two residuals stay live and both still produce GREEN
+  over zero capabilities. (1) A valid-but-**wrong** directory (a sibling repo, a parent dir) walks to
+  nothing and reports GREEN exactly as before. (2) An **unreadable** directory passes the guard:
+  `statSync` resolves through search permission on the _parent_ rather than read permission on the
+  target, so a `chmod 000` directory is stat-able and `isDirectory()`-true, and `walk()`'s unchanged
+  per-directory swallow then absorbs the `EACCES`. The second was found by this increment's own review
+  and is recorded rather than papered over — it sits one permission bit from the case the guard does
+  remove. So what closed is the fabricated-GREEN-on-a-bad-**path** class, not fabricated GREEN in
+  general; "GREEN" never meant "the right target", and does not mean it now. A valid empty directory
+  stays GREEN: that walk is honestly empty.
+
+- **`/pharn-dev-build` Step 2b now RUNS the third gate it names.** Apparatus: **no `SKILLS_VERSION`
+  bump** (a `pharn-dev-*` command and a `.dev/floor/` test — neither ships). The step named prettier,
+  markdownlint, and eslint, but ran only the first two; eslint was a prose line asking the agent to
+  "confirm `npm run lint` is clean". The asked-for gate is the one that got skipped: a
+  `no-useless-assignment` in freshly-built code reached `/pharn-dev-verify` as a red `lint` gate one
+  stage after the build had declared itself formatted — reproduced live in the `validate-bad-target`
+  run that also surfaced it. The invocation is now pinned in the block itself, scoped to the paths
+  parsed from `.pharn/writes-scope.json`, read-only (no `--fix`: the triggering rule has no autofix,
+  and mechanizing a fixer is a separate axis), and guarded against the empty list exactly as the
+  markdownlint line beside it — **measured** for this linter rather than assumed, since a path-less
+  `npx eslint` runs ~1.1s against ~1.1s for `npx eslint .` and ~0.3s for a single file, i.e. it lints
+  the whole repo and would report every unrelated pre-existing error as the increment's.
+
+  `.dev/floor/command-hygiene.test.mjs` now holds the three gates as **one enumerated set that the
+  rules iterate**, so a fourth tool added later inherits every rule rather than needing its own
+  assertion — the deliverable a remedy quantified over a set actually owes. Both directions are
+  mutation-tested: dropping the eslint invocation and making it path-less each fail two rules.
+  **Narrowed, and stated:** this pins that the command PRESCRIBES the three invocations. Step 2b is
+  advisory orchestration outside the `PreToolUse` gate, so nothing proves a given run executed it, and
+  a mistyped flag would satisfy the pin. The deterministic style verdict remains `/pharn-dev-verify`'s
+  `check-verify.mjs` gate map; prevention moved earlier, the guarantee did not move.
+
 - **The crypto scanner's insecure-random keyword set is anchored to identifier SEGMENTS, so it stops
   flooding on idiomatic code** (`SKILLS_VERSION` 2.7.10 → **2.7.11**, patch).
   `pharn/floor/scan-code-crypto.mjs`'s `SECMAT` set matched its words as unanchored **sub-strings** —

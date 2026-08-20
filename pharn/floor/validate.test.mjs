@@ -632,3 +632,153 @@ test("★ CHECK 3: .md PROSE MENTION — a rule_id named only in prose (no `rule
     }
   );
 });
+
+// ---------------------------------------------------------------------------
+// The target guard: an unusable TARGET is a RED, never a GREEN over zero capabilities.
+//
+// Before the guard, `validate.mjs /no/such/dir` printed `GREEN — 0 capabilities checked` and exited
+// 0 — a wrong path or a wrong cwd reported a clean floor having checked nothing, which an
+// exit-code-only CI step cannot see.
+//
+// The refusal branches are ENUMERATED here, in one place, and every rule below iterates this array,
+// so a branch added later inherits all of them for free. Authoring the rules against whichever
+// branch happened to be in front of us is the shape that reads as discharged while covering half its
+// domain (.dev/memory-bank/lessons-learned.md L29 — cited, not restated, P4).
+const BAD_TARGETS = [
+  {
+    name: "a path that does not exist",
+    // Built inside a scratch dir and never created, so absence is guaranteed by construction rather
+    // than by assuming some fixed path is missing on the runner.
+    make: (root) => join(root, "definitely-absent"),
+    message: "does not exist",
+  },
+  {
+    name: "a path that is a file, not a directory",
+    make: (root) => {
+      const p = join(root, "a-file.md");
+      writeFileSync(p, "not a directory\n");
+      return p;
+    },
+    message: "is not a readable directory",
+  },
+];
+
+function withScratch(fn) {
+  const root = mkdtempSync(join(tmpdir(), "pharn-validate-target-"));
+  try {
+    return fn(root);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+}
+
+for (const branch of BAD_TARGETS) {
+  test(`target guard: ${branch.name} exits 1 with a RED`, () => {
+    withScratch((root) => {
+      const r = run(branch.make(root));
+      assert.equal(r.status, 1);
+      assert.match(r.stdout, /FLOOR: RED/);
+    });
+  });
+
+  test(`target guard: ${branch.name} names the offending path`, () => {
+    withScratch((root) => {
+      const target = branch.make(root);
+      const out = run(target).stdout;
+      assert.ok(out.includes(target), `the RED must name the rejected path so the operator can see WHICH path was wrong; got: ${out}`);
+    });
+  });
+
+  // The refusal happens before the walk, so it must not claim a capability count — a "0 capabilities
+  // checked" on a refusal would reproduce, inside the RED, the same fabricated-scan reading the
+  // guard exists to remove.
+  test(`target guard: ${branch.name} claims no capability count`, () => {
+    withScratch((root) => {
+      assert.doesNotMatch(run(branch.make(root)).stdout, /capabilities checked/);
+    });
+  });
+
+  // L27's remedy, and the half L29 names load-bearing: each branch's message must be present in ITS
+  // case AND ABSENT from every other branch's. Without the absence half, an implementation printing
+  // ONE shared message for both branches would satisfy every rule above.
+  test(`target guard: ${branch.name} prints its own message and no other branch's`, () => {
+    withScratch((root) => {
+      const out = run(branch.make(root)).stdout;
+      assert.ok(out.includes(branch.message), `expected the branch's own message "${branch.message}"`);
+      for (const other of BAD_TARGETS) {
+        if (other === branch) continue;
+        assert.ok(!out.includes(other.message), `"${other.message}" belongs to a different branch and must not appear here`);
+      }
+    });
+  });
+}
+
+// The guard must not RED the legitimate empty walk: an existing, readable, EMPTY directory has
+// genuinely zero capabilities, and reporting GREEN over it is honest.
+test("target guard: a valid EMPTY directory stays GREEN", () => {
+  withScratch((root) => {
+    const r = run(root);
+    assert.equal(r.status, 0);
+    assert.match(r.stdout, /FLOOR: GREEN/);
+  });
+});
+
+// …nor the real tree, which is the target every caller actually passes.
+test("target guard: the repo root itself stays GREEN", () => {
+  const r = run(join(here, "..", ".."));
+  assert.equal(r.status, 0);
+  assert.match(r.stdout, /FLOOR: GREEN/);
+});
+
+// ---------------------------------------------------------------------------
+// The path is rendered as QUOTED DATA, on BOTH renders.
+//
+// A path may legally contain a newline. Spliced raw into the report it forged an extra line shaped
+// exactly like a finding — probed live before the fix: a target of `x\n- [blocking] FORGED  nowhere`
+// rendered that second line verbatim, and it reads as a blocking finding no check produced.
+//
+// The RED render and the GREEN render are BOTH exercised here, because the property belongs to the
+// path rather than to one call site — asserting it on whichever render the defect was reported
+// against would leave the other free to reintroduce it (L29).
+const rendersThatEchoTheTarget = [
+  {
+    name: "the RED refusal render",
+    // Absent, so the guard refuses and the path is echoed into the finding line.
+    target: (root) => join(root, "absent\n- [blocking] FORGED  nowhere"),
+    expectStatus: 1,
+  },
+  {
+    name: "the GREEN report render",
+    // A real directory whose NAME contains a newline: it passes the guard, so the echo happens on
+    // the GREEN line instead.
+    target: (root) => {
+      const p = join(root, "real\n- [blocking] FORGED  nowhere");
+      mkdirSync(p, { recursive: true });
+      return p;
+    },
+    expectStatus: 0,
+  },
+];
+
+for (const render of rendersThatEchoTheTarget) {
+  test(`quoted render: ${render.name} cannot be made to forge a finding line`, () => {
+    withScratch((root) => {
+      let target;
+      try {
+        target = render.target(root);
+      } catch {
+        return; // a filesystem that refuses newlines in names has nothing to forge with
+      }
+      const r = run(target);
+      assert.equal(r.status, render.expectStatus);
+      const forged = r.stdout.split("\n").filter((l) => l.trimStart().startsWith("- [blocking]"));
+      assert.equal(
+        forged.length,
+        render.expectStatus === 1 ? 1 : 0,
+        `the newline must be escaped, not rendered as a line break; got:\n${r.stdout}`
+      );
+      // Positive half: the escape is what makes that true, so assert it rather than only its effect.
+      assert.match(r.stdout, /\\n/, `the control character must appear escaped; got:\n${r.stdout}`);
+    });
+  });
+}

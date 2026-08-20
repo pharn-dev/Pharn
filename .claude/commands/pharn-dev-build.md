@@ -95,6 +95,16 @@ else
   # does not run it. Depend on neither dialect.
   MD=$(node -p "require('./$SCOPE').scope.filter(p=>p.endsWith('.md')).join('\n')")
   [ -n "$MD" ] && printf '%s\n' "$MD" | xargs npx markdownlint-cli2 --fix
+  # The JS SUBSET -> eslint, READ-ONLY (no `--fix`: the finding that forced this line,
+  # `no-useless-assignment`, has no autofix, and mechanizing a fixer is a different axis). The same
+  # non-empty test is LOAD-BEARING for the same reason (L16), and MEASURED for this linter rather than
+  # assumed: a path-less `npx eslint` takes ~1.1s against ~1.1s for `npx eslint .` and ~0.3s for one
+  # file — i.e. it lints the WHOLE REPO, so on an empty list under GNU xargs it would report every
+  # unrelated pre-existing error as this increment's (L11). This line is PINNED rather than described,
+  # because the prose it replaces ("Confirm `npm run lint` is clean") left the invocation open and the
+  # open choice was the one that got skipped (L22).
+  JS=$(node -p "require('./$SCOPE').scope.filter(p=>/\.(mjs|cjs|js)$/.test(p)).join('\n')")
+  [ -n "$JS" ] && printf '%s\n' "$JS" | xargs npx eslint
 fi
 ```
 
@@ -102,8 +112,18 @@ fi
   **deterministically** (P5) — never a fresh model reading of the plan. **Say how many paths you
   formatted**: `.pharn/` is gitignored runtime state that other stages re-set, so a surprising count is
   how a stale scope becomes visible instead of silent.
-- Confirm `npm run format:check`, `npm run lint:md`, and `npm run lint` are clean. Resolve any residual
-  prettier↔markdownlint conflict (e.g. an indented fenced code block inside a list item) **by hand**.
+- **All three gates the block names are gates the block RUNS** — prettier, markdownlint, and eslint —
+  and `.dev/floor/command-hygiene.test.mjs` iterates that set so one cannot be silently dropped or left
+  as prose. The set is pinned because the earlier form ran two and _asked_ the agent to confirm the
+  third, and the asked-for one is the one that got skipped: an increment's `no-useless-assignment`
+  reached `/pharn-dev-verify` as a red `lint` gate, one stage after the build had declared itself
+  formatted (`.dev/features/validate-bad-target/VERIFY.md`). A remedy that reduces to "remember to
+  confirm" recurs (L20); the replacement is the removal of the choice (L22), not a firmer sentence.
+- Resolve any residual prettier↔markdownlint conflict (e.g. an indented fenced code block inside a list
+  item), and any eslint finding, **by hand** — the eslint line is read-only by design.
+- Then confirm `npm run format:check`, `npm run lint:md`, and `npm run lint` are clean repo-wide. These
+  are the whole-repo READ-ONLY gates and they remain a confirmation, not a substitute: the scoped runs
+  above cover this increment's own paths, and these catch an interaction with anything outside them.
 
 <!-- COMMAND-HYGIENE:SKIP-BEGIN — historical note. The commands quoted below are the REJECTED form, recorded so the reason survives; they are not prescribed. .dev/floor/command-hygiene.test.mjs skips this region. -->
 
