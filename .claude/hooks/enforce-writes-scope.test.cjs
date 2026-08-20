@@ -832,3 +832,150 @@ test("the message split changes NO verdict — every allow/deny outcome is exact
   assert.equal(hook(cwd, ".pharn/scratch.txt").status, 0, "ALWAYS zone still allowed");
   assert.equal(hook(cwd, ".pharn/writes-scope.json").status, 2, "the scope file itself still denied");
 });
+
+// ─────────────────────────────────────────────────────────────────────────────────────────────────
+// --- Every command the deny message NAMES must exist AND actually set a writes-scope ---
+//
+// The in-repo FIX block tells a blocked agent to restart "the command", and names examples. It named
+// `/build` and `/review` for the whole 2.x line: NEITHER EXISTS — `.claude/commands/` holds only
+// `pharn-*` / `pharn-dev-*`. An agent that follows the advice verbatim hunts for a command that is not
+// there, at precisely the moment it is already blocked and confused.
+//
+// This is [[L27]]'s defect one turn further on. L27 was about a remedy that is UNREACHABLE in the branch
+// that prints it; this is about a remedy that is reachable but names a NON-EXISTENT actor. Both are
+// sentences that are locally well-formed and globally empty, and both are invisible to every gate —
+// unreachable advice and phantom advice are still strings, so lint, prettier and the floor all stay
+// green. Per L20, a second occurrence of a defect whose only remedy is discipline is the trigger to
+// make the correction ENFORCEABLE rather than to write a louder comment, which is what these tests are.
+//
+// The assertion is deliberately DERIVED, not a hardcoded pair: the tokens are extracted from the
+// message and re-checked against the live `.claude/commands/` directory, so a future edit that
+// introduces ANY phantom or non-scope-setting name fails here — not merely the two removed today.
+//
+// BOUND, and stated (P0): these tests prove a cited command EXISTS and INVOKES the setter. They do NOT
+// prove it does so in its FIRST step, which is what the message's own wording asserts. That half is not
+// mechanically checkable in the obvious way, because a deferral is expressed in PROSE inside the Step 0
+// section (`/pharn-dev-plan`: "After Step 2 names `<name>`"), so a "setter appears in the first ## Step
+// section" test would pass for a deferred stage too. The ordering half is therefore a NAMED RESIDUAL,
+// carried by the human-read check recorded in this increment's PLAN — never claim these tests cover it.
+// ─────────────────────────────────────────────────────────────────────────────────────────────────
+
+const COMMANDS_DIR = join(__dirname, "..", "commands");
+
+// The FIX bullets are the region that prescribes remedies; the header/origin lines above them carry the
+// blocked path and the scope values, which are arbitrary caller data and must never be mined for names.
+const BULLET_LINE = /^\s*•\s/;
+
+// A slash-command token, PINNED here rather than described in prose (L22): the leading `/` must be
+// preceded by start-of-line, whitespace, or `(` — which is what separates a command name from a PATH
+// segment. Without that anchor, `.claude/hooks/…` yields "hooks" and `.pharn/writes-scope.json` yields
+// "writes-scope", and the test would then fail against real command files for reasons having nothing to
+// do with this defect.
+const COMMAND_TOKEN = /(?:^|[\s(])\/([a-z][a-z0-9-]*)/g;
+
+function citedCommands(msg) {
+  const out = new Set();
+  for (const line of msg.split("\n")) {
+    if (!BULLET_LINE.test(line)) continue;
+    for (const m of line.matchAll(COMMAND_TOKEN)) out.add(m[1]);
+  }
+  return out;
+}
+
+// The in-repo denial, with a RELATIVE blocked path on purpose: an absolute one would put a real
+// filesystem path into the message and hand the extractor leading-slash segments to trip over.
+function inRepoDenyMessage() {
+  const cwd = tmp();
+  setScope(cwd, [".dev/features/demo/SHIP.md"]);
+  return denyText(cwd, ".dev/features/other/PLAN.md");
+}
+
+// EVERY branch denyMessage() can take, enumerated in ONE place — and the membership rules below iterate
+// it rather than naming a branch. This is the shape [[L27]] actually prescribes: when a message serves
+// multiple branches, the property is asserted PER BRANCH, and the enumeration is what makes "per branch"
+// checkable instead of aspirational. Asserting it of one branch and citing L27 is not discharging L27 —
+// which is the defect this increment's own review caught in its first draft, one turn after L27 was
+// promoted for the neighbouring miss in the same function. A branch added later belongs in this array,
+// and every rule below then covers it for free.
+function everyDenyMessage() {
+  return [
+    { branch: "in-repo", msg: inRepoDenyMessage() },
+    // rel === null: outside the root. The sibling cases (`..` traversal, the root itself) take this same
+    // branch — pinned by the out-of-root tests above — so one representative renders the branch.
+    { branch: "out-of-root", msg: denyText(tmp(), join(os.tmpdir(), "pharn-cited-commands-probe.md")) },
+  ];
+}
+
+test("deny message: every command it NAMES exists in .claude/commands/ — in EVERY branch", () => {
+  for (const { branch, msg } of everyDenyMessage()) {
+    for (const name of citedCommands(msg)) {
+      assert.ok(
+        fs.existsSync(join(COMMANDS_DIR, `${name}.md`)),
+        `the ${branch} deny message cites /${name}, but .claude/commands/${name}.md does not exist — a blocked agent would hunt for a command that is not there`
+      );
+    }
+  }
+});
+
+test("deny message: every command it NAMES actually invokes the writes-scope setter — in EVERY branch", () => {
+  // The generalized form of L27's rule: a named exemplar must HAVE the property the sentence attributes
+  // to it. `/pharn-review` and `/pharn-dev-eval` are real commands that set NO scope, so the obvious
+  // rename of `/review` would have swapped a phantom name for a real-but-wrong one — advice that is
+  // locally true and, for the command it names, inapplicable.
+  for (const { branch, msg } of everyDenyMessage()) {
+    for (const name of citedCommands(msg)) {
+      const body = fs.readFileSync(join(COMMANDS_DIR, `${name}.md`), "utf8");
+      assert.ok(
+        body.includes("set-writes-scope.cjs"),
+        `the ${branch} deny message tells the agent to restart /${name} because its first step sets the scope, but ${name}.md never invokes set-writes-scope.cjs`
+      );
+    }
+  }
+});
+
+test("deny message: the cited set is EXACTLY the two build stages — non-empty is not enough", () => {
+  // Equality, not `size > 0`. A non-empty assertion would pass a mis-delimited region that happened to
+  // catch any one slash-token, and would then certify by accident — the fail-open shape [[L25]] names,
+  // where a check reports success because it silently examined nothing meaningful.
+  const cited = citedCommands(inRepoDenyMessage());
+  assert.deepEqual(
+    [...cited].sort(),
+    ["pharn-build", "pharn-dev-build"],
+    "the in-repo FIX block must cite exactly /pharn-build and /pharn-dev-build"
+  );
+});
+
+test("deny message: the /build and /review phantoms stay dead — in EVERY branch", () => {
+  // The specific regression, pinned literally, so the general rules above cannot be satisfied by a
+  // rewrite that quietly reintroduces the original pair somewhere they no longer parse as tokens.
+  for (const { branch, msg } of everyDenyMessage()) {
+    assert.doesNotMatch(msg, /\(\/build, \/review/, `the original phantom pair must not return (${branch})`);
+    const cited = citedCommands(msg);
+    assert.ok(!cited.has("build"), `/build is not a command (${branch})`);
+    assert.ok(!cited.has("review"), `/review is not a command (${branch})`);
+  }
+});
+
+test("deny message: the out-of-root branch cites NO command at all — its own case, asserted (L27)", () => {
+  // The other half of L27's "present in its own case AND absent from the other". The out-of-root branch
+  // deliberately prescribes no command restart: its remedies are put-it-in-the-repo, the Bash
+  // jurisdiction boundary, and a by-hand human write — none of which is "re-run a command's first step",
+  // because a scope-setting command cannot express a path outside the root in the first place.
+  //
+  // So the assertion is EMPTINESS, not membership, and it is the stronger of the two: if a future edit
+  // adds a command name here, this fails immediately rather than waiting for that name to also be wrong.
+  const { msg } = everyDenyMessage().find((b) => b.branch === "out-of-root");
+  assert.match(msg, OUT_OF_ROOT_CUE, "the probe must actually render the out-of-root branch");
+  assert.deepEqual([...citedCommands(msg)], [], "the out-of-root FIX block prescribes no command restart, so it must name no command");
+});
+
+test("deny message: the extractor ignores PATH segments, so the tests above are not vacuous", () => {
+  // Guards the extractor itself. Both messages embed paths (.pharn/writes-scope.json,
+  // .claude/hooks/set-writes-scope.cjs); if the anchor were dropped, these would surface as bogus
+  // command names and the existence test would fail for the wrong reason. Pinned so a future
+  // "simplification" of COMMAND_TOKEN is caught here rather than in a confusing downstream failure.
+  const cited = citedCommands(inRepoDenyMessage());
+  for (const bogus of ["hooks", "writes-scope", "commands", "private", "tmp", "users"]) {
+    assert.ok(!cited.has(bogus), `"${bogus}" is a path segment, not a command — the anchor must exclude it`);
+  }
+});

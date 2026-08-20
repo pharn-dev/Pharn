@@ -1,0 +1,30 @@
+{
+  "base": "dad655dc8218dd328a6d1208d504fd977bc04ed9",
+  "inside": [
+    ".claude/hooks/enforce-writes-scope.test.cjs",
+    "CHANGELOG.md",
+    "README.md",
+    "SKILLS_VERSION",
+    ".claude/hooks/test.cjs",
+    ".dev/features/deny-message-phantom-commands/GRILL.md",
+    ".dev/features/deny-message-phantom-commands/PLAN.md",
+    ".dev/features/deny-message-phantom-commands/enforce-writes-scope.patch"
+  ],
+  "outside_gates": {
+    "structural:expected-injection-comment": {
+      "base": 0,
+      "head": 0
+    },
+    "tests": {
+      "base": 0,
+      "head": 0
+    },
+    "validate": {
+      "base": 0,
+      "head": 0
+    }
+  },
+  "regressions": [],
+  "pre_existing": [],
+  "verdict": "no-regressions"
+}

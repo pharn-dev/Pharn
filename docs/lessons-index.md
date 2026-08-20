@@ -10,7 +10,7 @@ lessons to fetch; canon stays the source of truth and the floor's verification t
 applied, without fetching its full `## L<n>` entry from canon, is the P0 disease. "The index was
 consulted" never means "the relevant lessons were read".
 
-28 lessons · 28 tagged · 0 malformed · 0 untagged · ~17096 tokens total
+29 lessons · 29 tagged · 0 malformed · 0 untagged · ~17845 tokens total
 
 Columns: `id | type | concepts | title | promoted | ~tokens`. Every canon entry carries a tag line, so
 BOTH absence markers are unexpected: `-` = no tag line, i.e. an entry that reached canon without
@@ -48,4 +48,5 @@ L25 | tooling  | lesson-recurrence,floor-escalation,command-prescription,doc-dri
 L26 | tooling  | verification-fidelity,style-gates,human-only-patch,false-green          | A patch verified against a copy OUTSIDE the repo is verified under different rules than the repo enforces — config-driven gates resolve by PATH | 2026-08-19 | ~698
 L27 | process  | lesson-recurrence,floor-escalation,shared-message,fail-open             | A remedy added to a SHARED message is printed by every branch — check reachability per branch, or it trains the workaround | 2026-08-19 | ~690
 L28 | scoping  | writes-scope,plan-shape,cue-matching,false-red                          | The plan-scope setter's exclusion CUE fires on an authorized item's own WRAPPED line | 2026-08-19 | ~624
+L29 | process  | lesson-recurrence,branch-coverage,shared-message,floor-escalation       | When a lesson's remedy is quantified over a set, the ENUMERATION is the deliverable — an assertion written for one member reads as discharged | 2026-08-20 | ~749
 ```

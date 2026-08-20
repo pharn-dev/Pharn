@@ -46,6 +46,47 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Fixed
 
+- **The writes-scope deny message stops citing two commands that do not exist** (`SKILLS_VERSION` 2.7.8 →
+  **2.7.9**, patch). `enforce-writes-scope.cjs`'s in-repo FIX block told a blocked agent "If running a
+  command (`/build`, `/review`, …): scope is set in the command's FIRST step … restart the command from
+  the top". Neither command exists — `.claude/commands/` holds only `pharn-*` and `pharn-dev-*` — so an
+  agent following the advice verbatim hunted for a command that was not there, at exactly the moment it
+  was already blocked. The bullet now cites `/pharn-build, /pharn-dev-build`.
+
+  **Why those two, and not the obvious rename.** The sentence asserts two things about whatever it
+  names: the command exists, **and** its FIRST step sets the scope. Checked live across all 19 commands:
+  17 invoke `set-writes-scope.cjs`, but **`/pharn-review` and `/pharn-dev-eval` do not** — so renaming
+  `/review` → `/pharn-review` would have swapped a phantom name for a real-but-inapplicable one, telling
+  an agent to restart a command that sets no scope. The plan stages were rejected for the same class of
+  reason: `/pharn-dev-plan`'s Step 0 is numbered first but reads "After Step 2 names `<name>`", so
+  "FIRST step" is false for them. The build stages are the only pair for which every word of the
+  surrounding sentence is true. The edit is a pure name swap; no path becomes writable and no verdict
+  moves.
+
+  This is [[L27]] one turn on — that entry covered a remedy **unreachable** in the branch printing it;
+  this covers one that is reachable but names a **non-existent actor**. Both are locally well-formed and
+  globally empty, and both are invisible to every gate, since phantom advice is still a string. Per
+  **L20**, the second occurrence of a discipline-only defect earns an enforceable correction, so six
+  tests now **derive** the cited set from the rendered message and re-check it against the live
+  `.claude/commands/` directory — any future phantom or non-scope-setting name fails, not merely the two
+  removed here.
+
+  **Asserted per BRANCH, which is the part that needed a second pass.** `denyMessage()` has had two
+  branches since the previous increment split out the out-of-root case, and the first draft of these
+  tests rendered only the in-repo one while claiming branch-independent coverage — L27's own rule,
+  applied to half its domain, caught by this increment's review. The membership rules now iterate a
+  single enumeration of **every** branch, so a branch added later is covered by each rule for free, and
+  the out-of-root branch additionally asserts the other half of L27's form: it must cite **no** command
+  at all, since no scope-setting command can express a path outside the root. That emptiness assertion
+  was mutation-tested (a `/frobnicate` injected into that branch is caught) rather than trusted to pass
+  by construction.
+
+  **Named residual (P0):** the tests prove a cited command **exists** and **invokes the setter**; they do
+  **not** prove it does so **first**, which is what the message's own wording claims. A deferral is
+  expressed in prose _inside_ a Step 0 section, so a "setter appears in the first `## Step`" test would
+  pass for a deferred stage too. The ordering half stays human-read and is labeled advisory rather than
+  quietly folded into the floor claim.
+
 - **An authorized `## Files` item whose description WRAPS no longer truncates the parsed writes-scope —
   `set-writes-scope.cjs --from-plan`'s exclusion cue now skips an item's own continuation lines**
   (`SKILLS_VERSION` 2.7.7 → **2.7.8**, patch). Mode B ends the authorized list at a heading or at a
