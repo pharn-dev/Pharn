@@ -46,6 +46,46 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Fixed
 
+- **The crypto scanner's insecure-random keyword set is anchored to identifier SEGMENTS, so it stops
+  flooding on idiomatic code** (`SKILLS_VERSION` 2.7.10 → **2.7.11**, patch).
+  `pharn/floor/scan-code-crypto.mjs`'s `SECMAT` set matched its words as unanchored **sub-strings** —
+  every word except `iv`, which alone carried a boundary anchor. So the two commonest `Math.random`
+  idioms in real JavaScript both produced an `insecure-random` finding: a random pick over
+  `Object.keys(...)` (`keys` ⊃ `key`) and a Fisher-Yates shuffle over anything named `monkeys`. Each word
+  is now matched only as an identifier segment, via **four branches generated for every member of the
+  set** — bare lowercase head, camelCase segment, ALL-CAPS segment, snake/kebab tail — so a word added
+  later inherits the anchoring instead of needing its own hand-written one, which is how `iv` came to be
+  the only anchored member. A trailing plural `s` is admitted on a **continuation** segment only, which is
+  what keeps `apiKeys` / `API_KEYS` / `api_keys` firing while `keys` and `monkeys` stop; the two are
+  indistinguishable by boundary alone, so the asymmetry is the whole separation and is asserted in both
+  directions. Because those branches read case, the pattern drops its `i` flag, and the `Math.random`
+  half — which this change never meant to touch — keeps its exact prior case-insensitivity through an
+  explicit per-character expansion rather than inheriting a narrowing for free.
+
+  **The change is NOT monotone, and both directions are stated (P7).** Folding a per-member exception into
+  a uniform rule moves that member toward the rule from whichever side it was on, and a hand-written
+  one-word exception is usually stricter than the rule absorbing it — so the member that carried its own
+  anchor is exactly where a "tightening" widens. **Narrowed:** a bare lowercase plural (`keys`, `secrets`,
+  `tokens`), a word glued inside a longer lowercase word (`mytoken`, `salted`), and a mixed-case spelling
+  (`tOKEN`) — the last deliberately, since branches 2-4 must read case to tell `apiKeys` from `keys`.
+  **Widened:** `iv` as a camelCase or ALL-CAPS segment (`myIv`, `IV_SEED`). The old branch was
+  `(?<![a-z])iv(?![a-z])` under the `i` flag, where `[a-z]` case-folds, so any preceding letter blocked it;
+  `myIv = Math.random()` is precisely what this kind exists to catch, so `iv` gaining the camelCase reach
+  the other ten words always had is the symmetric half of the fix, not a side effect. Both directions are
+  pinned by tests rather than only described.
+
+  **Cost, re-derived rather than inherited (L24):** the per-line cost is quadratic in line length — a
+  property the pattern already had and which the anchoring does not change — and there is no exponential
+  path, the branches being literal-prefixed, disjoint, and free of nested quantifiers over an ambiguous
+  alternation. Measured on the worst-case line, the 4× branch growth costs ~1.2×, not 4× (203.9 ms →
+  251.2 ms at 20 KB). It is pinned by a **membership** test (completed vs. killed under a subprocess
+  timeout), never a stopwatch compared to a threshold.
+
+  The suite grew 26 → 44 tests. The word set and the four branches are **materialized and iterated** by
+  the new rules rather than sampled by example, and a drift pin asserts the suite's copy of the word set
+  equals the scanner's — an assertion authored for one member of a set is indistinguishable at review time
+  from a rule that holds across it, which is the defect this change repairs.
+
 - **The ship-briefing render→check round trip survives quotes and backslashes** (`SKILLS_VERSION` 2.7.9 →
   **2.7.10**, patch). `render-ship-briefing.mjs`'s `yamlScalar` escapes `\` and `"` into
   `BRIEFING.md`'s frontmatter, and **nothing on the read side ever undid it**:

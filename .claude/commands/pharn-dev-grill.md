@@ -135,8 +135,11 @@ and its verifier slot do); as axes are extracted into grillers over time, the in
 
 - **Run each registered griller** over `.dev/features/<name>/PLAN.md`: apply its procedure and fold its
   findings (the `finding-shape` objects, enum-gated / free-text split honored) into the grill-log
-  (Step 3), grouped under the griller's axis. Today the registered set is the `testability` griller
-  (`pharn/pharn-pipeline/grillers/testability/testability.md`).
+  (Step 3), grouped under the griller's axis. **The registered set is whatever `count-grillers.mjs` just
+  printed — this prose deliberately names no count and no member.** It used to say the set was the single
+  `testability` griller; the live count reached 13 while that sentence stood, and nothing detected the
+  drift, because a hardcoded roster in prose is a fact that rots silently beside the deterministic reader
+  that supersedes it. Read the membership from the command above, never from this paragraph.
 - **Grillers are ADVISORY — they gate nothing** (fix #3): their findings are surfaced for the human,
   never a proceed/stop basis — consistent with `/pharn-dev-grill` being advisory end-to-end. A griller's
   own floor sub-check (e.g. the testability griller's membership + its `structural[]` eval assertions) is
