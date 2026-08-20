@@ -18,7 +18,7 @@ import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
-import { mkdtempSync, writeFileSync, rmSync } from "node:fs";
+import { mkdtempSync, writeFileSync, rmSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -220,6 +220,163 @@ test("Math.random() building a credential (broadened word list, GATE-2) is detec
   withCode(body, (p) => {
     const r = run(p);
     assert.deepEqual(json(r), { found: true, hits: [{ line: 1, kind: "insecure-random" }] });
+  });
+});
+
+// --- insecure-random: SEGMENT ANCHORING (the ✧ set-iterated rules) ----------
+//
+// The word set AND the four boundary branches are both materialized here, and every rule below ITERATES
+// them. That is load-bearing, not stylistic: the defect these tests pin was a rule applied to ONE member
+// of a set — `iv` was boundary-anchored and the other ten words were not — and a per-example assertion
+// cannot distinguish "the rule holds across its domain" from "the rule was written for whichever member
+// was in front of the author". A word or a branch added later is covered by every rule for free.
+
+const SECMAT_WORDS = ["token", "secret", "password", "passphrase", "credential", "session", "nonce", "otp", "salt", "key", "iv"];
+const cap = (w) => w[0].toUpperCase() + w.slice(1);
+
+// The four branches as identifier RENDERERS. `plural` renders the same branch with a trailing plural and
+// is null for branch 1, where a trailing `s` must DROP the match (that asymmetry is the `apiKeys`-vs-`keys`
+// separation, and it is asserted in both directions below).
+const BRANCHES = [
+  { n: "1 bare-lowercase-head", id: (w) => w, plural: null },
+  { n: "2 camelCase-segment", id: (w) => "api" + cap(w), plural: (w) => "api" + cap(w) + "s" },
+  { n: "3 ALL-CAPS-segment", id: (w) => "API_" + w.toUpperCase(), plural: (w) => "API_" + w.toUpperCase() + "S" },
+  { n: "4 snake-tail", id: (w) => "api_" + w, plural: (w) => "api_" + w + "s" },
+];
+const HIT = { found: true, hits: [{ line: 1, kind: "insecure-random" }] };
+const CLEAN = { found: false, hits: [] };
+
+test("✧ DRIFT PIN: this suite's SECMAT_WORDS equals the scanner's — a word added there is covered by every rule here", () => {
+  const m = readFileSync(SCANNER, "utf8").match(/const SECMAT_WORDS = \[([\s\S]*?)\];/);
+  assert.ok(m, "SECMAT_WORDS array not found in the scanner source");
+  assert.deepEqual(
+    [...m[1].matchAll(/"([^"]+)"/g)].map((x) => x[1]),
+    SECMAT_WORDS
+  );
+});
+
+for (const branch of BRANCHES) {
+  test(`✧ branch ${branch.n}: EVERY security-material word fires as a segment (all ${SECMAT_WORDS.length} words)`, () => {
+    for (const w of SECMAT_WORDS) {
+      const body = `const ${branch.id(w)} = Math.random();\n`;
+      withCode(body, (p) => assert.deepEqual(json(run(p)), HIT, body.trim()));
+    }
+  });
+}
+
+for (const branch of BRANCHES.filter((b) => b.plural)) {
+  test(`✧ branch ${branch.n}: the PLURAL continuation segment still fires (all ${SECMAT_WORDS.length} words)`, () => {
+    for (const w of SECMAT_WORDS) {
+      const body = `const ${branch.plural(w)} = Math.random();\n`;
+      withCode(body, (p) => assert.deepEqual(json(run(p)), HIT, body.trim()));
+    }
+  });
+}
+
+test("★ the `keys` CLASS, quantified: a BARE lowercase plural of every word is NOT flagged", () => {
+  for (const w of SECMAT_WORDS) {
+    const body = `const pick = ${w}s[Math.floor(Math.random() * ${w}s.length)];\n`;
+    withCode(body, (p) => assert.deepEqual(json(run(p)), CLEAN, body.trim()));
+  }
+});
+
+test("★ the `monkeys` CLASS, quantified: every word EMBEDDED inside a longer lowercase word is NOT flagged", () => {
+  for (const w of SECMAT_WORDS) {
+    const body = `const j = Math.floor(Math.random() * mon${w}s.length);\n`;
+    withCode(body, (p) => assert.deepEqual(json(run(p)), CLEAN, body.trim()));
+  }
+});
+
+// --- insecure-random: the two named regressions and their true-positive twins ---
+
+test("REGRESSION: a random pick over Object.keys() is NOT flagged (`keys` ⊃ `key`)", () => {
+  const body = `const pick = keys[Math.floor(Math.random() * keys.length)];\n`;
+  withCode(body, (p) => assert.deepEqual(json(run(p)), CLEAN));
+});
+
+test("REGRESSION: a Fisher-Yates shuffle over `monkeys` is NOT flagged", () => {
+  const body =
+    `for (let i = monkeys.length - 1; i > 0; i--) {\n` +
+    `  const j = Math.floor(Math.random() * (i + 1));\n` +
+    `  [monkeys[i], monkeys[j]] = [monkeys[j], monkeys[i]];\n` +
+    `}\n`;
+  withCode(body, (p) => assert.deepEqual(json(run(p)), CLEAN));
+});
+
+test("TRUE POSITIVE kept: `const key = Math.random().toString(36)` still fires", () => {
+  const body = `const key = Math.random().toString(36);\n`;
+  withCode(body, (p) => assert.deepEqual(json(run(p)), HIT));
+});
+
+test("TRUE POSITIVE kept: `sessionToken = Math.random()` still fires", () => {
+  const body = `sessionToken = Math.random();\n`;
+  withCode(body, (p) => assert.deepEqual(json(run(p)), HIT));
+});
+
+test("a `$`-prefixed identifier (`$key`) fires — `$` is a segment boundary, not part of the word", () => {
+  const body = `const $key = Math.random();\n`;
+  withCode(body, (p) => assert.deepEqual(json(run(p)), HIT));
+});
+
+test("TRUE-NEGATIVE: `salted` / `private` / `receive` / `derive` do NOT fire (sub-word `salt` / `iv`)", () => {
+  const body = `const salted = Math.random();\nconst privateReceiveDerive = Math.random();\n`;
+  withCode(body, (p) => assert.deepEqual(json(run(p)), CLEAN));
+});
+
+// --- insecure-random: the NON-MONOTONE deltas, pinned in BOTH directions -----
+//
+// The anchoring is not purely a narrowing, so asserting only the losses would leave half the behavior
+// change unpinned — and it is the WIDENING half that no gate would have caught, because every existing
+// test was written for the false positives being removed.
+
+test("✧ WIDENED: `iv` as a camelCase segment (`myIv`) now fires — the old `i`-flagged guard blocked it", () => {
+  for (const id of ["myIv", "sessionIv", "requestIv"]) {
+    const body = `const ${id} = Math.random();\n`;
+    withCode(body, (p) => assert.deepEqual(json(run(p)), HIT, body.trim()));
+  }
+});
+
+test("✧ WIDENED: `iv` as an ALL-CAPS segment (`IV_SEED`, `API_IV`) fires", () => {
+  for (const id of ["IV_SEED", "API_IV"]) {
+    const body = `const ${id} = Math.random();\n`;
+    withCode(body, (p) => assert.deepEqual(json(run(p)), HIT, body.trim()));
+  }
+});
+
+test("✧ WIDENED, but bounded: `iv` inside a longer word still does NOT fire (private / derive / archive / naive)", () => {
+  for (const id of ["privateValue", "derivedValue", "archiveEntry", "naiveIndex", "PRIVATE_VALUE", "MOTIVE_CODE"]) {
+    const body = `const ${id} = Math.random();\n`;
+    withCode(body, (p) => assert.deepEqual(json(run(p)), CLEAN, body.trim()));
+  }
+});
+
+test("✧ NARROWED ON PURPOSE: a MIXED-case spelling (`tOKEN`, `KeY`) no longer fires — the SECMAT half gave up `i`", () => {
+  for (const id of ["tOKEN", "KeY", "sEcReT"]) {
+    const body = `const ${id} = Math.random();\n`;
+    withCode(body, (p) => assert.deepEqual(json(run(p)), CLEAN, body.trim()));
+  }
+});
+
+// --- insecure-random: the two claims the SWAP itself put at risk -------------
+
+test("✧ SWAP PIN: dropping the `i` flag did NOT narrow the RNG conjunct — every prior casing still fires", () => {
+  for (const rng of ["Math.random", "math.random", "MATH.RANDOM", "Math.Random"]) {
+    const body = `const key = ${rng}();\n`;
+    withCode(body, (p) => assert.deepEqual(json(run(p)), HIT, body.trim()));
+  }
+});
+
+test("✧ COST PIN: a 20 KB worst-case line COMPLETES under a subprocess timeout (membership, not a stopwatch)", () => {
+  // RNG present so the first lookahead succeeds; NO security-material segment anywhere, so the second
+  // lookahead fails at every start index — the shape that maximizes the quadratic re-scan. The verdict is
+  // "the process finished", never a duration compared to a threshold; the timeout is also what keeps a
+  // regression TERMINATING rather than hanging the suite.
+  const body = `const x = Math.floor(Math.random() * n); ` + "abcdefgh".repeat(2500) + `\n`;
+  withCode(body, (p) => {
+    const r = spawnSync(process.execPath, [SCANNER, p], { encoding: "utf8", timeout: 10_000 });
+    assert.equal(r.signal, null, "the scanner was KILLED by the timeout — the per-line cost regressed");
+    assert.equal(r.status, 0);
+    assert.deepEqual(JSON.parse(r.stdout), CLEAN);
   });
 });
 
