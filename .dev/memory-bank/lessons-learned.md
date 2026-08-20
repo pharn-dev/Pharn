@@ -918,3 +918,41 @@ their own `## Files` descriptions, which is exactly the "remedy is discipline" s
   `.dev/features/out-of-root-deny-message/PLAN.md` `## Known residuals`, with the 5→1 truncation
   reproduced live at plan Step 4
 - promoted: 2026-08-19 via gated `/pharn-dev-memory-promote` (human-approved).
+
+## L29 — When a lesson's remedy is quantified over a set, the ENUMERATION is the deliverable — an assertion written for one member reads as discharged
+
+type: process · concepts: [lesson-recurrence, branch-coverage, shared-message, floor-escalation]
+
+**Lesson.** [[L27]] prescribed a remedy quantified over a set: when a message serves multiple branches,
+assert each remedy's reachability **per branch**. The very next increment cited L27, quoted its rule
+verbatim in its own test header, and then wrote five tests that render **one** of `denyMessage()`'s two
+branches through a single helper — while its `CHANGELOG` claimed branch-independent coverage. The rule
+was read, understood, and applied to half its domain. Remedy: when a lesson's remedy is quantified
+("per branch", "per gate", "per stage"), the deliverable is **the enumeration of that set, materialized
+in one place, with the rules iterating it** — not an assertion authored for whichever member happened to
+be in front of you. Here that is a single `everyDenyMessage()` array the membership tests loop over, so a
+branch added later is covered by every rule for free.
+
+**Why it matters.** A per-member assertion and a discharged per-set rule are **indistinguishable at
+review time**: both are green tests whose names read correctly, and the set they were meant to range over
+is exactly the thing nobody writes down. Note the shape of the recurrence, because it is what makes this
+a lesson rather than a bug report: `writes-scope-lifecycle` ADDED an unreachable bullet,
+`out-of-root-deny-message` fixed one unreachable BULLET, and `deny-message-phantom-commands` then fixed
+one BRANCH — **three consecutive increments in the same function, each correction one scope-step narrower
+than the defect class it had just named.** [[L20]] says a discipline-only remedy earns a floor check;
+this says what that check must **range over**, which is the part L20 leaves open. Distinct from [[L27]]
+(there the remedy was UNREACHABLE — the claim was empty; here every assertion is true and merely PARTIAL)
+and from [[L25]] (there the rationale did not reach; here it reached, was quoted verbatim, and was still
+under-applied — so "make the rationale enforceable" is necessary and not sufficient). L27's own second
+half is the concrete test to reach for: "present in its own case AND **absent from the other**" is
+unsatisfiable without naming both cases, which is why the emptiness assertion on the branch that cites no
+command is the load-bearing half, not the decorative one.
+
+**Provenance.**
+
+- feature: `deny-message-phantom-commands`
+- commit: `41bf01c49fd624fddb849d99ff43bf1860a4e47f`
+- source: `.dev/features/deny-message-phantom-commands/REVIEW.md` (proposed lesson Candidate A — the
+  blocking floor-gate finding), with the out-of-root branch rendered live and the emptiness assertion
+  mutation-tested (an injected `/frobnicate` is caught) before promotion
+- promoted: 2026-08-20 via gated `/pharn-dev-memory-promote` (human-approved).
