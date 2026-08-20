@@ -13,6 +13,7 @@ reads:
     "THREAT-MODEL.md",
     "LIMITS.md",
     "docs/lessons-index.md",
+    ".dev/floor/check-lessons-index.mjs",
     ".dev/memory-bank/lessons-learned.md",
     "pharn/floor/check-plan-lessons.mjs",
     "<target repo>",
@@ -67,8 +68,42 @@ chosen by a model. If a later write is blocked with the `writes-scope guard` mes
    three dev stages share one implementation is a **convention** (advisory), not a floor guarantee — only
    the hash comparison itself is floor.
 
-4. **Lessons sweep (mandatory — the `applied_lessons` input). Two steps: SELECT from the index, then
-   READ the full entries from canon.**
+4. **Lessons sweep (mandatory — the `applied_lessons` input). Check the index first, then two steps:
+   SELECT from the index, then READ the full entries from canon.**
+
+   **Freshness gate — run it, do not assume it.** Before selecting anything, ask the checker whether the
+   committed index still matches canon, and branch **only** on its **exit code** (a membership test, P5
+   — the checker **owns** this verdict; you do not re-decide it):
+
+   ```bash
+   node .dev/floor/check-lessons-index.mjs .
+   ```
+
+   - **exit 0 (GREEN)** → the committed index is byte-identical to a recompute from canon → run the
+     **two-step sweep** below.
+   - **exit non-zero (RED)** → the index is **missing**, **drifted**, or **unrenderable**. This is
+     **never a hard block on planning.** Do **not** select from the index — a drifted one may actively
+     mislead. Instead read `.dev/memory-bank/lessons-learned.md` **in full**, **say so in the plan**, and
+     **surface the checker's output to the human at the Step-4 halt**. Then continue planning normally.
+
+   Read the branch from the **exit code only**. The checker also prints a `[MISSING|DRIFT|ENUM_ERROR]`
+   type; that token may shape the sentence you show the human, and it may **never** become the branch —
+   a structural fact is read from its structured location, never grepped from a printed report
+   (`.dev/memory-bank/lessons-learned.md` **L6**, cited not restated — P4). The same exit code also
+   covers the checker being unusable at all (deleted, throwing, or pointed at a bad target): every such
+   path is non-zero and lands in the same **read canon in full** branch, which is the safe direction by
+   construction, not by luck.
+
+   **Remedy, per branch — because an unreachable remedy trains a bypass (L27).** On `MISSING` / `DRIFT`
+   the fix is `npm run docs:generate`, and it is a **contributor action, not this command's**: `/pharn-dev-plan`
+   writes exactly one file and **never regenerates the index**, because `docs/lessons-index.md` is a
+   **committed** artifact outside this command's `writes:` and regenerating it mid-plan would be a Bash
+   write escaping fix #7 (**L19**). On `ENUM_ERROR` that remedy **cannot succeed** — the generator refuses
+   the same invalid canon the checker refused — so do not offer it; name the canon file and flag it for a
+   human instead.
+
+   **The two-step sweep (on GREEN) — SELECT, then READ. Both steps, always:**
+
    1. **Select candidates** from `docs/lessons-index.md` — the generated one-line-per-lesson index
       (`id | type | concepts | title | promoted | ~tokens`). Scan it and pick every lesson that might
       bear on **this** increment. Selecting generously here is cheap and correct; the cost lands in
@@ -92,14 +127,25 @@ chosen by a model. If a later write is blocked with the `writes-scope guard` mes
    > `type` / `concepts` are model-drafted values a human ratified at the promote gate, so **"typed
    > `floor`" never means "about the floor"** — selecting on them is advisory context selection. The
    > floor still verifies your declaration against **canon itself**
-   > (`pharn/floor/check-plan-lessons.mjs`, Step 4), never against this index. If the index is stale or
-   > absent, fall back to reading canon in full and say so — never plan from the index alone.
+   > (`pharn/floor/check-plan-lessons.mjs`, Step 4), never against this index. **Staleness is no longer
+   > something you are asked to notice** — the freshness gate above detects it and routes you to canon; a
+   > step that named a condition and left the detecting to the reader is the defect this gate closed
+   > (`.dev/memory-bank/lessons-learned.md` **L30**).
    > A `?` in the `type`/`concepts` column means a canon tag line **failed its gate** — read that
    > entry in canon and flag it for a human; it is not a normal state. **A `-` is no longer normal
    > either:** the legacy L1–L17 were retro-tagged, so every dev canon entry now carries a tag line and
    > the index renders `0 untagged`. A `-` therefore means an entry reached canon without the promote
    > gate's `type`/`concepts` — read that entry in canon and flag it too. Neither marker is a floor
    > error (both regenerate cleanly at exit 0), and neither says anything about the lesson's relevance.
+
+   **The freshness gate is deliberately coarser than the product twin's, and that is not an oversight.**
+   `/pharn-plan` branches on `pharn/floor/check-lessons-index.mjs --verdict`'s five-token set because
+   **three of its tokens share exit 0** (`NO_CANON`, `COLD`, `GREEN`), so its exit code alone is
+   ambiguous. This checker has no such ambiguity — exit 0 has exactly one meaning — so the exit code
+   **is** the membership test, and adding a `--verdict` flag here would be an addition with no
+   triggering failure (P7). The **guarantees also differ**: the dev index is a **committed** artifact
+   held to `committed == recomputed` byte-equality, where the product's is a **gitignored, disposable
+   cache** held only to a machine-local staleness check.
 
 5. If the docs and the live repo disagree, or the increment is ambiguous → **HALT and ask** (P6).
    Do not guess. When you ask, present the open questions as an **interactive multiple-choice form**
@@ -197,6 +243,14 @@ through an **interactive form**, then end your turn:
    unresolved, ask it via the `AskQuestion` tool as a multiple-choice question — list the plausible
    answers as selectable options (the human may still choose "Other" to type a custom answer). Do not
    proceed on a guess (P6).
+
+   **Include the lessons-index verdict here if Step 1.4's freshness gate came back RED** — state that
+   the sweep fell back to reading canon in full, and quote the checker's output. This is the discharge
+   site for the obligation Step 1.4 creates; naming it there and leaving the discharging to a reader is
+   the exact runs-some/asks-for-the-rest shape that gate exists to close
+   (`.dev/memory-bank/lessons-learned.md` **L30**). On an `ENUM_ERROR`, also flag the canon file for the
+   human — regenerating cannot fix it.
+
 2. **Final approval question.** End by asking one explicit `AskQuestion` form: **"Do you accept this
    plan?"** with selectable options (e.g. _Approve as written_ / _Approve with changes_ / _Reject_).
    Wait for the answer.
