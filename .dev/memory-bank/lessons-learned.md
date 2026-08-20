@@ -956,3 +956,48 @@ command is the load-bearing half, not the decorative one.
   blocking floor-gate finding), with the out-of-root branch rendered live and the emptiness assertion
   mutation-tested (an injected `/frobnicate` is caught) before promotion
 - promoted: 2026-08-20 via gated `/pharn-dev-memory-promote` (human-approved).
+
+## L30 — A step that RUNS some of the gates it names and ASKS for the rest will fail on the ones it asks for
+
+type: process · concepts: [style-gates, command-prescription, lesson-recurrence, floor-escalation, prevention-vs-detection]
+
+**Lesson.** `/pharn-dev-build` Step 2b named three style gates and **ran two**: prettier and
+markdownlint were a scoped, pinned command block, while eslint was a prose bullet asking the agent to
+"confirm `npm run lint` is clean". The asked-for gate is the one that got skipped — a
+`no-useless-assignment` in freshly-written code passed the build, passed the floor, and surfaced one
+stage later as a red `lint` gate at `/pharn-dev-verify`. The two halves are not two instances of one
+discipline; they are **two different modes**, and mixing them inside a single step is what hides the
+weak one. A block that opens with real commands **reads as mechanized**, so the prose bullet a few
+lines down inherits that appearance without inheriting the property. Remedy: within one step, every
+gate the step names is a gate the step **invokes**, and the set is materialized once so a member added
+later inherits every rule — here a `STEP_2B_GATES` array in `.dev/floor/command-hygiene.test.mjs` that
+the membership rules iterate.
+
+**Why it matters.** The mixed mode is invisible to review in a way pure prose is not: nobody reads a
+command block that already contains two correct scoped invocations and asks which of its named gates
+are missing from it, because the block **looks** like the remedy. That is [[L25]]'s "trusted for the
+defects it does NOT name" applied to a command's own procedure rather than to a rationale comment.
+Note the recurrence chain, because it is what makes this a lesson rather than a bug report: [[L12]]
+created Step 2b to move style conformance from detection-at-verify to prevention-at-build, and it
+mechanized the members that were in front of it — so the step shipped **already half-prose**, and the
+failure it was created to prevent recurred through its own unmechanized half, at the stage it protects.
+[[L20]]'s trigger is therefore met on L12, and [[L22]] names the replacement (remove the choice, pin the
+line) while [[L29]] names what the check must range over (the set, enumerated once). Distinct from all
+three: [[L22]] is about prose that _describes_ a technique the agent then implements wrongly, and
+[[L29]] about a rule applied to half its domain by an author — here the prose is correct, complete, and
+implemented by nobody, because the step never asked anyone to run it. The measured detail worth keeping:
+a path-less `npx eslint` takes ~1.1s against ~1.1s for `npx eslint .` and ~0.3s for a single file, so a
+naive mechanization onto an empty list would have linted the whole repo and reported unrelated
+pre-existing errors as the increment's ([[L11]]) — the empty-list guard [[L16]] prescribes is not
+optional when closing a gap like this.
+
+**Provenance.**
+
+- feature: `build-step2b-lint`
+- commit: `fcf3f5b1a604b296f6de55fbdb6954f0916792f0` (working-tree dogfood built on this commit;
+  uncommitted at promotion time)
+- source: `.dev/features/validate-bad-target/REVIEW.md` (proposed lesson Candidate A, finding F3) +
+  `.dev/features/validate-bad-target/VERIFY.md` (the red `lint` gate reproduced live one stage after the
+  build declared itself formatted), with both the dropped-invocation and path-less mutations caught by
+  the new enumerated pin before promotion
+- promoted: 2026-08-20 via gated `/pharn-dev-memory-promote` (human-approved).

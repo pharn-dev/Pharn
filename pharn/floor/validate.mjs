@@ -17,6 +17,12 @@
 //   8. the capability canon names a relocated floor checker at its LIVE path (P6, enum/regex)
 //
 // Usage:  node pharn/floor/validate.mjs [targetDir]      (default: cwd)
+// The targetDir must EXIST and be a DIRECTORY: an absent or non-directory target is a RED (see the
+// guard below), never a GREEN over zero capabilities. Two things it does NOT establish, both of which
+// still report GREEN over zero capabilities: that the target is the RIGHT directory (a valid-but-wrong
+// one walks to nothing), and that the target is READABLE (`statSync` needs search permission on the
+// PARENT, not read permission on the target, so a chmod-000 directory passes the guard and `walk()`'s
+// per-directory swallow does the rest).
 // Honest scope: checks 5 and 6 are BEST-EFFORT — markdown has no import statement to lint, so they
 // reduce a class of mistakes, they do not eliminate it (see ARCHITECTURE §4 caveat, LIMITS).
 //
@@ -27,6 +33,62 @@ import { readFileSync, readdirSync, statSync, existsSync } from "node:fs";
 import { join, relative, sep } from "node:path";
 
 const TARGET = process.argv[2] || ".";
+
+// The target is INPUT, and an unusable input is a RED — never a GREEN over zero files. A path that
+// does not exist (a typo, a wrong cwd, a moved checkout) or that is not a directory makes the
+// capability walk VACUOUS: `walk()` below swallows the readdirSync failure by design, so the run
+// printed `GREEN — 0 capabilities checked in /no/such/dir` and exited 0 — a fabricated pass, and
+// invisible to a CI step that reads only the exit code. A checker must REJECT a wrongly-shaped input
+// rather than trust its caller (.dev/memory-bank/lessons-learned.md L21 — cited, not restated, P4).
+//
+// Floor primitive #3 (presence + type test; ARCHITECTURE §2). Runs BEFORE the walk, so the refusal
+// can never be confused with a completed scan. Two branches, each carrying a message that is true for
+// IT and false for the other — one shared message would print an untrue sentence on whichever branch
+// it did not describe (L27).
+//
+// NARROWED, and stated: this proves the target EXISTS and is a DIRECTORY — nothing more. It does NOT
+// prove the RIGHT directory was passed: a valid-but-wrong one (a sibling repo, a parent dir) still
+// walks to zero capabilities and still reports GREEN. It does NOT prove the target is READABLE
+// either: `statSync` resolves through search permission on the PARENT, so a directory whose contents
+// cannot be listed passes here, and `walk()`'s swallow then yields the same GREEN over zero. Both
+// residuals are live, and the second is one permission bit from the case this guard removes — so the
+// class closed here is the bad PATH, not the fabricated GREEN in general. `GREEN` never meant "the
+// right target", and does not mean it now.
+// The target is echoed into the human render, so it is rendered as QUOTED DATA (P2) rather than
+// spliced in raw. A path may legally contain a newline, and a raw splice let one forge an extra
+// `- [blocking] …` line that no check produced — a fabricated line shaped exactly like a real finding.
+// `JSON.stringify` quotes the value and escapes its control characters, so a rendered path is always
+// exactly one line and always visibly a value rather than report structure. Bounded either way, and
+// the bound is why this is small: every consumer in the repo branches on the exit code, never on this
+// text. Used by BOTH renders — the refusal below and the GREEN line at the end of the file — because
+// the property belongs to the path, not to one call site.
+const showPath = (p) => JSON.stringify(p);
+
+function refuseTarget(problem) {
+  console.log(`FLOOR: RED — 1 finding(s), target not validated\n`);
+  console.log(`- [blocking] P6/bad-target  ${showPath(TARGET)}`);
+  console.log(`    ${problem}`);
+  process.exit(1);
+}
+if (!existsSync(TARGET)) {
+  refuseTarget("the target path does not exist, so nothing could be checked; walking it would report GREEN over zero capabilities");
+}
+let targetStat;
+try {
+  targetStat = statSync(TARGET);
+} catch {
+  // Unreadable, or raced away between the two syscalls. Either way it cannot be SHOWN to be a
+  // directory, so it is refused (fail-closed). Caught deliberately: a bare `statSync(TARGET).isDirectory()`
+  // would throw here, and an uncaught stack trace is not the canonical finding shape (§8) a reader
+  // of this floor is entitled to — even though its exit code would also be non-zero.
+  targetStat = null;
+}
+if (targetStat === null || !targetStat.isDirectory()) {
+  refuseTarget(
+    "the target path is not a readable directory, so nothing could be checked; walking it would report GREEN over zero capabilities"
+  );
+}
+
 const COUPLING_ENUM = ["agnostic", "framework-seam", "framework-specific"];
 const ROLE_ENUM = ["skill", "lens", "validator", "verifier", "griller", "auditor"];
 const KIND_ENUM = ["pharn-owned", "vendor-official", "community"];
@@ -500,7 +562,7 @@ for (const d of CANON_DIRS) {
 // Report — findings in the canonical shape (ARCHITECTURE §8)
 const blocking = findings.filter((f) => f.severity === "blocking");
 if (findings.length === 0) {
-  console.log(`FLOOR: GREEN — ${capabilities.length} capabilities checked in ${TARGET}`);
+  console.log(`FLOOR: GREEN — ${capabilities.length} capabilities checked in ${showPath(TARGET)}`);
   process.exit(0);
 }
 console.log(

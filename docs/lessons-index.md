@@ -10,7 +10,7 @@ lessons to fetch; canon stays the source of truth and the floor's verification t
 applied, without fetching its full `## L<n>` entry from canon, is the P0 disease. "The index was
 consulted" never means "the relevant lessons were read".
 
-29 lessons · 29 tagged · 0 malformed · 0 untagged · ~17845 tokens total
+30 lessons · 30 tagged · 0 malformed · 0 untagged · ~18725 tokens total
 
 Columns: `id | type | concepts | title | promoted | ~tokens`. Every canon entry carries a tag line, so
 BOTH absence markers are unexpected: `-` = no tag line, i.e. an entry that reached canon without
@@ -20,33 +20,34 @@ entry in canon either way. `~tokens` is `ceil(chars / 4)` over the FULL section
 (`LIMITS.md §1c`). Titles are canon free text, reproduced verbatim as DATA.
 
 ```text
-L1  | process  | plan-shape,meta-docs,doc-drift                                          | `/plan` must scope the meta-docs an increment invalidates | 2026-06-24 | ~346
-L2  | contract | guarantee-audit,doc-drift,live-floor-op                                 | A contract's honesty must travel with the artifact, and may cite only live floor ops | 2026-06-25 | ~425
-L3  | scoping  | writes-scope,declaration-audit,fail-closed                              | Making a declarative field load-bearing requires re-auditing every existing declaration of it | 2026-06-25 | ~464
-L4  | eval     | eval-fixture,live-measurement,structural-semantic-split,guarantee-audit | An authored fixture passes by construction; a live capability must be measured | 2026-06-25 | ~928
-L5  | tooling  | input-capture,shell-portability,word-splitting                          | A floor verdict is only as trustworthy as the orchestration that captures its inputs | 2026-06-27 | ~504
-L6  | floor    | membership-test,frontmatter,enum-gated                                  | Membership/structural facts are read from the structured location, never grepped from free text | 2026-06-29 | ~473
-L7  | scoping  | writes-scope,over-declaration,canon-write,declaration-audit             | A stage's writes: must equal exactly what it writes — never declare a downstream gate's target upstream | 2026-06-29 | ~571
-L8  | scoping  | writes-scope,setter-resolution,command-design                           | The writes-scope setter resolves one --target — favor single-file command outputs | 2026-06-30 | ~575
-L9  | process  | style-gates,gate-map,stage-seam                                         | An increment's own markdown style is gated by neither /pharn-dev-regress nor /pharn-dev-verify | 2026-06-30 | ~667
-L10 | floor    | validate-scan-surface,dev-product-boundary,enum-gated                   | Product-pipeline artifacts sit on the validate-SCANNED surface; `.dev/` dev artifacts don't | - | ~524
-L11 | process  | style-gates,gate-map,whole-repo-scope                                   | Verify's whole-repo style gates let a pre-existing unrelated error block every later feature's verify | 2026-07-01 | ~603
-L12 | process  | style-gates,prevention-vs-detection,formatter                           | Prevent an increment's own style misses at BUILD (format written files), don't only DETECT them at verify | 2026-07-06 | ~734
-L13 | process  | style-gates,prevention-vs-detection,gate-map                            | Extend the Step-2b format discipline (L12) to every artifact-writing stage, not just `/pharn-dev-build` | 2026-07-07 | ~475
-L14 | floor    | enum-gated,control-char-guard,regex-anchoring                           | A shape-regex tightening of an enum-gated field must COMPOSE with the control-char guard, never replace it | 2026-07-09 | ~535
-L15 | floor    | keyed-lookup,prototype-pollution,silent-failure                         | Index an arbitrary key with an own-property test, never `||`/`??` — inherited prototype members leak silently | 2026-07-09 | ~535
-L16 | tooling  | input-capture,shell-portability,word-splitting,false-red                | L5's own remedy is a portability trap: `xargs -a` is GNU-only and fabricates a false red | 2026-08-05 | ~576
-L17 | scoping  | writes-scope,scope-check,false-blocking                                 | `check-regress scope` tests changed-since-base, not written-by-the-build | 2026-08-05 | ~585
-L18 | scoping  | writes-scope,plan-shape,fail-open                                       | A PLAN's exclusion subsection must be a HEADING — a bold prose intro fails OPEN | 2026-08-05 | ~578
-L19 | scoping  | writes-scope,bash-escape,formatter                                      | A stage's Bash-run tooling escapes `writes:` scope — repo-wide formatters are the live instance | 2026-08-05 | ~638
-L20 | process  | writes-scope,plan-shape,lesson-recurrence,floor-escalation              | A promoted lesson whose only remedy is discipline WILL recur — the second occurrence is the trigger to give it a floor check | 2026-08-07 | ~771
-L21 | process  | input-capture,lesson-recurrence,floor-escalation,writes-scope,git       | L5's input-capture boundary recurred through `git status` — a path-set checker must REJECT a directory-shaped input, not trust its caller | 2026-08-17 | ~792
-L22 | tooling  | shell-portability,command-prescription,lesson-recurrence,false-red      | A command that prescribes a shell technique in PROSE accumulates wrong implementations — pin the command line | 2026-08-19 | ~596
-L23 | process  | stage-artifact,gate-conflict,happy-path-latency,style-gates             | A stage that writes an artifact AND owns a whole-repo gate over it has a self-referential conflict invisible on the happy path | 2026-08-19 | ~620
-L24 | floor    | guarantee-audit,live-measurement,lesson-recurrence,regex-anchoring      | A performance bound inherited from a superseded implementation is an unbacked claim — swapping the implementation mid-build is exactly when it gets inherited | 2026-08-19 | ~730
-L25 | tooling  | lesson-recurrence,floor-escalation,command-prescription,doc-drift       | A rationale comment reaches only the file it sits in, and it is trusted for the defects it does NOT name | 2026-08-19 | ~839
-L26 | tooling  | verification-fidelity,style-gates,human-only-patch,false-green          | A patch verified against a copy OUTSIDE the repo is verified under different rules than the repo enforces — config-driven gates resolve by PATH | 2026-08-19 | ~698
-L27 | process  | lesson-recurrence,floor-escalation,shared-message,fail-open             | A remedy added to a SHARED message is printed by every branch — check reachability per branch, or it trains the workaround | 2026-08-19 | ~690
-L28 | scoping  | writes-scope,plan-shape,cue-matching,false-red                          | The plan-scope setter's exclusion CUE fires on an authorized item's own WRAPPED line | 2026-08-19 | ~624
-L29 | process  | lesson-recurrence,branch-coverage,shared-message,floor-escalation       | When a lesson's remedy is quantified over a set, the ENUMERATION is the deliverable — an assertion written for one member reads as discharged | 2026-08-20 | ~749
+L1  | process  | plan-shape,meta-docs,doc-drift                                                              | `/plan` must scope the meta-docs an increment invalidates | 2026-06-24 | ~346
+L2  | contract | guarantee-audit,doc-drift,live-floor-op                                                     | A contract's honesty must travel with the artifact, and may cite only live floor ops | 2026-06-25 | ~425
+L3  | scoping  | writes-scope,declaration-audit,fail-closed                                                  | Making a declarative field load-bearing requires re-auditing every existing declaration of it | 2026-06-25 | ~464
+L4  | eval     | eval-fixture,live-measurement,structural-semantic-split,guarantee-audit                     | An authored fixture passes by construction; a live capability must be measured | 2026-06-25 | ~928
+L5  | tooling  | input-capture,shell-portability,word-splitting                                              | A floor verdict is only as trustworthy as the orchestration that captures its inputs | 2026-06-27 | ~504
+L6  | floor    | membership-test,frontmatter,enum-gated                                                      | Membership/structural facts are read from the structured location, never grepped from free text | 2026-06-29 | ~473
+L7  | scoping  | writes-scope,over-declaration,canon-write,declaration-audit                                 | A stage's writes: must equal exactly what it writes — never declare a downstream gate's target upstream | 2026-06-29 | ~571
+L8  | scoping  | writes-scope,setter-resolution,command-design                                               | The writes-scope setter resolves one --target — favor single-file command outputs | 2026-06-30 | ~575
+L9  | process  | style-gates,gate-map,stage-seam                                                             | An increment's own markdown style is gated by neither /pharn-dev-regress nor /pharn-dev-verify | 2026-06-30 | ~667
+L10 | floor    | validate-scan-surface,dev-product-boundary,enum-gated                                       | Product-pipeline artifacts sit on the validate-SCANNED surface; `.dev/` dev artifacts don't | - | ~524
+L11 | process  | style-gates,gate-map,whole-repo-scope                                                       | Verify's whole-repo style gates let a pre-existing unrelated error block every later feature's verify | 2026-07-01 | ~603
+L12 | process  | style-gates,prevention-vs-detection,formatter                                               | Prevent an increment's own style misses at BUILD (format written files), don't only DETECT them at verify | 2026-07-06 | ~734
+L13 | process  | style-gates,prevention-vs-detection,gate-map                                                | Extend the Step-2b format discipline (L12) to every artifact-writing stage, not just `/pharn-dev-build` | 2026-07-07 | ~475
+L14 | floor    | enum-gated,control-char-guard,regex-anchoring                                               | A shape-regex tightening of an enum-gated field must COMPOSE with the control-char guard, never replace it | 2026-07-09 | ~535
+L15 | floor    | keyed-lookup,prototype-pollution,silent-failure                                             | Index an arbitrary key with an own-property test, never `||`/`??` — inherited prototype members leak silently | 2026-07-09 | ~535
+L16 | tooling  | input-capture,shell-portability,word-splitting,false-red                                    | L5's own remedy is a portability trap: `xargs -a` is GNU-only and fabricates a false red | 2026-08-05 | ~576
+L17 | scoping  | writes-scope,scope-check,false-blocking                                                     | `check-regress scope` tests changed-since-base, not written-by-the-build | 2026-08-05 | ~585
+L18 | scoping  | writes-scope,plan-shape,fail-open                                                           | A PLAN's exclusion subsection must be a HEADING — a bold prose intro fails OPEN | 2026-08-05 | ~578
+L19 | scoping  | writes-scope,bash-escape,formatter                                                          | A stage's Bash-run tooling escapes `writes:` scope — repo-wide formatters are the live instance | 2026-08-05 | ~638
+L20 | process  | writes-scope,plan-shape,lesson-recurrence,floor-escalation                                  | A promoted lesson whose only remedy is discipline WILL recur — the second occurrence is the trigger to give it a floor check | 2026-08-07 | ~771
+L21 | process  | input-capture,lesson-recurrence,floor-escalation,writes-scope,git                           | L5's input-capture boundary recurred through `git status` — a path-set checker must REJECT a directory-shaped input, not trust its caller | 2026-08-17 | ~792
+L22 | tooling  | shell-portability,command-prescription,lesson-recurrence,false-red                          | A command that prescribes a shell technique in PROSE accumulates wrong implementations — pin the command line | 2026-08-19 | ~596
+L23 | process  | stage-artifact,gate-conflict,happy-path-latency,style-gates                                 | A stage that writes an artifact AND owns a whole-repo gate over it has a self-referential conflict invisible on the happy path | 2026-08-19 | ~620
+L24 | floor    | guarantee-audit,live-measurement,lesson-recurrence,regex-anchoring                          | A performance bound inherited from a superseded implementation is an unbacked claim — swapping the implementation mid-build is exactly when it gets inherited | 2026-08-19 | ~730
+L25 | tooling  | lesson-recurrence,floor-escalation,command-prescription,doc-drift                           | A rationale comment reaches only the file it sits in, and it is trusted for the defects it does NOT name | 2026-08-19 | ~839
+L26 | tooling  | verification-fidelity,style-gates,human-only-patch,false-green                              | A patch verified against a copy OUTSIDE the repo is verified under different rules than the repo enforces — config-driven gates resolve by PATH | 2026-08-19 | ~698
+L27 | process  | lesson-recurrence,floor-escalation,shared-message,fail-open                                 | A remedy added to a SHARED message is printed by every branch — check reachability per branch, or it trains the workaround | 2026-08-19 | ~690
+L28 | scoping  | writes-scope,plan-shape,cue-matching,false-red                                              | The plan-scope setter's exclusion CUE fires on an authorized item's own WRAPPED line | 2026-08-19 | ~624
+L29 | process  | lesson-recurrence,branch-coverage,shared-message,floor-escalation                           | When a lesson's remedy is quantified over a set, the ENUMERATION is the deliverable — an assertion written for one member reads as discharged | 2026-08-20 | ~749
+L30 | process  | style-gates,command-prescription,lesson-recurrence,floor-escalation,prevention-vs-detection | A step that RUNS some of the gates it names and ASKS for the rest will fail on the ones it asks for | 2026-08-20 | ~880
 ```
