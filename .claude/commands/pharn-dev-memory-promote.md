@@ -258,6 +258,43 @@ with a within-file blast radius on entries this run never touched (cited, not re
 formatter check is orchestration, not a floor op; it never blocks, and the deterministic style gate remains
 `/pharn-dev-verify`'s `check-verify.mjs` gate map (L9).
 
+### Step 6b — Regenerate the lessons index (ADVISORY; only when the target was `lessons-learned.md`)
+
+The one derived artifact this write invalidates is the address book `/pharn-dev-plan` selects from. Regenerate
+it here, with the **exact** command line:
+
+```bash
+node .dev/floor/gen-lessons-index.mjs .
+```
+
+- **Run the NARROW generator, not `npm run docs:generate`.** That script is
+  `gen-capability-catalog.mjs && gen-lessons-index.mjs`, so it would also rewrite `docs/capabilities/**`
+  and the README's `CURRENT-STATE` region — a blast radius a **lesson** promotion has no business
+  touching. The rejected form is named here so nothing is left to choose
+  (`.dev/memory-bank/lessons-learned.md` **L22**, cited not restated — P4).
+- **Skip it entirely when the target was `pattern-library.md`** — the index derives from
+  `lessons-learned.md` only, so there is nothing to regenerate.
+- **This write ESCAPES the fix #7 writes-scope — declared, not pretended** (**L19**, whose canon entry
+  names _this exact case_). The pre-write hook gates `Write|Edit|MultiEdit`; this runs through **Bash**
+  as a subprocess, so Step 0's scope does not cover it. That is also why `docs/lessons-index.md` is
+  **not** in this command's `writes:` — declaring it there would falsely imply the hook covers it, and
+  would over-declare a scope the Write tool never uses (**L7**).
+- **What skipping it actually costs, stated correctly.** `check-lessons-index.mjs` compares the
+  **working tree's** index against a recompute from the **working tree's** canon — commit status is not
+  an input, only mutual consistency is. So a skipped regeneration is **not** a quiet degradation: it
+  leaves a `[DRIFT]` **RED that fails `npm run docs:check`, and therefore `npm run check`, for
+  everyone** until someone regenerates. Regenerating here is what **keeps** that gate green.
+- **Then commit canon and the index together.** They are two files in one logical change; committing
+  canon alone reproduces the same RED for the next contributor. This is git hygiene, not a gate outcome.
+- **This is the DEV side's asymmetry with the product twin, and it runs the other way than you might
+  expect.** `/pharn-memory-promote` refreshes a **gitignored, disposable cache**, so skipping it merely
+  yields a `STALE` the next `/pharn-plan` degrades on. Here the index is a **committed** artifact under
+  byte-equality, so the step is **more** load-bearing, not less.
+- **ADVISORY (P0) regardless.** Running a generator is orchestration, never a floor op — nothing forces
+  this run, and an early abort skips it. The guarantee belongs to the **checker**
+  (`.dev/floor/check-lessons-index.mjs`, byte-equality), which is exactly what catches the skip. **"The
+  promotion regenerated the index" is never a precondition of anything.**
+
 Then **end your turn.** `/pharn-dev-memory-promote` does one thing: it lands **one** vetted, provenance-carrying entry.
 It does not chain to another stage.
 
@@ -283,6 +320,14 @@ It does not chain to another stage.
   substitute-don't-recompose rule narrows the gap; closing it needs a checker that reads canon _after_ the
   write, which belongs with the lessons-index generator that will consume the line (follow-up:
   `lesson-tagline-render-check`).
+- **"Step 6b keeps `docs/lessons-index.md` consistent with canon"** → **ADVISORY, twice over.** Running a
+  generator is orchestration, not a floor op; and the write goes through **Bash**, so it is **outside**
+  the fix #7 writes-scope entirely (**L19** — declared, not pretended). The guarantee is the **checker's**
+  (`.dev/floor/check-lessons-index.mjs`, byte-equality over generated output, `pharn/ARCHITECTURE.md §2`
+  primitive #3) — and unlike the product twin, whose skipped refresh degrades quietly to a `STALE` cache,
+  a skip here leaves a `[DRIFT]` **RED that fails `npm run check` repo-wide** until someone regenerates.
+  **"The promotion regenerated the index" is never a precondition of anything** — but the skip is loud,
+  which is the safe direction.
 - **"The write lands only in the declared canon file"** → **FLOOR** (the fix #7 pre-write hook;
   `.dev/memory-bank/**` is fail-closed until explicitly declared in Step 0).
 - **"A human approved THIS specific entry"** → **ADVISORY / procedural.** The floor cannot verify a human

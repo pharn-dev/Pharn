@@ -167,3 +167,67 @@ for (const gate of STEP_2B_GATES.filter((g) => g.tool !== "prettier")) {
     );
   });
 }
+
+// ── The lessons-index wiring set: the same L29 shape, one domain over ────────────────────────────────
+//
+// The lessons index has TWO wiring sites per surface: a plan stage must CHECK the index is fresh before
+// selecting from it, and a promote stage must REGENERATE it after landing an entry. That is four members
+// across the dev/product pair, and the pair is exactly where this went wrong: the PRODUCT half shipped
+// both invocations while the DEV half shipped neither, leaving `/pharn-dev-plan` with prose that NAMED
+// staleness ("if the index is stale, fall back") and invoked nothing that could detect it — L30's
+// runs-some/asks-for-the-rest shape — and `/pharn-dev-memory-promote` with no regeneration at all, so a
+// same-session plan after a promotion read an index missing the just-promoted lesson.
+//
+// L29 is why this is an ARRAY and not four hand-written assertions: a rule quantified over a set must
+// materialize the set once and iterate it, or it gets applied to whichever member was in front of the
+// author — which is precisely how the product half came to be wired alone. A fifth site added later
+// inherits every rule below for free.
+//
+// Each regex is FLOOR-SPECIFIC on purpose (`.dev/floor/…` vs `pharn/floor/…`), because these are a
+// deliberate copy-pair: pasting the product path into a dev command would regenerate the USER's
+// gitignored cache instead of this repo's committed index, and every other gate would stay green.
+//
+// Honest scope, and it is the same narrow kind as FORBIDDEN and STEP_2B_GATES above: this pins that the
+// command PROSE contains the invocation. It CANNOT prove a run executed it, that the branch is obeyed,
+// or that the flags are right — "the wiring is pinned" NEVER means "the sweep was fresh" (P0). It lives
+// under `.dev/` and not `pharn/floor/` because a user's install ships `pharn/floor/` WITHOUT `.dev/`,
+// so the dependency may only point `.dev/` -> product, never the reverse.
+const LESSONS_SWEEP_WIRING = [
+  { file: "pharn-plan.md", role: "checks the index before selecting", re: /pharn\/floor\/check-lessons-index\.mjs\b[^\n]*--verdict/ },
+  { file: "pharn-dev-plan.md", role: "checks the index before selecting", re: /node\s+\.dev\/floor\/check-lessons-index\.mjs/ },
+  { file: "pharn-memory-promote.md", role: "regenerates the index after a promotion", re: /node\s+pharn\/floor\/gen-lessons-index\.mjs/ },
+  {
+    file: "pharn-dev-memory-promote.md",
+    role: "regenerates the index after a promotion",
+    re: /node\s+\.dev\/floor\/gen-lessons-index\.mjs/,
+  },
+];
+
+function commandBody(file) {
+  return readFileSync(join(COMMANDS_DIR, file), "utf8").replace(SKIP_RE, "");
+}
+
+for (const site of LESSONS_SWEEP_WIRING) {
+  test(`✧ ${site.file} ${site.role} — the invocation is present, not merely described`, () => {
+    assert.match(commandBody(site.file), site.re, `${site.file} must INVOKE its lessons-index tool, not name the condition in prose`);
+  });
+
+  // L4: an authored assertion passes by construction. Pin the matcher's DISCRIMINATION directly — strip
+  // the invocation out of the real body and require the regex to stop matching — so a future loosening
+  // (e.g. dropping `node\s+`, or widening the floor path) fails here instead of silently certifying a
+  // command that lost its wiring.
+  test(`✧ the ${site.file} rule DISCRIMINATES — it fails on a body with the invocation removed`, () => {
+    const stripped = commandBody(site.file).replace(new RegExp(site.re.source, "g"), "<<removed>>");
+    assert.doesNotMatch(stripped, site.re, `the ${site.file} matcher must not still pass once the invocation is gone`);
+  });
+}
+
+test("✧ the lessons-index wiring set is non-vacuous — every named command exists on disk", () => {
+  // L25's failure mode is a checker that certifies by STAYING SILENT. Without this, renaming a command
+  // would make its rules above throw ENOENT rather than pass — but adding a member that never existed,
+  // or a future refactor to a forgiving reader, would go quietly green over an empty domain.
+  const present = new Set(commandFiles());
+  const missing = LESSONS_SWEEP_WIRING.filter((s) => !present.has(s.file)).map((s) => s.file);
+  assert.deepEqual(missing, [], `these wiring-set members name no live command file: ${missing.join(", ")}`);
+  assert.equal(LESSONS_SWEEP_WIRING.length, 4, "expected both surfaces x both sites (dev/product x check/regenerate)");
+});
