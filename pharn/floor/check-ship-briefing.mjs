@@ -30,10 +30,19 @@
 // ── Duplication, not import (P3 — no sibling import; a documented, tested-for divergence, matching
 //    check-plan-spec-agree.mjs's readValue precedent) ──────────────────────────────────────────────────
 // The field-reading logic below (readHeaderField's dual PLAN/SPEC-shape parse, the JSON verdict reader,
-// the GRILL verdict-line scan) is DUPLICATED from `render-ship-briefing.mjs`, not imported. The two must
-// read a field the SAME way for "equals its source" to mean anything; `check-ship-briefing.test.mjs`
-// carries a ✧ PARITY test asserting both copies agree on a shared fixture set, so a future edit to one
-// side that silently diverges from the other is caught, not merely hoped against.
+// the GRILL verdict-line scan) AND the frontmatter scalar codec (`yamlScalar` / `isQuotedScalar` /
+// `yamlUnscalar`) are DUPLICATED from `render-ship-briefing.mjs`, not imported. The two must read a field
+// the SAME way for "equals its source" to mean anything; `check-ship-briefing.test.mjs` carries ✧ PARITY
+// tests asserting both copies agree on a shared fixture set, so a future edit to one side that silently
+// diverges from the other is caught, not merely hoped against.
+//
+// The codec is named here for a reason (L25). This paragraph previously enumerated the THREE readers and
+// stopped — and was read, correctly, as a completed analysis of what the two files must agree on. The
+// encode/decode pair was the fourth thing, and it was the one that had actually drifted: the renderer
+// escaped, nothing here unescaped, and a briefing rendered seconds earlier REDded as "stale" against its
+// own unchanged source. A partial rationale narrows what the next reader thinks to check, so the fix is
+// both the decoder AND this sentence — with the ✧ round-trip test as the part that does not rely on
+// anyone reading either.
 //
 // NON-LLM. Node stdlib only (fs). No network, no eval, no deps, no child processes.
 //
@@ -63,6 +72,52 @@ function stripQuotes(v) {
 }
 function clean(v) {
   return stripQuotes(v.replace(/\s+#.*$/, "").trim()).trim();
+}
+
+// ── DUPLICATED from render-ship-briefing.mjs: the frontmatter scalar CODEC ────────────────────────────
+// The renderer writes THIS file's input through `yamlScalar`, which escapes `\` and `"`. Nothing here
+// ever undid that, so a briefing whose `grill_verdict` contained a quote read back as `…\"…`, never
+// equalled the live source's `…"…`, and a briefing rendered seconds earlier REDded as "stale" against an
+// input that had not changed. The decoder below is the exact inverse, and it is applied at exactly ONE
+// site — `readEnvelope`, which reads the renderer's own output. The two OTHER readers in this file
+// (`readHeaderField` over SPEC/PLAN, `grillVerdictLine` over GRILL.md) read files the renderer never
+// encoded, and they keep `clean()` untouched: decoding there would invent an unescape no writer performed
+// and would break their parity with the renderer's copies. Per-branch, not blanket (L27).
+//
+// Kept as a DUPLICATE, not an import, per this file's documented no-sibling-import convention (P3) — the
+// ✧ PARITY + ✧ round-trip tests in check-ship-briefing.test.mjs pin both copies to identical behavior.
+export function yamlScalar(v) {
+  return `"${String(v).replace(/\\/g, "\\\\").replace(/"/g, '\\"')}"`;
+}
+
+// Is `raw` a COMPLETE double-quoted scalar? The closing quote is a real terminator only when the run of
+// backslashes immediately before it is EVEN — "the previous character is not a backslash" is the obvious
+// spelling and is WRONG for `yamlScalar("a\\")` → `"a\\\\"`, whose final `"` follows the second half of an
+// escaped pair. See render-ship-briefing.mjs's copy for the full rationale.
+export function isQuotedScalar(raw) {
+  if (typeof raw !== "string" || raw.length < 2) return false;
+  if (raw[0] !== '"' || raw[raw.length - 1] !== '"') return false;
+  let run = 0;
+  for (let i = raw.length - 2; i >= 1 && raw[i] === "\\"; i--) run++;
+  return run % 2 === 0;
+}
+
+// The exact inverse of `yamlScalar`, in ONE left-to-right pass. Restricted to `[\\"]`: an unrecognized
+// sequence is left INERT rather than interpreted — a codec for this writer, never a general YAML
+// unescaper. A value that is not a complete quoted scalar is returned unchanged, so callers fall back.
+export function yamlUnscalar(raw) {
+  if (!isQuotedScalar(raw)) return raw;
+  return raw.slice(1, -1).replace(/\\([\\"])/g, "$1");
+}
+
+// Read ONE value from the BRIEFING's own frontmatter — the ONLY place `yamlScalar` output is parsed.
+// A complete quoted scalar is DECODED; anything else (a hand-written unquoted value, a quoted value with
+// a trailing ` # comment`, a malformed scalar) falls back to today's `clean()` path unchanged. The
+// `cleanScalar` shape guards downstream then run on the DECODED value — the decoder is layered BEFORE the
+// guard, never in place of it (L14), so a control character cannot ride in behind an escape.
+function readEnvelopeValue(raw) {
+  const trimmed = raw.trim();
+  return isQuotedScalar(trimmed) ? yamlUnscalar(trimmed) : clean(raw);
 }
 
 // duplicated: render-ship-briefing.mjs's readHeaderField
@@ -151,13 +206,15 @@ function red(kind, detail) {
   reds.push({ kind, detail });
 }
 
-function readEnvelope(text) {
+// Exported for the ✧ per-field tests: they assert every yamlScalar-emitted field survives the
+// render→read round trip, which requires reading the envelope the way `gate()` does.
+export function readEnvelope(text) {
   const m = text.match(FM_RE);
   if (!m) return null;
   const fields = new Map(); // Map, never a plain object indexed by an arbitrary key (L15)
   for (const line of m[1].split(/\r?\n/)) {
     const kv = line.match(/^([A-Za-z_][\w-]*):[ \t]*(.*)$/);
-    if (kv) fields.set(kv[1], clean(kv[2]));
+    if (kv) fields.set(kv[1], readEnvelopeValue(kv[2]));
   }
   return fields;
 }

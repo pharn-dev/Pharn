@@ -17,7 +17,7 @@ import { fileURLToPath } from "node:url";
 import { mkdtempSync, writeFileSync, mkdirSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
-import { renderBriefing, NO_DECISION_LINE, ADVISORY_HEADING } from "./render-ship-briefing.mjs";
+import { renderBriefing, NO_DECISION_LINE, ADVISORY_HEADING, yamlScalar, yamlUnscalar, isQuotedScalar } from "./render-ship-briefing.mjs";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const CLI = join(here, "render-ship-briefing.mjs");
@@ -469,4 +469,82 @@ test("product PLAN shape (real --- frontmatter) is read exactly like the dev bul
   } finally {
     rmSync(base, { recursive: true, force: true });
   }
+});
+
+// ── ⟲ CODEC — the frontmatter scalar encode/decode pair ───────────────────────────────────────────────
+// The writer escaped `\` and `"` and NO reader ever unescaped, so a quote-bearing briefing REDded as
+// "stale" against its own unchanged source. These tests pin the inverse property directly, which is the
+// part of the repair that does not rely on anyone reading the rationale comment (L25).
+//
+// CODEC_CORPUS is the round-trip's domain, materialized in ONE place so every rule below ranges over the
+// same set rather than over whichever value was in front of the author (L29). Backslash-TERMINATED values
+// are load-bearing members, not padding: they are the only ones that distinguish the correct
+// backslash-run-parity terminator test from the naive "previous character is not a backslash" spelling,
+// which a quote-only corpus accepts.
+export const CODEC_CORPUS = [
+  "plain",
+  "n/a",
+  "",
+  'has a " quote',
+  'starts "with a quote',
+  'ends with a quote "',
+  '"fully wrapped in quotes"',
+  "has a \\ backslash",
+  "ends with a backslash \\",
+  "ends with two backslashes \\\\",
+  'the literal escape \\" sequence',
+  'backslash then quote \\"',
+  '\\"',
+  "\\",
+  '"',
+  'ADVISORY VERDICT: 0 concerns — not "grill passed".',
+  "C:\\Users\\x — a windows-looking path",
+  "a \\n that is NOT a newline, just backslash-n",
+];
+
+test("⟲ round-trip: yamlUnscalar(yamlScalar(v)) === v for every value in CODEC_CORPUS", () => {
+  for (const v of CODEC_CORPUS) {
+    assert.equal(yamlUnscalar(yamlScalar(v)), v, `round-trip failed for ${JSON.stringify(v)}`);
+  }
+});
+
+test("⟲ every yamlScalar output is recognized as a complete quoted scalar", () => {
+  for (const v of CODEC_CORPUS) {
+    assert.equal(isQuotedScalar(yamlScalar(v)), true, `not recognized: ${JSON.stringify(v)} -> ${yamlScalar(v)}`);
+  }
+});
+
+// The regression pin for the naive terminator spelling. `yamlScalar("a\\")` is `"a\\\\"` — its closing
+// quote IS preceded by a backslash, yet the scalar is complete. A `"`-only corpus passes under both
+// spellings, so this case is what makes the parity rule falsifiable.
+test("⟲ a backslash-TERMINATED value still round-trips — the naive `prev char is not a backslash` test fails here", () => {
+  for (const v of ["a\\", "a\\\\", "\\", "\\\\\\"]) {
+    const raw = yamlScalar(v);
+    assert.equal(raw[raw.length - 2], "\\", "precondition: the closing quote follows a backslash");
+    assert.equal(isQuotedScalar(raw), true);
+    assert.equal(yamlUnscalar(raw), v);
+  }
+});
+
+test("⟲ an ODD backslash run before the closing quote means the scalar is UNTERMINATED, not complete", () => {
+  // `"a\"` — the quote is escaped, so there is no terminator. Rejecting it is what keeps the decoder from
+  // inventing a value out of a truncated line.
+  assert.equal(isQuotedScalar('"a\\"'), false);
+  assert.equal(isQuotedScalar('"\\"'), false);
+  assert.equal(isQuotedScalar('"a\\\\\\"'), false);
+});
+
+test("⟲ a non-scalar is returned UNCHANGED so the caller can fall back", () => {
+  for (const raw of ["", '"', "unquoted", "'single quoted'", '"trailing" # note', 'no "leading quote"x']) {
+    assert.equal(yamlUnscalar(raw), raw);
+    assert.equal(isQuotedScalar(raw), false);
+  }
+});
+
+test("⟲ the decoder is a codec for THIS writer, not a general YAML unescaper — unknown escapes stay INERT", () => {
+  // `yamlScalar` emits a backslash before `\` and `"` only. `\n`/`\t`/`\u0041` are sequences it never
+  // writes, so decoding them would invent bytes no source ever contained.
+  assert.equal(yamlUnscalar('"a\\nb"'), "a\\nb");
+  assert.equal(yamlUnscalar('"a\\u0041b"'), "a\\u0041b");
+  assert.equal(yamlUnscalar('"a\\tb"'), "a\\tb");
 });

@@ -46,6 +46,39 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Fixed
 
+- **The ship-briefing render→check round trip survives quotes and backslashes** (`SKILLS_VERSION` 2.7.9 →
+  **2.7.10**, patch). `render-ship-briefing.mjs`'s `yamlScalar` escapes `\` and `"` into
+  `BRIEFING.md`'s frontmatter, and **nothing on the read side ever undid it**:
+  `check-ship-briefing.mjs`'s `stripQuotes` removed the outer quotes only. A `grill_verdict` containing a
+  quote therefore rendered as `"…\"…"`, read back as `…\"…`, and never equalled the live GRILL.md — so a
+  briefing rendered seconds earlier **REDded as "stale" against its own unchanged source**. The reader now
+  decodes a complete double-quoted scalar with the exact inverse of the writer.
+
+  **Live incidence, measured rather than assumed: 0 of 77.** Across every captured `ADVISORY VERDICT:`
+  line in this repo's own `.dev/features/*/GRILL.md`, none contains a `"` or `\` — the
+  `**ADVISORY VERDICT: …**` convention closes the bold span before the quoted phrases, and
+  `grillVerdictLine` stops at that `**`. 21 verdict _lines_ do carry a quote, just outside the captured
+  span. Rendering and checking all 104 real feature directories produced **0** stale REDs before the fix.
+  So this was a reproduced defect in shipped floor code that had not yet fired, not an observed
+  production failure — stated that way on purpose (P0/P7).
+
+  **The sharp part is the terminator test, and a quote-only test suite cannot see it.** Deciding whether a
+  scalar's closing `"` is real by asking "is the previous character a backslash" is wrong:
+  `yamlScalar("a\\")` renders `"a\\\\"`, whose final quote **does** follow a backslash — the second half of
+  an escaped pair. The decision is the **parity** of the backslash run before the quote (even = a real
+  terminator). `/pharn-dev-grill` raised this against the plan before the build, and both spellings pass a
+  corpus containing only quotes, which is why backslash-terminated values are load-bearing members of the
+  test corpus rather than padding.
+
+  **Scoped per branch, not blanket (`lessons-learned.md` L27).** `clean()` serves three readers; only
+  `readEnvelope` parses the renderer's own output. `readHeaderField` (SPEC/PLAN) and `grillVerdictLine`
+  (GRILL.md) read files nothing ever encoded and are **unchanged** — decoding there would invent an
+  unescape no writer performed and break their parity with the renderer's copies. A test asserts the
+  decode in its own case **and its absence from the other two**. The codec is duplicated into the checker,
+  not imported, per that file's documented no-sibling-import convention (P3), with ✧ parity and ⟲
+  round-trip tests pinning both copies; the shape guards (`cleanScalar`) still run **on the decoded
+  value**, layered after the decoder and never in place of it (L14).
+
 - **The writes-scope deny message stops citing two commands that do not exist** (`SKILLS_VERSION` 2.7.8 →
   **2.7.9**, patch). `enforce-writes-scope.cjs`'s in-repo FIX block told a blocked agent "If running a
   command (`/build`, `/review`, …): scope is set in the command's FIRST step … restart the command from

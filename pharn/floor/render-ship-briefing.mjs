@@ -243,12 +243,48 @@ function cleanScalar(v, maxLen) {
   return true;
 }
 
+// ── The frontmatter scalar CODEC — an inverse PAIR, defined together on purpose ───────────────────────
 // A minimal YAML scalar quoter for hand-emitted frontmatter (no YAML library — stdlib only). Always
 // double-quotes and escapes `\` and `"` — simple and unambiguous, never relies on YAML's "plain scalar"
 // grammar (whose special-character rules are exactly the kind of subtlety this repo's own `readValue`
 // helpers exist to parse defensively on the READ side; on the WRITE side, always-quote sidesteps it).
-function yamlScalar(v) {
+//
+// `yamlScalar` and `yamlUnscalar` are ONE concept and live together BECAUSE they once did not: the writer
+// escaped and no reader ever unescaped, so `check-ship-briefing.mjs` compared `…\"…` against a live source
+// reading `…"…` and REDded a just-rendered briefing as "stale" against its own unchanged input. Splitting
+// an encoder from its decoder across two files is how that drift happened; keeping the pair adjacent (and
+// pinned by the ✧ round-trip + parity tests) is the repair. `check-ship-briefing.mjs` carries a DUPLICATE
+// of all three functions per its documented no-sibling-import convention (P3), not an import.
+export function yamlScalar(v) {
   return `"${String(v).replace(/\\/g, "\\\\").replace(/"/g, '\\"')}"`;
+}
+
+// Is `raw` a COMPLETE double-quoted scalar — i.e. something `yamlScalar` could have produced?
+//
+// The subtle half is the CLOSING quote. "The character before it is not a backslash" is the obvious
+// spelling and it is WRONG: `yamlScalar("a\\")` → `"a\\\\"`, whose final `"` IS preceded by a backslash —
+// the second half of an escaped `\\` pair, not an escape of the quote. Decide on the PARITY of the
+// backslash run immediately before the quote: an EVEN run (0, 2, 4, …) leaves the quote unescaped and
+// therefore a real terminator; an ODD run means the quote is itself escaped and the scalar is unterminated.
+// A `"`-only test corpus passes under both spellings, which is why the round-trip corpus below carries
+// backslash-terminated values.
+export function isQuotedScalar(raw) {
+  if (typeof raw !== "string" || raw.length < 2) return false;
+  if (raw[0] !== '"' || raw[raw.length - 1] !== '"') return false;
+  let run = 0;
+  for (let i = raw.length - 2; i >= 1 && raw[i] === "\\"; i--) run++;
+  return run % 2 === 0;
+}
+
+// The exact inverse of `yamlScalar`: strip the outer quotes, then undo the two escapes it emits — in ONE
+// left-to-right pass, never two sequential `.replace` calls whose order silently matters. Restricted to
+// `[\\"]` on purpose: `yamlScalar` emits a backslash before nothing else, so an unrecognized sequence
+// (`\n`, `A`) is left INERT rather than interpreted — this is a codec for this writer, never a
+// general YAML unescaper, and pretending otherwise would invent bytes no source ever wrote.
+// A value that is not a complete quoted scalar is returned unchanged, so the caller can fall back.
+export function yamlUnscalar(raw) {
+  if (!isQuotedScalar(raw)) return raw;
+  return raw.slice(1, -1).replace(/\\([\\"])/g, "$1");
 }
 
 export function readJsonVerdict(path, enumSet) {
