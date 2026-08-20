@@ -1001,3 +1001,38 @@ optional when closing a gap like this.
   build declared itself formatted), with both the dropped-invocation and path-less mutations caught by
   the new enumerated pin before promotion
 - promoted: 2026-08-20 via gated `/pharn-dev-memory-promote` (human-approved).
+
+## L31 — A deliberate copy-pair creates an obligation set nothing ranges over — the second copy is where the obligation is dropped
+
+type: process · concepts: [lesson-recurrence, dev-product-boundary, branch-coverage, floor-escalation]
+
+**Lesson.** This repo maintains several deliberate dev/product copy-pairs (`check-provenance.mjs`,
+`lessons-index-core.mjs`, and the four lessons-index wiring sites). Where a pair's **code** is pinned to
+agree by ✧ tests, a pair's **obligations** — "each plan stage checks the index", "each promote stage
+regenerates it" — had **no** enumeration anywhere, and the product half shipped both invocations while
+the dev half shipped **neither**, for an entire release line, with every gate green. The failure is not
+that someone forgot; it is that **the set of sites was never written down**, so "done" was assessed
+per-file. Remedy: when a capability is deliberately duplicated across the dev/product boundary,
+materialize the **obligation set** in one place with the rules iterating it, the way `STEP_2B_GATES`
+does for a step's gate set.
+
+**Why it matters.** [[L29]] establishes that a remedy quantified over a set needs the set materialized;
+this names the **highest-value place to look for such a set** — a deliberate copy-pair, where the second
+copy is invisible precisely because the first one is correct and reviewable in isolation. The pairs are
+created deliberately and documented carefully, which is what makes the gap durable: a reader auditing
+`check-provenance.mjs`'s twin finds a careful note explaining why two copies exist, and nothing anywhere
+says what each copy's _callers_ owe. Note the shape of the omission, because it is what makes this a
+lesson rather than a bug report: the dev half's prose did name the condition — "if the index is stale or
+absent, fall back to reading canon in full" — so a reader comparing the two surfaces would find the
+obligation ACKNOWLEDGED on both, and only an execution trace would show one of them had nothing that
+could ever detect it. Distinct from [[L29]] (there the set was one function's branches, authored in one
+sitting; here it spans two surfaces and two increments months apart), from [[L20]] (which says a
+discipline-only remedy recurs — this says _where_ it recurs first), and from [[L25]] (there the
+rationale did not reach; here it reached, was correct, and simply never enumerated its own domain).
+
+**Provenance.**
+
+- feature: `dev-lessons-index-gate`
+- commit: `9f69e69c79b2c62f9004e1d6a89e4de263fc0133`
+- source: `.dev/features/dev-lessons-index-gate/REVIEW.md` Candidate A + `GRILL.md` G1
+- promoted: 2026-08-20 via gated `/pharn-dev-memory-promote` (human-approved).
