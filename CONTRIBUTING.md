@@ -19,8 +19,8 @@ The four trusted docs — `pharn/CONSTITUTION.md`, `pharn/ARCHITECTURE.md`, `THR
 ## Setup
 
 ```bash
-git clone https://github.com/pharn-dev/pharn.git
-cd pharn
+git clone https://github.com/pharn-dev/pharn-oss.git
+cd pharn-oss
 npm install   # dev-only tooling (ESLint, Prettier, markdownlint).
               # The methodology itself is Node stdlib only — zero runtime dependencies, Node 24.
 ```
@@ -30,11 +30,19 @@ npm install   # dev-only tooling (ESLint, Prettier, markdownlint).
 Two gates, and both must pass:
 
 ```bash
-npm run check                 # format:check + lint + lint:md + test
-node pharn/floor/validate.mjs .     # the deterministic floor (exits non-zero on any RED finding)
+npm run check                    # the aggregate gate — `scripts.check` in package.json is the authoritative list
+node pharn/floor/validate.mjs .  # the deterministic floor (exits non-zero on any RED finding)
 ```
 
-`npm run check` runs Prettier (`--check`), ESLint, markdownlint, and the `node --test` suite (the write-guard hook and the floor each have tests). The floor checks the structural invariants of any PHARN capability you add. A GREEN floor means "the shape is sound," never "the design is right" — that judgment is [`/pharn-dev-review`](./.claude/commands/pharn-dev-review.md)'s advisory job, and yours.
+`npm run check` chains the repo's gates: Prettier (`format:check`), ESLint (`lint`), markdownlint (`lint:md`), the generated-docs drift check (`docs:check`), the specified-markers check (`check:markers`), the README version-badge check (`check:badge`), and the `node --test` suite (`test` — the write-guard hooks and both floors each have tests). **Read `scripts.check` in [`package.json`](./package.json) for the live chain rather than trusting this sentence** — gates get added there, and a doc that restates the list is a second source of truth that drifts from the first. The chain is `&&`-linked, so the first RED short-circuits the rest; fix it and re-run. CI runs these same scripts individually, plus the floor, and never `npm run check` itself, so a green run here anticipates that workflow rather than reproducing how it is invoked. It does **not** cover all of CI: separate workflows run CodeQL and a secret scan, and neither command above exercises those.
+
+The floor checks the structural invariants of any PHARN capability you add. A GREEN floor means "the shape is sound," never "the design is right" — that judgment is [`/pharn-dev-review`](./.claude/commands/pharn-dev-review.md)'s advisory job, and yours.
+
+### Regenerate the derived docs before you push
+
+Three doc regions are **generated, never hand-edited**: `docs/capabilities/**`, the root `README.md` `## Current state` inventory (between its `CURRENT-STATE` markers), and `docs/lessons-index.md`. After changing a capability, contract, command, hook, or floor checker — or promoting a lesson to the memory-bank — run `npm run docs:generate` and commit the rendered output. `docs:check` (inside `npm run check`) RED-fails on any byte difference, so skipping this surfaces as a failed gate rather than as silent drift.
+
+What that buys is **byte-equality** — the committed output equals a fresh regeneration — never that the generated content is _right_: a wrong enumerator regenerates cleanly and stays GREEN. See [`CLAUDE.md`](./CLAUDE.md) ("Three doc regions are GENERATED") for the full rule, including the one case (`ENUM_ERROR` — a duplicate lesson id, an unsafe title) where regenerating cannot help and the canon file has to be fixed instead.
 
 ## The build loop
 
@@ -54,7 +62,9 @@ When you add a PHARN capability, follow the conventions in [`CLAUDE.md`](./CLAUD
 
 The repo separates the **product** (what a user receives) from the **build apparatus** (what a contributor uses), in the filesystem and in command names:
 
-- **`.dev/`** holds the apparatus — `pharn/floor/` (checkers + tests), `.dev/features/` (build-loop audit trails), `.dev/memory-bank/`. It is committed but excluded **wholesale** by `pharn/floor/validate.mjs`. The product lives at the root (`pharn/pharn-review/`, `pharn/pharn-contracts/`, and a root `features/` for product-pipeline artifacts).
+- **`.dev/`** holds the apparatus — `.dev/floor/` (dev-only checkers + tests), `.dev/features/` (build-loop audit trails), `.dev/memory-bank/`. It is committed but is **not** what a user receives.
+- **The product lives under `pharn/`** — `pharn/pharn-contracts/`, `pharn/pharn-core/`, `pharn/pharn-pipeline/`, `pharn/pharn-review/`, and the **product floor** `pharn/floor/` (the checkers the `/pharn-*` commands run on a user's code) — plus a root `features/` for product-pipeline artifacts. `pharn/floor/validate.mjs` **is** that product floor, and it excludes `.dev/**` wholesale: it scans the product surface only. So a change under `pharn/floor/` **ships** and is not apparatus — which means it must bump [`SKILLS_VERSION`](./SKILLS_VERSION) and add a `CHANGELOG.md` entry; see [`CLAUDE.md`](./CLAUDE.md) ("SKILLS_VERSION discipline") for what counts as product surface and how big the bump is.
+- **Two floors exist on purpose:** `.dev/floor/` is contributor tooling that never ships; `pharn/floor/` ships. [`CLAUDE.md`](./CLAUDE.md) ("Repo layout — the dev/product boundary") is the authoritative split — defer to it rather than to this summary.
 - **Commands split by name prefix** (they cannot move out of `.claude/`): build-apparatus commands are **`pharn-dev-*`** (`pharn-dev-plan`, `-build`, …); product commands are **`pharn-*`** without `-dev-`. The prefix is naming/UX only — **not** an access gate.
 
 See [`CLAUDE.md`](./CLAUDE.md) ("Repo layout — the dev/product boundary") for the full map.
