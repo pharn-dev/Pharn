@@ -250,6 +250,25 @@ node .dev/floor/check-lessons-index.mjs [target-dir]
 # pinned by tests. Apparatus: no SKILLS_VERSION bump. Exits non-zero on RED.
 node .dev/floor/check-version-badge.mjs [target-dir]
 
+# Assert CONTRIBUTING.md names every gate in package.json's `scripts.check`. FLOOR (enum/regex, primitive
+# #3): the gate set is PARSED from the `scripts.check` STRING — the checker hardcodes no gate name — and
+# each must appear in CONTRIBUTING.md as a BACK-TICKED token. The back-ticks are load-bearing, not
+# cosmetic: a bare substring test would make the `test` gate unfalsifiable, since the word appears in
+# ordinary prose. Added because CONTRIBUTING read "format:check + lint + lint:md + test" while the chain
+# had grown to SEVEN — `docs:check`, `check:markers` and `check:badge` were added and the sentence never
+# was, so every contributor editing a capability hit a `docs:check` RED the docs had not warned them
+# about. Per L20 a defect whose only remedy is "remember to update it" has earned a floor check; the
+# `check-version-badge` precedent fired on the same lesson. Fail-closed on every unusable input
+# (MISSING_PACKAGE | NO_CHECK_SCRIPT | EMPTY_CHAIN | MISSING_DOC) — no input state is GREEN by default.
+# NARROWED, and stated: it proves each gate is NAMED, never that CONTRIBUTING DESCRIBES it correctly (a
+# doc listing all seven and explaining each wrongly stays GREEN), and it does NOT check the REVERSE
+# direction — a gate removed from the chain but still documented is GREEN, deliberately, because
+# CONTRIBUTING legitimately names non-chain scripts (`docs:generate`, `format`) and the two shapes are
+# indistinguishable from these two files alone. Wired into `npm run check` as `check:contributing` AND as
+# its own ci.yml step (ci.yml runs each script individually and never `npm run check`); both wirings are
+# pinned by tests. Apparatus: no SKILLS_VERSION bump. Exits non-zero on RED.
+node .dev/floor/check-contributing-gates.mjs [target-dir]
+
 # Self-test the write-guard hook:
 echo '{"tool_name":"Edit","tool_input":{"file_path":"pharn/CONSTITUTION.md"}}' | node .claude/hooks/protect-trusted-paths.cjs   # → exit 2, denied
 echo '{"tool_name":"Write","tool_input":{"file_path":"pharn/pharn-core/rules/x.md"}}' | node .claude/hooks/protect-trusted-paths.cjs  # → exit 0, allowed
