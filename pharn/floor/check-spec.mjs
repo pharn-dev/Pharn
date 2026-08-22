@@ -49,13 +49,13 @@
 
 import { readFileSync } from "node:fs";
 import { createHash } from "node:crypto";
+import { FM_RE, stripBom } from "./frontmatter-core.mjs";
 
 // Enums / shapes — every branch is a presence / enum / hash-equality membership test (P5); the terminal
 // fallback on any non-member is a loud RED, never a guess. These are the enum-gated / floor-verifiable fields.
 const REQUIRED_SECTIONS = ["intent", "scope", "acceptance criteria", "constraints"]; // §6 SPEC presence set
 const STATE_ENUM = ["Draft", "Approved"]; // the spec lifecycle (ARCHITECTURE §6)
 const HASH_RE = /^[0-9a-f]{64}$/; // a SHA-256 hex digest
-import { FM_RE, stripBom } from "./frontmatter-core.mjs";
 
 const reds = [];
 function red(kind, detail) {

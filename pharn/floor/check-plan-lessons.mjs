@@ -49,12 +49,9 @@
 // Exit: 0 only when the declaration holds; 1 on every refusal (fail-closed).
 
 import { readFileSync } from "node:fs";
+import { FM_RE, stripBom } from "./frontmatter-core.mjs";
 
 const FIELD = "applied_lessons";
-
-// The leading YAML frontmatter block — the same FM_RE mechanism as check-spec.mjs /
-// check-plan-spec-agree.mjs, re-implemented IN-FILE (no sibling import, P3).
-import { FM_RE, stripBom } from "./frontmatter-core.mjs";
 
 // The value grammar — the enum-gate (primitive #3). `L` is CASE-SENSITIVE and at least one id is
 // required, so `[l1]` and `[]` both fail closed. Inner whitespace is tolerated.

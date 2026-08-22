@@ -19,6 +19,18 @@
 // at the anchor. Normalising both at the read is what makes the two defences complete rather than
 // individually plausible.
 //
+// WHY IMPORTING THIS IS NOT A "SIBLING IMPORT" (P3), stated because six checkers now import it and the
+// convention they each used to carry said the opposite. P3 forbids a LEAF referencing another LEAF —
+// module A reaching into module B's internals — and routes anything shared through a bottom. This file
+// IS such a bottom: zero behaviour beyond parsing, no dependency of its own, and it sits inside the same
+// module as its consumers rather than across a tree edge. The precedent is `lessons-index-core.mjs`,
+// which `check-lessons-index.mjs` and `gen-lessons-index.mjs` already import for exactly this reason.
+// The five stale comments that justified re-implementing `FM_RE` in-file ("re-implemented IN-FILE, no
+// sibling import, P3") were removed with the duplication they described — a rationale outliving the
+// thing it explains is worse than none, because it reads as a live constraint (lessons-learned L25).
+// Other helpers those files duplicate (`readValue`, `cleanScalar`, the `yamlScalar` codec) are NOT
+// affected and keep their own, still-accurate notes.
+//
 // WHAT THIS DOES NOT DO (P0):
 //   - NOT a YAML parser. `FM_RE` captures the raw block; each consumer parses the scalars it needs.
 //   - NOT a general Unicode normaliser. Exactly ONE leading `U+FEFF` is stripped, only at offset 0. A

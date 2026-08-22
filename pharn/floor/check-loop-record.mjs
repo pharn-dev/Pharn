@@ -69,6 +69,7 @@
 // Exit: 0 (GREEN) only when every check above holds; 1 (RED) on every refusal (fail-closed).
 
 import { readFileSync } from "node:fs";
+import { FM_RE, stripBom } from "./frontmatter-core.mjs";
 
 // The `decision` enum — exactly the values check-loop.mjs EMITS as `.decision` at a stop. `CONTINUE`
 // (which check-loop.mjs also emits) is deliberately absent: a record is written only at a STOP, so a
@@ -80,9 +81,6 @@ const DECISION_ENUM = new Set(["STOP_GREEN", "STOP_CAP", "STOP_TERMINAL", "INCON
 // The Handoff subsections, in NORMATIVE ORDER. The array (not a Set) is the point: order is part of the
 // shape, so the check is list equality, not set membership.
 const HANDOFF_SECTIONS = ["investigated", "learned", "next_steps"];
-
-// The leading YAML frontmatter block — re-implemented in-file (no sibling/cross-tree import, P3).
-import { FM_RE, stripBom } from "./frontmatter-core.mjs";
 
 // The value grammars (primitive #3). Each is applied ONLY after cleanScalar (see below).
 const ITER_RE = /^\d+$/;
