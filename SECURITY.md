@@ -23,7 +23,7 @@ We patch security issues against the **latest** released version only. The curre
 
 Instead, report privately through one of these channels:
 
-1. **GitHub Security Advisories (preferred)** — use [private vulnerability reporting](https://github.com/pharn-dev/pharn/security/advisories/new) to open a confidential report. No email is exposed and the report stays embargoed until a fix ships.
+1. **GitHub Security Advisories (preferred)** — use [private vulnerability reporting](https://github.com/pharn-dev/pharn-oss/security/advisories/new) to open a confidential report. No email is exposed and the report stays embargoed until a fix ships.
 2. **Email** — if you cannot use GitHub advisories, email `support@pharn.dev` with `[PHARN SECURITY]` in the subject.
 
 Please include as much of the following as you can — it speeds up triage:

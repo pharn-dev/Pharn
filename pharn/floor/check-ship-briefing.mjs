@@ -55,9 +55,11 @@
 
 import { readFileSync, existsSync } from "node:fs";
 import { dirname, join } from "node:path";
+import { FM_RE, stripBom } from "./frontmatter-core.mjs";
 
 // ── Duplicated from render-ship-briefing.mjs (see header) ─────────────────────────────────────────────
 import { FM_RE, stripBom } from "./frontmatter-core.mjs";
+
 const HEADING_RE = /^#{1,6}[ \t]+\S/;
 const REGRESS_ENUM = new Set(["no-regressions", "regressions", "inconclusive"]);
 const VERIFY_ENUM = new Set(["PASS", "FAIL", "INCOMPLETE", "INCONCLUSIVE"]);

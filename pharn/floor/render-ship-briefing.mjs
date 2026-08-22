@@ -59,6 +59,7 @@
 import { readFileSync, existsSync } from "node:fs";
 import { spawnSync } from "node:child_process";
 import { join } from "node:path";
+import { FM_RE, stripBom } from "./frontmatter-core.mjs";
 
 // The sentinel line emitted in `## Why this design` when the heading-scan finds nothing. A caller may
 // replace this EXACT string with a generated paragraph; tests and `check-ship-briefing.mjs` both key off

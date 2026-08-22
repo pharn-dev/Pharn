@@ -69,6 +69,7 @@
 // Exit: 0 (GREEN) only when every check above holds; 1 (RED) on every refusal (fail-closed).
 
 import { readFileSync } from "node:fs";
+import { FM_RE, stripBom } from "./frontmatter-core.mjs";
 
 // The `decision` enum — exactly the values check-loop.mjs EMITS as `.decision` at a stop. `CONTINUE`
 // (which check-loop.mjs also emits) is deliberately absent: a record is written only at a STOP, so a

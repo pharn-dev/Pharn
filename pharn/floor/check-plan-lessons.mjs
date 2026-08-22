@@ -49,6 +49,7 @@
 // Exit: 0 only when the declaration holds; 1 on every refusal (fail-closed).
 
 import { readFileSync } from "node:fs";
+import { FM_RE, stripBom } from "./frontmatter-core.mjs";
 
 const FIELD = "applied_lessons";
 
