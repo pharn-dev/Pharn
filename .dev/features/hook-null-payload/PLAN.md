@@ -18,8 +18,17 @@
 
 ## Files
 
-- `.claude/hooks/test.cjs` — the PROPOSED corrected copy of `enforce-writes-scope.cjs`, for a human to review and apply. Inert: nothing wires it, and it does not match `npm test`'s `*.test.cjs` glob. — layer n/a (a proposal, not a hook)
+- `.dev/features/hook-null-payload/enforce-writes-scope.proposed.cjs` — the PROPOSED corrected copy, byte-identical to the live hook except the fix, so `diff` against it shows exactly one hunk — layer n/a (a proposal, not a hook)
 - `.dev/features/hook-null-payload/PLAN.md` — this record — layer n/a
+
+### Where the proposal may NOT live, and why it matters
+
+The obvious home — a sibling copy inside `.claude/hooks/` — is **wrong, and the repo proved it**.
+`.dev/floor/capability-catalog-core.mjs` enumerates `.claude/hooks/*.cjs` into the README's generated
+`CURRENT-STATE` block, so a copy placed there made `docs:check` RED and, once regenerated, would have
+had the README assert **"Hook scripts — 4"** naming the proposal as a hook. That is a false claim in a
+generated inventory: precisely the drift class this whole batch exists to remove. The proposal
+therefore lives beside its own increment record, where nothing enumerates it.
 
 ### Not touched (and cannot be)
 
