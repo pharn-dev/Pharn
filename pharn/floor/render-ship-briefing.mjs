@@ -86,7 +86,7 @@ const HEADING_RE = /^#{1,6}[ \t]+\S/;
 
 // The leading YAML frontmatter block (product PLAN/SPEC shape). Re-implemented in-file (P3) — the same
 // mechanism `check-spec.mjs` / `check-plan-lessons.mjs` use.
-const FM_RE = /^---\r?\n([\s\S]*?)\r?\n---\r?\n?/;
+import { FM_RE, stripBom } from "./frontmatter-core.mjs";
 
 const REGRESS_ENUM = new Set(["no-regressions", "regressions", "inconclusive"]);
 const VERIFY_ENUM = new Set(["PASS", "FAIL", "INCOMPLETE", "INCONCLUSIVE"]);
@@ -321,7 +321,7 @@ export function renderBriefing(name, opts = {}) {
   const planPath = join(dir, "PLAN.md");
   let planText;
   try {
-    planText = readFileSync(planPath, "utf8");
+    planText = stripBom(readFileSync(planPath, "utf8"));
   } catch (e) {
     return { ok: false, reason: `PLAN.md is unreadable (${planPath}): ${e.message}` };
   }
@@ -333,7 +333,7 @@ export function renderBriefing(name, opts = {}) {
   const specPath = join(dir, "SPEC.md");
   if (existsSync(specPath)) {
     try {
-      const specText = readFileSync(specPath, "utf8");
+      const specText = stripBom(readFileSync(specPath, "utf8"));
       specId = readHeaderField(specText, "spec_id") ?? "n/a";
       const state = readHeaderField(specText, "state");
       specState = state === "Approved" ? "Approved" : "n/a";

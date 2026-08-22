@@ -82,7 +82,7 @@ const DECISION_ENUM = new Set(["STOP_GREEN", "STOP_CAP", "STOP_TERMINAL", "INCON
 const HANDOFF_SECTIONS = ["investigated", "learned", "next_steps"];
 
 // The leading YAML frontmatter block — re-implemented in-file (no sibling/cross-tree import, P3).
-const FM_RE = /^---\r?\n([\s\S]*?)\r?\n---\r?\n?/;
+import { FM_RE, stripBom } from "./frontmatter-core.mjs";
 
 // The value grammars (primitive #3). Each is applied ONLY after cleanScalar (see below).
 const ITER_RE = /^\d+$/;
@@ -219,7 +219,7 @@ function handoff(body) {
 function gate(recordPath) {
   let text;
   try {
-    text = readFileSync(recordPath, "utf8");
+    text = stripBom(readFileSync(recordPath, "utf8"));
   } catch (e) {
     return red(`loop-record is unreadable (${recordPath}): ${e.message}`);
   }

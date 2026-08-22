@@ -405,3 +405,70 @@ test("--state: the bare usage line names all three read-only modes", () => {
   assert.equal(r.status, 1);
   assert.match(r.stdout, /--state <SPEC\.md>/);
 });
+
+// ── ✧ L5: the read-only modes must REPORT before exiting non-zero, not exit 1 silently ────────────
+
+// `--hash` and `--spec-id` collected the RED into `reds` and returned 1 WITHOUT printing it, so a
+// shelling caller got an exit code and nothing to surface — the input-capture boundary L5 names.
+// `--state` already reported; the three are now uniform. The rules RANGE over the mode set rather than
+// being authored for whichever mode was in front of me (L29), so a fourth read-only mode is covered by
+// adding one string.
+const READ_ONLY_MODES = ["--hash", "--spec-id", "--state"];
+
+test("✧ L5: EVERY read-only mode prints a diagnostic on an unreadable path", () => {
+  for (const mode of READ_ONLY_MODES) {
+    const r = spawnSync(process.execPath, [CHECK, mode, "/no/such/spec.md"], { encoding: "utf8" });
+    assert.equal(r.status, 1, `${mode} must still exit 1`);
+    const out = r.stderr + r.stdout;
+    assert.ok(out.trim().length > 0, `${mode} exited 1 with NO output — a caller gets a code and nothing to surface`);
+    assert.match(out, /unreadable/, `${mode} must name WHY it failed`);
+    assert.match(out, /no\/such\/spec\.md/, `${mode} must name WHICH file it could not read`);
+  }
+});
+
+test("✧ L5: a valid spec is unaffected — each mode still emits its value at exit 0", () => {
+  const dir = mkdtempSync(join(tmpdir(), "pharn-spec-l5-"));
+  try {
+    const p = join(dir, "SPEC.md");
+    writeFileSync(p, "---\nspec_id: S1\nstate: Draft\n---\n\n" + BODY);
+    for (const mode of READ_ONLY_MODES) {
+      const r = spawnSync(process.execPath, [CHECK, mode, p], { encoding: "utf8" });
+      assert.equal(r.status, 0, `${mode} must succeed on a valid spec`);
+      assert.ok(r.stdout.trim().length > 0, `${mode} must still emit its value`);
+    }
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+// ── ✧ L3: a BOM-prefixed spec parses identically to its clean twin (via frontmatter-core) ─────────
+
+test("✧ L3: a UTF-8 BOM no longer defeats the frontmatter anchor", () => {
+  const dir = mkdtempSync(join(tmpdir(), "pharn-spec-bom-"));
+  try {
+    const body = "---\nspec_id: S1\nstate: Draft\n---\n\n" + BODY;
+    const clean = join(dir, "clean.md");
+    const bommed = join(dir, "bommed.md");
+    writeFileSync(clean, body);
+    writeFileSync(bommed, "﻿" + body);
+    for (const mode of ["--state", "--spec-id"]) {
+      const a = spawnSync(process.execPath, [CHECK, mode, clean], { encoding: "utf8" });
+      const b = spawnSync(process.execPath, [CHECK, mode, bommed], { encoding: "utf8" });
+      assert.equal(b.status, a.status, `${mode}: the BOM twin must share the clean file's exit code`);
+      assert.equal(b.stdout, a.stdout, `${mode}: the BOM twin must produce identical output`);
+    }
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("✧ L3: the BOM strip is not a masking layer — a frontmatter-less file still fails", () => {
+  const dir = mkdtempSync(join(tmpdir(), "pharn-spec-nofm-"));
+  try {
+    const p = join(dir, "nofm.md");
+    writeFileSync(p, "﻿# no frontmatter here\n");
+    assert.equal(spawnSync(process.execPath, [CHECK, "--state", p], { encoding: "utf8" }).status, 1);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});

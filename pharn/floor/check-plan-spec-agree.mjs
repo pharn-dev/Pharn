@@ -65,7 +65,7 @@ const CHECK_SPEC = join(here, "check-spec.mjs");
 
 // The leading YAML frontmatter block — the same FM_RE mechanism as check-spec.mjs / check-spec-approved.mjs,
 // re-implemented IN-FILE (no sibling import, P3). We need exactly one field from the PLAN: spec_content_hash.
-const FM_RE = /^---\r?\n([\s\S]*?)\r?\n---\r?\n?/;
+import { FM_RE, stripBom } from "./frontmatter-core.mjs";
 const HASH_RE = /^[0-9a-f]{64}$/; // a SHA-256 hex digest — the enum-gate applied to BOTH hashes (P2/P5)
 
 function stripQuotes(v) {
@@ -187,7 +187,7 @@ function gate(planPath, specPath) {
   //     in that field is rejected as not-a-hash (P2 — the verdict ranges only over hashes, never prose).
   let planText;
   try {
-    planText = readFileSync(planPath, "utf8");
+    planText = stripBom(readFileSync(planPath, "utf8"));
   } catch (e) {
     return red(`PLAN.md is unreadable (${planPath}): ${e.message}`);
   }

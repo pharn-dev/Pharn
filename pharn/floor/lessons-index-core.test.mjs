@@ -256,3 +256,46 @@ test("✧ the four DIVERGENT constants hold the product values, not the dev ones
   assert.equal(OUT_PATH, ".pharn/lessons-index.md");
   assert.deepEqual(TYPE_ENUM, ["process", "contract", "floor", "scoping", "tooling", "eval"]);
 });
+
+// ── ✧ L6: only genuine ABSENCE is benign — a present-but-unreadable canon must fail closed ────────
+
+// The bare `catch` mapped EVERY read failure to STATUS_NO_CANON. On this product surface no-canon is a
+// deliberate benign no-op (the honest normal state of a fresh install, and the intended divergence from
+// the dev twin, which throws) — but that same catch also swallowed EACCES/EISDIR on a canon that EXISTS
+// and HOLDS lessons. `/pharn-plan` would then declare `applied_lessons: none` as though the user had no
+// lessons at all: a real I/O failure presenting as an empty memory-bank.
+
+test("✧ L6: a canon path that is a DIRECTORY (EISDIR) throws rather than reporting no-canon", () => {
+  const dir = mkdtempSync(join(tmpdir(), "pharn-lessons-eisdir-"));
+  try {
+    // Create the canon PATH as a directory, so the read fails with EISDIR rather than ENOENT.
+    mkdirSync(join(dir, CANON_PATH), { recursive: true });
+    assert.throws(
+      () => buildIndex(dir),
+      (e) => e && e.code !== "ENOENT",
+      "a present-but-unreadable canon must surface the I/O error, never present as an empty memory-bank"
+    );
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("✧ L6: the DELIBERATE product divergence is preserved — a genuinely ABSENT canon is still benign", () => {
+  const dir = tmpRepo(null);
+  try {
+    const r = buildIndex(dir);
+    assert.equal(r.status, STATUS_NO_CANON, "no memory-bank at all is the honest normal state of a fresh install");
+    assert.deepEqual(r.entries, []);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("✧ L6: an empty-but-READABLE canon is still benign — that is a successful read with no lessons", () => {
+  const dir = tmpRepo("");
+  try {
+    assert.equal(buildIndex(dir).status, STATUS_NO_CANON, "an empty canon read successfully must stay a no-op");
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});

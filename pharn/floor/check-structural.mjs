@@ -35,6 +35,12 @@ const OP_ENUM = ["==", ">=", "<="];
 const FIELD_ENUM = ["type", "rule_id", "severity"]; // equality-checkable enum-gated fields
 const ENUM_GATED_FIELDS = ["type", "rule_id", "severity", "file"]; // the fields needle scans (never problem/evidence)
 const KIND_ENUM = ["finding_count", "field_equals", "file_resolves", "needle_absent_from_enum_gated"];
+// The kinds that iterate `findings` — every one of them is VACUOUSLY TRUE over an empty array, because
+// "for each finding, assert X" says nothing when there are no findings. `finding_count` is the only kind
+// that constrains the array's SIZE, so it is the only anchor against a fully SUPPRESSED emission. Derived
+// from KIND_ENUM by subtraction rather than re-listed, so a kind added to KIND_ENUM cannot be forgotten
+// here (L29 — the enumeration is the deliverable).
+const PER_FINDING_KINDS = KIND_ENUM.filter((k) => k !== "finding_count");
 const SKILL_KIND_ENUM = ["deterministic", "llm", "llm-judge"];
 
 const reds = [];
@@ -196,6 +202,24 @@ function main() {
     red(
       "skill_kind",
       `skill_kind "deterministic" forbids a non-empty semantic[] (found ${semantic.length}) — make those assertions structural[] or declare the skill llm/llm-judge`
+    );
+  }
+
+  // VACUOUS-PASS GUARD (P0). Per-finding kinds iterate `findings`, so an eval that asserts only those
+  // certifies a skill that emitted NOTHING — the suppressed output passes its own eval. The legitimate
+  // "I expect no findings" case is still expressible, and is exactly what distinguishes the two: say so
+  // with `finding_count == 0`. Membership over the assertion kinds present, plus an integer length test —
+  // no judgment (P5).
+  const kindsPresent = structural.map((a) => a && a.kind);
+  const hasPerFinding = kindsPresent.some((k) => PER_FINDING_KINDS.includes(k));
+  const hasCount = kindsPresent.includes("finding_count");
+  if (Array.isArray(actual) && actual.length === 0 && hasPerFinding && !hasCount) {
+    red(
+      "vacuous",
+      `actual findings are EMPTY and expected.json asserts only per-finding kinds ` +
+        `(${PER_FINDING_KINDS.filter((k) => kindsPresent.includes(k)).join(", ")}) — these pass vacuously over ` +
+        `an empty array, so this would certify a SUPPRESSED emission. Add a \`finding_count\` assertion ` +
+        `(use \`{ "kind": "finding_count", "op": "==", "value": 0 }\` if an empty result is genuinely expected).`
     );
   }
 

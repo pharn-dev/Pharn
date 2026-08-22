@@ -54,7 +54,7 @@ const FIELD = "applied_lessons";
 
 // The leading YAML frontmatter block — the same FM_RE mechanism as check-spec.mjs /
 // check-plan-spec-agree.mjs, re-implemented IN-FILE (no sibling import, P3).
-const FM_RE = /^---\r?\n([\s\S]*?)\r?\n---\r?\n?/;
+import { FM_RE, stripBom } from "./frontmatter-core.mjs";
 
 // The value grammar — the enum-gate (primitive #3). `L` is CASE-SENSITIVE and at least one id is
 // required, so `[l1]` and `[]` both fail closed. Inner whitespace is tolerated.
@@ -124,7 +124,7 @@ function declaredLessonIds(text) {
 function gate(planPath, lessonsPath) {
   let planText;
   try {
-    planText = readFileSync(planPath, "utf8");
+    planText = stripBom(readFileSync(planPath, "utf8"));
   } catch (e) {
     return red(`PLAN is unreadable (${planPath}): ${e.message}`);
   }
@@ -169,7 +169,7 @@ function gate(planPath, lessonsPath) {
 
   let lessonsText;
   try {
-    lessonsText = readFileSync(lessonsPath, "utf8");
+    lessonsText = stripBom(readFileSync(lessonsPath, "utf8"));
   } catch (e) {
     return red(
       `PLAN's \`${FIELD}\` cites ${ids.join(", ")} but the lessons file is unreadable (${lessonsPath}): ` +
