@@ -44,7 +44,14 @@ export function checkLessonsIndex(targetDir) {
     malformedCount = entries.filter((e) => e.type === MALFORMED).length;
   } catch (e) {
     // A duplicate id / unsafe title / missing canon is a hard, deterministic RED — surface it.
-    return { ok: false, findings: [{ type: "ENUM_ERROR", file: OUT_PATH, problem: e.message }], malformedCount: 0 };
+    // `file` is CANON_PATH, not OUT_PATH: this is the ONE branch where the derived index is not the
+    // thing to fix. The generator refuses exactly the invalid canon the checker just refused, so naming
+    // the generated output prescribes a regenerate that CANNOT succeed. `file` is the enum-gated field a
+    // consumer trusts to name the file to open, and on this branch that file is canon.
+    // The product twin (pharn/floor/check-lessons-index.mjs) was corrected first and pins it by test;
+    // this is the backport — the copy-pair obligation lessons-learned L31 names, discharged on the
+    // second copy. MISSING / DRIFT below correctly stay on OUT_PATH: those really are about the output.
+    return { ok: false, findings: [{ type: "ENUM_ERROR", file: CANON_PATH, problem: e.message }], malformedCount: 0 };
   }
 
   const abs = join(targetDir, OUT_PATH);

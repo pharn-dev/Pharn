@@ -59,6 +59,8 @@ The repo separates the **product** (what a user receives) from the **build appar
 
 See [`CLAUDE.md`](./CLAUDE.md) ("Repo layout — the dev/product boundary") for the full map.
 
+`.pharn/` is a third thing again — **gitignored runtime state**, unrelated to `.dev/`. Two entries there are load-bearing: `writes-scope.json` (the write-guard's input; its path is hard-referenced, so it never moves) and `lessons-index.md` (a regenerable cache). Everything else is per-command scratch and belongs under `.pharn/<command>/`. Clear scratch by removing those subdirectories rather than `rm -rf .pharn/`, which also discards the cache. The convention is advisory — nothing enforces it.
+
 ## Branches and commits
 
 - Open an issue first for any non-trivial change. this repo is small-surface on purpose (P7: a new rule or enforcer is justified only by a _real_ failure, never a hypothetical).

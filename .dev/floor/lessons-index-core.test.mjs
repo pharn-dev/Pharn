@@ -289,14 +289,134 @@ test("✧ cross-surface: every SHARED constant is byte-identical between the dev
     );
   }
 
-  // The control-char precondition itself (L14: it must stay the guard BEFORE the shape regexes, on both
-  // surfaces). Compare the whole function body, not just its signature.
-  const body = (src) => {
-    const m = src.match(/function cleanScalar\(v, maxLen\) \{[\s\S]*?\n\}/);
-    assert.ok(m, "both cores must declare `function cleanScalar(v, maxLen)`");
-    return m[0];
-  };
-  assert.equal(body(prod), body(dev), "cleanScalar drifted — the L14 guard must be identical on both surfaces");
+  // `pad` governs the rendered column layout, so a divergence here means the two surfaces emit
+  // differently-shaped indexes from identical canon.
+  assert.equal(
+    constSource(prod, "pad", "pharn/floor/lessons-index-core.mjs"),
+    constSource(dev, "pad", ".dev/floor/lessons-index-core.mjs"),
+    "pad drifted between the dev and product cores"
+  );
+});
+
+// ── ✧ L8: the pin must range over EVERY shared function, and the domain must be COMPLETE ──────────
+
+// The pin used to compare exactly ONE function body (`cleanScalar`) and read as discharged, while four
+// sibling behavioural functions could diverge freely — a behavioural edit to one copy passed the whole ✧
+// suite as long as that copy's own tests were updated in the same PR, which is the single-PR drift the
+// pin exists to stop. lessons-learned L29: when a remedy is quantified over a set, the ENUMERATION is
+// the deliverable. So both sets are materialised here, and the completeness rule below asserts they
+// COVER the cores — a function added to either core later must be classified as shared or divergent, and
+// cannot sit silently unpinned.
+
+/** Behaviour that MUST be identical on both surfaces. */
+const SHARED_FUNCTIONS = ["cleanScalar", "parseTagLine", "assertSafeTitle", "parseLessons"];
+
+/**
+ * Behaviour that MUST differ — the documented product-vs-dev divergences, asserted so that "unifying"
+ * one of them fails loudly instead of passing silently.
+ *
+ *   buildIndex  — the product surface treats an ABSENT canon as a benign no-op (the honest normal state
+ *                 of a fresh install) where the dev twin throws.
+ *   renderIndex — the product header describes a DISPOSABLE CACHE under gitignored `.pharn/` and keeps
+ *                 the BENIGN reading of the absent-tag marker, because a user's `memory-bank/` may
+ *                 legitimately hold hand-written entries. The dev index is a COMMITTED artifact where
+ *                 every entry passed the promote gate, so there both absence markers are unexpected.
+ *
+ * `renderIndex` is here rather than in SHARED because the live cores were READ, not because a fix
+ * request classified it: the request that prompted this pin listed it as shared. It is not.
+ */
+const DIVERGENT_FUNCTIONS = ["buildIndex", "renderIndex"];
+
+/** Every top-level `function` name declared in a core. */
+function functionNames(src) {
+  return [...src.matchAll(/^(?:export )?function ([A-Za-z0-9_]+)\s*\(/gm)].map((m) => m[1]);
+}
+
+/** The full source text of one top-level function, closing brace included. */
+function functionSource(src, name, file) {
+  const m = src.match(new RegExp(String.raw`^(?:export )?function ${name}\s*\([^)]*\)\s*\{[\s\S]*?\n\}`, "m"));
+  assert.ok(m, `${file} must declare a top-level \`function ${name}(…)\``);
+  return m[0];
+}
+
+/**
+ * The same source with WHOLE-LINE comments and blank lines removed — i.e. the CODE.
+ *
+ * Why the pin compares code rather than raw text, stated because it is a real weakening. The two cores
+ * are allowed to explain themselves DIFFERENTLY, and one difference is load-bearing: a user's install
+ * ships `pharn/floor/` WITHOUT `.dev/`, so the product copy deliberately avoids citing dev-only
+ * artifacts (a GRILL finding id, a PR number) that a reader of the shipped file could never open. A raw
+ * byte pin would force the product copy to cite files it cannot reference, or force the dev copy to
+ * drop provenance it should keep — it would fight a divergence that is correct.
+ *
+ * Only WHOLE-LINE comments are stripped (a line whose first non-space characters are `//`), never
+ * trailing ones, so a `//` inside a string or a regex on a code line cannot be mangled into a false
+ * match. That is the conservative direction: an unstripped trailing comment can only make the pin
+ * STRICTER, never looser.
+ */
+function functionCode(src, name, file) {
+  return functionSource(src, name, file)
+    .split("\n")
+    .filter((l) => l.trim() !== "" && !l.trim().startsWith("//"))
+    .join("\n");
+}
+
+test("✧ L8: the shared/divergent split COVERS every function in both cores", () => {
+  const dev = readFileSync(new URL("./lessons-index-core.mjs", import.meta.url), "utf8");
+  const prod = readFileSync(PRODUCT_CORE_URL, "utf8");
+  const classified = new Set([...SHARED_FUNCTIONS, ...DIVERGENT_FUNCTIONS]);
+
+  for (const [label, src] of [
+    [".dev/floor/lessons-index-core.mjs", dev],
+    ["pharn/floor/lessons-index-core.mjs", prod],
+  ]) {
+    for (const name of functionNames(src)) {
+      assert.ok(
+        classified.has(name),
+        `${label} declares \`${name}\`, which is in neither SHARED_FUNCTIONS nor DIVERGENT_FUNCTIONS — ` +
+          `classify it, or it drifts unpinned (the exact gap this test exists to close)`
+      );
+    }
+  }
+
+  // And the enumeration may not name a function that does not exist, which would make a rule vacuous.
+  for (const name of classified) {
+    assert.ok(functionNames(dev).includes(name), `SHARED/DIVERGENT names ${name}, absent from the dev core`);
+    assert.ok(functionNames(prod).includes(name), `SHARED/DIVERGENT names ${name}, absent from the product core`);
+  }
+});
+
+test("✧ L8: every SHARED function body is byte-identical between the two cores", () => {
+  const dev = readFileSync(new URL("./lessons-index-core.mjs", import.meta.url), "utf8");
+  const prod = readFileSync(PRODUCT_CORE_URL, "utf8");
+  for (const name of SHARED_FUNCTIONS) {
+    assert.equal(
+      functionCode(prod, name, "pharn/floor/lessons-index-core.mjs"),
+      functionCode(dev, name, ".dev/floor/lessons-index-core.mjs"),
+      `${name} drifted between the dev and product cores — the two surfaces now disagree about behaviour`
+    );
+  }
+});
+
+test("✧ L8: every DIVERGENT function DIFFERS — asserting the difference is as load-bearing as the agreement", () => {
+  const dev = readFileSync(new URL("./lessons-index-core.mjs", import.meta.url), "utf8");
+  const prod = readFileSync(PRODUCT_CORE_URL, "utf8");
+  for (const name of DIVERGENT_FUNCTIONS) {
+    assert.notEqual(
+      functionCode(prod, name, "pharn/floor/lessons-index-core.mjs"),
+      functionCode(dev, name, ".dev/floor/lessons-index-core.mjs"),
+      `${name} must DIFFER: the product surface treats an absent canon as a benign no-op where the dev twin throws. ` +
+        `A "let's unify these" edit that erased that would otherwise pass silently.`
+    );
+  }
+});
+
+test("✧ L8: the pin compares SOURCE TEXT — a stated bound, not a claim of semantic equivalence", () => {
+  // Honest scope (P0): this proves the two copies AGREE, never that either is CORRECT, and a
+  // semantically identical refactor of one copy WILL fail the pin. That is intended — the pin exists to
+  // force a deliberate decision at the moment one copy moves, not to certify the behaviour.
+  assert.ok(SHARED_FUNCTIONS.length >= 4, "the shared set must not silently shrink");
+  assert.ok(DIVERGENT_FUNCTIONS.length >= 2, "the divergent set must not silently empty");
 });
 
 test("✧ cross-surface: the FOUR divergent constants DIFFER, and hold their surface's values", () => {

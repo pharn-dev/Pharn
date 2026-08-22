@@ -25,8 +25,10 @@
 //
 // WHAT THIS DOES NOT GUARANTEE (P0 — say it, don't bury it):
 //   - NOT that the README's version story is COHERENT. This compares two strings. Whether a reader can
-//     tell the product-surface version from package.json's 1.0.0 foundation tag is prose judgment,
-//     reviewed by a human, gated by nothing.
+//     tell the product-surface version from package.json's inert `0.0.0` is prose judgment, reviewed by
+//     a human, gated by nothing. (That field read `1.0.0` as a "foundation tag" until it was made
+//     deliberately inert — there is now one version of record, SKILLS_VERSION, and this checker pins the
+//     badge to it.)
 //   - NOT that SKILLS_VERSION is CORRECT. If a bump is wrong or missing, a badge matching it is still
 //     GREEN. The guarantee is agreement, not truth.
 //   - NOT read from a STRUCTURED location. Lessons-learned L6 says a membership fact is read from its

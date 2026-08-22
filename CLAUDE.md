@@ -322,6 +322,21 @@ either blocks.
   reset to fail-closed). fix #7 composes with fix #2 — the trusted docs, `CODEOWNERS`, and the four
   control paths above stay denied regardless of any scope, so neutering the setter's refusal still does
   not make a guard writable.
+- **What under `.pharn/` is LOAD-BEARING, and what is disposable — because the two sit side by side.**
+  Exactly two kinds of entry matter, and neither is obvious from the filename:
+  - **`.pharn/writes-scope.json`** — the fix #7 guard's INPUT. Its path is hard-referenced by both
+    hooks and the setter, so it **never moves**, and it is the one `.pharn/` path the write-guard
+    protects by name. Deleting it is safe and means "fail-closed default"; editing it by hand is not.
+  - **`.pharn/lessons-index.md`** — the PRODUCT lessons-index CACHE. Disposable by design (deleting it
+    yields `COLD`, which is GREEN), but deleting it to clear scratch costs a regeneration, which is why
+    "just delete `.pharn/`" is the wrong reflex.
+- **Everything else under `.pharn/` is per-command scratch, and belongs under `.pharn/<command>/`** —
+  the shape `/pharn-dev-regress` and `/pharn-dev-verify` already use (`.pharn/pharn-dev-regress/*.json`).
+  A stage writing ad-hoc files at the `.pharn/` ROOT is the thing to avoid: it puts throwaway logs and
+  captures in the same flat namespace as the two load-bearing entries above, so a human clearing scratch
+  cannot tell them apart. **ADVISORY (P0):** no checker enforces the namespace and none is added — this
+  is a convention a human and a command author follow, not a floor guarantee. Clearing scratch means
+  removing `.pharn/<command>/` directories, never `rm -rf .pharn/`.
 
 ## Architecture: the big picture
 
@@ -444,6 +459,21 @@ framework-specific`), via the first-match-wins procedure in `pharn/ARCHITECTURE.
     when** the first `role:`-bearing capability is authored **outside** PHARN's own shipped surface —
     the same trigger `/pharn-verify` names for its verifier runner. Full reasoning and evidence:
     `.dev/features/product-capability-catalog/PLAN.md`.
+  - **There is no product `/pharn-eval` twin either, and that is the same recorded decision (DEFERRED
+    2026-08-23).** `/pharn-dev-eval` runs a capability's eval live via `claude -p` N times and measures
+    structural variance with `.dev/floor/check-variance.mjs`; no `pharn-eval` command exists. **Why
+    deferred (P7):** the thing it would measure does not exist on the product surface — variance is
+    measured across live runs of a `role:`-bearing capability, and zero have been authored **outside**
+    PHARN's own shipped surface, so the runner would have nothing of the user's to run. It also
+    inherits the `claude -p` dependency that `/pharn-verify` names as the reason **its** verifier
+    runner is deferred. **Not a total absence:** `pharn/floor/check-structural.mjs` already lets a user
+    execute an eval's `structural[]` assertions ONCE, so the structural contract is enforceable today —
+    only the repeated-run VARIANCE measurement is missing. **Reopens on** the same trigger as the two
+    above. This is recorded because the other two are: the absence was consistent with the posture but
+    stated nowhere, so a reader could not tell a deliberate deferral from an oversight. Full reasoning:
+    `.dev/features/product-eval/PLAN.md` — the `product-*` slug its two peers use. Note it is NOT
+    `.dev/features/pharn-eval/`, which is the historical build record for increment 3c (the plan that
+    built `/pharn-dev-eval` itself, when the command was still to be named `/pharn-eval`).
 - **The lessons index is an ADDRESS BOOK, never a substitute for canon.** `/pharn-dev-plan`'s mandatory
   lessons sweep now runs in two steps: **select** candidates from `docs/lessons-index.md`, then **read
   each candidate's full `## L<n>` entry from `.dev/memory-bank/lessons-learned.md`** before declaring
