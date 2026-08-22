@@ -399,8 +399,13 @@ function runVerdict(positional, args) {
   // pass (an uncompared gate could hide a regression). Inconclusive, naming the difference.
   const baseKeys = Object.keys(base.value);
   const headKeys = Object.keys(head.value);
-  const onlyBase = baseKeys.filter((k) => !(k in head.value));
-  const onlyHead = headKeys.filter((k) => !(k in base.value));
+  // `Object.hasOwn`, never `k in obj` (lessons-learned L15): `in` walks the prototype chain, so a gate
+  // id colliding with an Object.prototype member (`toString`, `valueOf`, `constructor`) reads as PRESENT
+  // in a map that does not have it. That made a genuine gate-set mismatch look shared, and the verdict
+  // came back `no-regressions` at exit 0 where the contract requires inconclusive/exit 2 — a silent pass
+  // in the checker whose whole promise is that there is never one.
+  const onlyBase = baseKeys.filter((k) => !Object.hasOwn(head.value, k));
+  const onlyHead = headKeys.filter((k) => !Object.hasOwn(base.value, k));
   if (onlyBase.length || onlyHead.length) {
     emit(
       {

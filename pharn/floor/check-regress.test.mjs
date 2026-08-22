@@ -382,3 +382,38 @@ test("★ verdict: gate-set mismatch (a gate ran on one side only) → inconclus
     assert.match(r.stdout, /gate set mismatch/);
   });
 });
+// ── ✧ L2: gate-set membership must be an OWN-property test (lessons-learned L15) ──────────────────
+
+function withMaps(baseObj, headObj, fn) {
+  const dir = mkdtempSync(join(tmpdir(), "pharn-regress-proto-"));
+  try {
+    const b = join(dir, "base.json");
+    const h = join(dir, "head.json");
+    writeFileSync(b, JSON.stringify(baseObj));
+    writeFileSync(h, JSON.stringify(headObj));
+    return fn(b, h);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+}
+
+test("✧ L2: a HEAD gate id colliding with an Object.prototype member is not silently treated as shared", () => {
+  // `"toString" in {test:0}` is TRUE via the prototype chain, so with `in` the extra gate dropped out of
+  // onlyHead, the mismatch check passed, and the verdict came back no-regressions at exit 0 — where a
+  // gate-set mismatch is contractually INCONCLUSIVE (exit 2).
+  const r = withMaps({ test: 0 }, { toString: 1, test: 0 }, (b, h) => run(["verdict", b, h, "--base", "HEAD", "--inside", "x"]));
+  assert.notEqual(r.status, 0, "must not report no-regressions");
+  assert.equal(r.status, 2, "a gate-set mismatch is inconclusive, exit 2");
+});
+
+test("✧ L2: the same holds for a prototype-named gate present only in BASE", () => {
+  const r = withMaps({ valueOf: 0, test: 0 }, { test: 0 }, (b, h) => run(["verdict", b, h, "--base", "HEAD", "--inside", "x"]));
+  assert.equal(r.status, 2, "a base-only prototype-named gate is still a gate-set mismatch");
+});
+
+test("✧ L2: identical gate sets still compare equal (the fix did not over-tighten)", () => {
+  const r = withMaps({ test: 0, validate: 0 }, { test: 0, validate: 0 }, (b, h) =>
+    run(["verdict", b, h, "--base", "HEAD", "--inside", "x"])
+  );
+  assert.equal(r.status, 0, "matching gate sets must still pass");
+});

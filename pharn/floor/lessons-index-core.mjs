@@ -339,8 +339,17 @@ export function buildIndex(targetDir) {
   let canonText;
   try {
     canonText = readFileSync(abs, "utf8");
-  } catch {
-    return { status: STATUS_NO_CANON, entries: [], content: null };
+  } catch (e) {
+    // Membership over `e.code`, with the terminal fallback being RETHROW (P5, fail-closed). ONLY genuine
+    // ABSENCE is benign: on this product surface a missing memory-bank is the honest normal state of a
+    // fresh install, which is the deliberate divergence from the dev twin (that one throws). A bare catch
+    // also swallowed EACCES / EISDIR on a canon that EXISTS and HOLDS lessons, returning NO_CANON — and
+    // `/pharn-plan` then declares `applied_lessons: none` as though the user had no lessons at all. A
+    // real I/O failure must fail closed, never present as an empty memory-bank.
+    if (e && (e.code === "ENOENT" || e.code === "ENOTDIR")) {
+      return { status: STATUS_NO_CANON, entries: [], content: null };
+    }
+    throw e;
   }
   const entries = parseLessons(canonText);
   if (entries.length === 0) {

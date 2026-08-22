@@ -11,7 +11,12 @@
 // HONEST BOUND (the secrets-in-code / trust-fence precedent, P0): this detects an obvious concat/interp
 // SHAPE into a recognized sink, on ONE line. It does NOT decide the operand is actually UNTRUSTED, does NOT
 // know whether SANITIZATION/PARAMETERIZATION happens elsewhere, does NOT trace taint across functions, and
-// does NOT catch multi-line query assembly or a BARE untrusted variable passed with no visible `+`/`${...}`.
+// does NOT catch multi-line query assembly or a BARE untrusted variable passed with no visible
+// `+`/`${...}`/`.concat(`. PYTHON f-STRINGS ARE OUT OF SCOPE, named here rather than left silently
+// unhandled: `cursor.execute(f"… {uid}")` reaches a matched sink and is NOT detected. The `f"…{x}"`
+// shape collides with ordinary JS/TS text (a quoted string preceded by an identifier ending in `f`),
+// so adding it to this set costs false positives on the language this scanner is actually aimed at;
+// a Python-aware scanner is the right home and has no triggering failure yet (P7).
 // "Detected an obvious concat/interp into a sink on line N" is a real guarantee; "the code is injection-safe
 // / free of injection" is NOT. Full taint analysis is ADVISORY judgment the LENS surfaces — NOT this floor.
 //
@@ -108,14 +113,22 @@ if (!existsSync(TARGET) || !statSync(TARGET).isFile()) {
 // The fixed detection set — the injection SHAPE per sink family. Each pattern requires BOTH a recognized
 // SINK (a fixed callee / assignment-target name set — membership, P5) AND a TAINT OPERATOR on the same line:
 //   • `${` interpolation (a template literal building the sink's argument dynamically), OR
-//   • `"..." +` / `+ "..."` string-concatenation (a quoted string glued to something with `+`).
+//   • `"..." +` / `+ "..."` string-concatenation (a quoted string glued to something with `+`), OR
+//   • `.concat(` — the METHOD spelling of the same visible concatenation. Added because
+//     `db.query("SELECT … ".concat(userInput))` is as plainly a concat into a matched sink as its `+`
+//     twin, and returned NO hit: the set enumerated the OPERATOR spellings and silently omitted the
+//     method one, so an author who preferred `.concat` was unguarded for no stated reason.
 // The taint operator is the discriminator that keeps a parameterized / escaped / args-array call CLEAN.
 // Adding or removing a sink family / operator is the ONLY axis of change here (P3).
 //
 // NOTE (accepted duplication, deferred P7): the taint-operator sub-pattern is shared in spirit with the
 // secret scanner's literal detection but the two detect different things; consolidating the shared regex
 // fragment would touch a separate axis (the secret scanner + its lens) — deferred, not done speculatively.
-const TAINT = String.raw`(?:\$\{|["'][^"']*["']\s*\+|\+\s*["'` + "`" + `])`;
+const TAINT = String.raw`(?:\$\{|["'][^"']*["']\s*\+|\.concat\s*\(|\+\s*["'` + "`" + `])`;
+// NOTE: `\.concat` sits inside the String.raw segment on purpose. The trailing `` `])` `` piece is an
+// ORDINARY template literal (it follows the "`" splice), so a backslash placed there is consumed by
+// the template parser — `\.concat\s*\(` silently became `.concats*(`, which made the whole RegExp
+// an "Unterminated group" SyntaxError at import. Raw-ness is per-segment, not per-expression.
 // The ARGUMENT SPAN between a call sink and the taint operator: any non-`)` char, plus any `)` that closes a
 // complete inner group. It stops at the first `)` that is not a complete inner group's closer — the sink call's own
 // outer `)` — so it reaches taint both INSIDE and AFTER a nested call, but never crosses into a later

@@ -384,3 +384,23 @@ test("✧ PIN: all three scan-code-* scanners declare a byte-identical SPAN", ()
   });
   assert.equal(new Set(spans).size, 1, `SPAN drifted across the copy-pair:\n${files.map((f, i) => `  ${f}: ${spans[i]}`).join("\n")}`);
 });
+// ── ✧ L9: `.concat(` is the METHOD spelling of a concat into a matched sink ───────────────────────
+
+test('✧ L9: db.query("…".concat(userInput)) is detected', () =>
+  withCode('db.query("SELECT * FROM t WHERE id = ".concat(userInput));\n', (p) => {
+    const r = json(run(p));
+    assert.equal(r.found, true, ".concat into a matched sink must be a hit");
+    assert.equal(r.hits[0].kind, "sql-injection");
+    assert.equal(r.hits[0].line, 1);
+  }));
+
+test("✧ L9: the `+` and `${}` shapes still hit — the addition displaced nothing", () => {
+  withCode('db.query("SELECT * FROM t WHERE id = " + userInput);\n', (p) => assert.equal(json(run(p)).found, true));
+  withCode("db.query(`SELECT * FROM t WHERE id = ${userInput}`);\n", (p) => assert.equal(json(run(p)).found, true));
+});
+
+test("✧ L9: .concat OUTSIDE any sink stays clean — the sink is what makes it a finding", () =>
+  withCode('const s = "a".concat("b");\n', (p) => assert.equal(json(run(p)).found, false)));
+
+test("✧ L9: a parameterized query stays clean", () =>
+  withCode('db.query("SELECT * FROM t WHERE id = $1", [id]);\n', (p) => assert.equal(json(run(p)).found, false)));

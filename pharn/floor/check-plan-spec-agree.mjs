@@ -56,6 +56,7 @@ import { readFileSync } from "node:fs";
 import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
+import { FM_RE, stripBom } from "./frontmatter-core.mjs";
 
 // Resolve the sibling CLIs RELATIVE TO THIS FILE (import.meta.url), never the cwd — so the chain check
 // behaves identically no matter where /pharn-grill is invoked from (mirrors check-spec-approved.mjs:47-48).
@@ -63,9 +64,6 @@ const here = dirname(fileURLToPath(import.meta.url));
 const CHECK_SPEC_APPROVED = join(here, "check-spec-approved.mjs");
 const CHECK_SPEC = join(here, "check-spec.mjs");
 
-// The leading YAML frontmatter block — the same FM_RE mechanism as check-spec.mjs / check-spec-approved.mjs,
-// re-implemented IN-FILE (no sibling import, P3). We need exactly one field from the PLAN: spec_content_hash.
-const FM_RE = /^---\r?\n([\s\S]*?)\r?\n---\r?\n?/;
 const HASH_RE = /^[0-9a-f]{64}$/; // a SHA-256 hex digest — the enum-gate applied to BOTH hashes (P2/P5)
 
 function stripQuotes(v) {
@@ -187,7 +185,7 @@ function gate(planPath, specPath) {
   //     in that field is rejected as not-a-hash (P2 — the verdict ranges only over hashes, never prose).
   let planText;
   try {
-    planText = readFileSync(planPath, "utf8");
+    planText = stripBom(readFileSync(planPath, "utf8"));
   } catch (e) {
     return red(`PLAN.md is unreadable (${planPath}): ${e.message}`);
   }

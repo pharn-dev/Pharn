@@ -55,9 +55,8 @@
 
 import { readFileSync, existsSync } from "node:fs";
 import { dirname, join } from "node:path";
+import { FM_RE, stripBom } from "./frontmatter-core.mjs";
 
-// ── Duplicated from render-ship-briefing.mjs (see header) ─────────────────────────────────────────────
-const FM_RE = /^---\r?\n([\s\S]*?)\r?\n---\r?\n?/;
 const HEADING_RE = /^#{1,6}[ \t]+\S/;
 const REGRESS_ENUM = new Set(["no-regressions", "regressions", "inconclusive"]);
 const VERIFY_ENUM = new Set(["PASS", "FAIL", "INCOMPLETE", "INCONCLUSIVE"]);
@@ -222,7 +221,7 @@ export function readEnvelope(text) {
 function gate(briefingPath) {
   let text;
   try {
-    text = readFileSync(briefingPath, "utf8");
+    text = stripBom(readFileSync(briefingPath, "utf8"));
   } catch (e) {
     return fail(`briefing is unreadable (${briefingPath}): ${e.message}`);
   }
@@ -292,7 +291,7 @@ function gate(briefingPath) {
   const specPath = join(dir, "SPEC.md");
   if (existsSync(specPath)) {
     try {
-      const specText = readFileSync(specPath, "utf8");
+      const specText = stripBom(readFileSync(specPath, "utf8"));
       liveSpecId = readHeaderField(specText, "spec_id") ?? "n/a";
       const state = readHeaderField(specText, "state");
       liveSpecState = state === "Approved" ? "Approved" : "n/a";

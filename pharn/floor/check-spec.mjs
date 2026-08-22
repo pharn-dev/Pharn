@@ -45,17 +45,17 @@
 //                                                      about what `state` IS (see emitState).
 //
 // Exit: 1 on any RED (validate) / on unreadable | no-frontmatter (--hash, --spec-id, --state); 0 otherwise.
-// Only --state REPORTS that refusal (on stderr); --hash and --spec-id exit 1 silently. See emitState.
+// All three read-only modes REPORT that refusal on stderr before exiting non-zero (L5). See emitState.
 
 import { readFileSync } from "node:fs";
 import { createHash } from "node:crypto";
+import { FM_RE, stripBom } from "./frontmatter-core.mjs";
 
 // Enums / shapes — every branch is a presence / enum / hash-equality membership test (P5); the terminal
 // fallback on any non-member is a loud RED, never a guess. These are the enum-gated / floor-verifiable fields.
 const REQUIRED_SECTIONS = ["intent", "scope", "acceptance criteria", "constraints"]; // §6 SPEC presence set
 const STATE_ENUM = ["Draft", "Approved"]; // the spec lifecycle (ARCHITECTURE §6)
 const HASH_RE = /^[0-9a-f]{64}$/; // a SHA-256 hex digest
-const FM_RE = /^---\r?\n([\s\S]*?)\r?\n---\r?\n?/; // the leading YAML frontmatter block (same mechanism as set-writes-scope.cjs / validate.mjs)
 
 const reds = [];
 function red(kind, detail) {
@@ -153,7 +153,7 @@ function headingsOf(body) {
 
 function readText(path, label) {
   try {
-    return readFileSync(path, "utf8");
+    return stripBom(readFileSync(path, "utf8"));
   } catch (e) {
     red("input", `${label} is unreadable (${path}): ${e.message}`);
     return undefined;
@@ -169,7 +169,10 @@ function fail() {
 // --- --hash mode: emit sha256(body), the value /pharn-spec writes into spec_content_hash on approval. ---
 function emitHash(specPath) {
   const text = readText(specPath, "SPEC.md");
-  if (text === undefined) return 1;
+  if (text === undefined) {
+    for (const r of reds) console.error(`check-spec: ${r.kind} failed: ${r.detail}`);
+    return 1;
+  }
   const parsed = parseSpec(text);
   if (!parsed) {
     console.error(`check-spec: no YAML frontmatter in ${specPath} — cannot locate the body to hash`);
@@ -187,7 +190,10 @@ function emitHash(specPath) {
 // is a fail-closed courtesy, never the load-bearing check.
 function emitSpecId(specPath) {
   const text = readText(specPath, "SPEC.md");
-  if (text === undefined) return 1;
+  if (text === undefined) {
+    for (const r of reds) console.error(`check-spec: ${r.kind} failed: ${r.detail}`);
+    return 1;
+  }
   const parsed = parseSpec(text);
   if (!parsed) {
     console.error(`check-spec: no YAML frontmatter in ${specPath} — cannot locate spec_id`);
@@ -212,14 +218,14 @@ function emitSpecId(specPath) {
 // free text is exactly the defect .dev/memory-bank/lessons-learned.md L6 names. The extra child process is the
 // price of reading the structured location; it is paid once per gate invocation and is the correct trade.
 //
-// Mirrors emitHash / emitSpecId in exit codes (unreadable → 1, no frontmatter → 1) and in reporting an ABSENT
-// field as an EMPTY LINE at exit 0 — the same fail-closed courtesy emitSpecId documents: validate() already
-// REDs a state-less spec, and the Approved gate REDs an empty state one branch later, so no caller must
-// distinguish "" from a real value. It DELIBERATELY DIFFERS from its two siblings in exactly one way, stated
-// here rather than left to be discovered: the unreadable path prints the collected RED to STDERR instead of
-// exiting 1 silently. A silent exit hands a shelling caller an exit code and nothing to surface — the
-// input-capture boundary L5 names — and check-spec-approved.mjs echoes this child's output verbatim, so this
-// message is what tells a user WHICH file could not be read.
+// Mirrors emitHash / emitSpecId in exit codes (unreadable → 1, no frontmatter → 1), in reporting an ABSENT
+// field as an EMPTY LINE at exit 0, and — since the L5 fix — in printing the collected RED to STDERR on the
+// unreadable path. That last one USED to be a deliberate divergence documented here: only --state reported,
+// while --hash and --spec-id exited 1 silently. A silent exit hands a shelling caller an exit code and
+// nothing to surface (the input-capture boundary L5 names), and check-spec-approved.mjs echoes this child's
+// output verbatim, so the message is what tells a user WHICH file could not be read — which is an argument
+// for all three modes reporting, not for one of them doing it. The three read-only modes are now uniform;
+// this note records that the divergence was removed rather than leaving a stale claim that it persists.
 function emitState(specPath) {
   const text = readText(specPath, "SPEC.md");
   if (text === undefined) {
