@@ -1036,3 +1036,43 @@ rationale did not reach; here it reached, was correct, and simply never enumerat
 - commit: `9f69e69c79b2c62f9004e1d6a89e4de263fc0133`
 - source: `.dev/features/dev-lessons-index-gate/REVIEW.md` Candidate A + `GRILL.md` G1
 - promoted: 2026-08-20 via gated `/pharn-dev-memory-promote` (human-approved).
+
+## L32 — A verification method that consults a mutable ALIAS proves reachability, not identity
+
+type: process · concepts: [verification-fidelity, doc-drift, command-prescription, false-green]
+
+**Lesson.** A fix request prescribed confirming the canonical repo slug "against the actual git
+remote". The remote still said `pharn-dev/pharn` long after the repository was renamed, because
+GitHub's rename redirect keeps the old name resolving indefinitely — so the prescribed authority was
+**downstream of the very fact it was meant to establish**, and every check a careful agent would run
+against it (does the URL work? does `git fetch` succeed? does the clone command run?) returns green on
+the stale name. Following the instruction as written would have rewritten four **already-correct**
+README badges to the stale slug and recorded it as an alignment. The remedy: when verifying
+**identity** — what is this thing canonically called, where does it really live — an alias that still
+resolves is evidence of **reachability only**. Identity must be read from a source that reports the
+canonical name itself (`gh api repos/<slug> --jq .full_name`, or a 301-vs-200 status distinction), and
+a redirect is precisely the case where reachability and identity diverge silently.
+
+**Why it matters.** The failure is invisible to the ordinary verification instinct, because the stale
+alias is not broken — it works, which is what makes it convincing. The request's own stated symptom
+("whichever slug is stale 404s for that link class") was **false** for the same reason, so an agent
+that reproduced the symptom before fixing would have found nothing wrong and might have closed the
+finding. This complements [[L6]] (a membership fact is read from its structured location) by naming the
+case L6 does not reach: here the **prescribed** location _is_ structured, _is_ live, and is still wrong
+— so "read it from the structured place" is necessary and not sufficient when the structured place
+holds a mutable pointer. It sharpens [[L25]]'s "re-derive rather than carry across" by identifying
+which inherited thing is most dangerous: not a stale comment, but a stale **method**, which reproduces
+the error in every future run that obeys it. And it is distinct from [[L22]] (a command prescribing a
+shell _technique_ in prose, where the wrong implementations at least differ each time) — here the
+prescription is precise, single-valued, easy to follow, and wrong. Note the direction of the near-miss,
+because it is the sharp part: the increment was one command away from making the docs **worse** while
+reporting a repaired drift, and only an independent check of the canonical name caught it.
+
+**Provenance.**
+
+- feature: `contributing-gate-chain`
+- commit: `aaec922487b73ca3eece40f4672b5b8934249fc5`
+- source: `.dev/features/contributing-gate-chain/REVIEW.md` F2 (advisory finding) +
+  `.dev/features/contributing-gate-chain/PLAN.md` "Trust audit (P2)", with the 301-vs-200 divergence
+  and the identical `created_at` reproduced live before the fix was scoped
+- promoted: 2026-08-23 via gated `/pharn-dev-memory-promote` (human-approved).
