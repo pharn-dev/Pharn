@@ -10,7 +10,7 @@ lessons to fetch; canon stays the source of truth and the floor's verification t
 applied, without fetching its full `## L<n>` entry from canon, is the P0 disease. "The index was
 consulted" never means "the relevant lessons were read".
 
-31 lessons · 31 tagged · 0 malformed · 0 untagged · ~19393 tokens total
+32 lessons · 32 tagged · 0 malformed · 0 untagged · ~20174 tokens total
 
 Columns: `id | type | concepts | title | promoted | ~tokens`. Every canon entry carries a tag line, so
 BOTH absence markers are unexpected: `-` = no tag line, i.e. an entry that reached canon without
@@ -51,4 +51,5 @@ L28 | scoping  | writes-scope,plan-shape,cue-matching,false-red                 
 L29 | process  | lesson-recurrence,branch-coverage,shared-message,floor-escalation                           | When a lesson's remedy is quantified over a set, the ENUMERATION is the deliverable — an assertion written for one member reads as discharged | 2026-08-20 | ~749
 L30 | process  | style-gates,command-prescription,lesson-recurrence,floor-escalation,prevention-vs-detection | A step that RUNS some of the gates it names and ASKS for the rest will fail on the ones it asks for | 2026-08-20 | ~880
 L31 | process  | lesson-recurrence,dev-product-boundary,branch-coverage,floor-escalation                     | A deliberate copy-pair creates an obligation set nothing ranges over — the second copy is where the obligation is dropped | 2026-08-20 | ~668
+L32 | process  | verification-fidelity,doc-drift,command-prescription,false-green                            | A verification method that consults a mutable ALIAS proves reachability, not identity | 2026-08-23 | ~781
 ```
