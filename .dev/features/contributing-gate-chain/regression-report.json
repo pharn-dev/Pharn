@@ -1,0 +1,26 @@
+{
+  "base": "HEAD",
+  "inside": [
+    "CONTRIBUTING.md",
+    "SECURITY.md",
+    ".dev/features/contributing-gate-chain/GRILL.md",
+    ".dev/features/contributing-gate-chain/PLAN.md"
+  ],
+  "outside_gates": {
+    "structural:expected-injection-comment": {
+      "base": 0,
+      "head": 0
+    },
+    "tests": {
+      "base": 0,
+      "head": 0
+    },
+    "validate": {
+      "base": 0,
+      "head": 0
+    }
+  },
+  "regressions": [],
+  "pre_existing": [],
+  "verdict": "no-regressions"
+}
