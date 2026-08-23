@@ -6,8 +6,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 This repository **is PHARN-OSS** — the audit-grade methodology for AI-native development itself, not
 scaffolding for a "real PHARN" that lives elsewhere. PHARN-OSS is **self-hosting**: it is built using
-its own minimal tooling, one increment at a time (PHARN builds PHARN). It is early-stage and in active
-development; see `README.md` for the product framing.
+its own minimal tooling, one increment at a time (PHARN builds PHARN). It is ready to install and use
+with Claude Code today (`npx @pharn-dev/pharn@latest init`); active development continues, and
+functionality that has not shipped yet is explicitly labeled. See `README.md` for the product framing.
 
 There is **no application code**. The product is a _methodology expressed as prompts_: markdown specs
 
