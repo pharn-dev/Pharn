@@ -30,6 +30,25 @@
 //   2. A MARKER IS DELETED, THE PRIMITIVE IS STILL ABSENT.  The doc silently returns to overclaiming —
 //      the original F7 defect. RED, naming the file and the missing marker.
 //
+// THE SECOND CLASS: FORWARD-LOOKING CLAIMS (`forward_claims` in the manifest). A sentence like "the
+// checker that runs these is the NEXT increment" is TRUE when written and FALSE the moment the named
+// artifact lands, in a file nobody is editing. That is the SAME computation as above with a different
+// marker vocabulary: direction 1 is the claim EXPIRING (the artifact shipped, the hedge remains), and
+// direction 2 is the hedge being DELETED while the artifact is still absent (the doc now implies
+// something exists that does not). Registered here rather than in a second checker with its own
+// manifest, npm script, ci.yml step and wiring tests — lessons-learned L35: when the existing thing
+// already computes the answer, a parallel identity is the wrong remedy. Adding NO new wiring is the
+// point; there is no new invoker to pin because there is no new invoker.
+//
+// The trigger (P7 — a real failure, never a hypothetical): the class recurred INSIDE #165, the
+// increment whose entire purpose was fixing it — it corrected one "next increment" claim in
+// pharn/pharn-contracts/eval-format.md and left a second in the same file. Per L20 that second
+// occurrence is when a discipline-only remedy has earned a check.
+//
+// AN EMPTY `forward_claims` ARRAY IS EXIT 2 (EMPTY_CLASS), NEVER GREEN — lessons-learned L34: every
+// check here is "for each registered claim, assert P", which is vacuously true over zero claims, so an
+// emptied array would certify nothing. OMITTING the key is the expressible "none registered" state.
+//
 // WHY A STRUCTURED MANIFEST (lessons-learned L6). Membership is read from specified-primitives.json —
 // never by scanning doc prose for what LOOKS like a marker. L6's defect (a membership fact grepped out
 // of free text, so documentation ABOUT a declaration counts as a declaration) recurred inside F7's own
@@ -91,6 +110,29 @@ const primitives = manifest.specified_primitives;
 const named = manifest.named_artifacts ?? [];
 if (!Array.isArray(primitives)) {
   console.error(`RED (manifest unusable): ${MANIFEST} has no \`specified_primitives\` array`);
+  process.exit(2);
+}
+
+// FORWARD-LOOKING CLAIMS — the same two directions, a different marker vocabulary. See the manifest's
+// $forward_claims_comment for what is deliberately unregistered.
+//
+// The key is OPTIONAL (omitted => none registered, a real GREEN), but a PRESENT-and-EMPTY array is
+// exit 2. Every check below is "for each registered claim, assert P", which is VACUOUSLY TRUE over
+// zero claims (lessons-learned L34), so an emptied array would otherwise certify nothing as GREEN.
+// Omission and emptiness are distinguishable, which is what keeps the honest "none yet" state
+// expressible — the same shape as check-structural.mjs's `finding_count == 0` escape.
+const hasForwardKey = Object.hasOwn(manifest, "forward_claims");
+const forward = hasForwardKey ? manifest.forward_claims : [];
+if (hasForwardKey && !Array.isArray(forward)) {
+  console.error(`RED (manifest unusable): ${MANIFEST} has a \`forward_claims\` key that is not an array`);
+  process.exit(2);
+}
+if (hasForwardKey && forward.length === 0) {
+  console.error(
+    `RED (manifest unusable): ${MANIFEST} declares an EMPTY \`forward_claims\` array (EMPTY_CLASS).\n` +
+      `  Per-claim assertions pass vacuously over zero claims, so this would certify nothing as GREEN.\n` +
+      `  To register no forward claims, OMIT the \`forward_claims\` key entirely.`
+  );
   process.exit(2);
 }
 
@@ -175,6 +217,8 @@ function readDoc(rel) {
 
 let siteCount = 0;
 let liveCount = 0;
+let claimCount = 0;
+let landedCount = 0;
 
 try {
   for (const p of primitives) {
@@ -201,6 +245,36 @@ try {
         red(
           `${site.file}: the \`${p.id}\` annotation is GONE, but the primitive is still absent ` +
             `(${describe(p.probe)}). The doc has returned to asserting a protection the repo does not have.\n` +
+            `    expected: ${JSON.stringify(site.marker)}`
+        );
+      }
+    }
+  }
+
+  for (const c of forward) {
+    validatePrimitive(c); // identical record shape: id + probe + sites[{file, marker}]
+    const landed = isLive(c.probe, c.id);
+    if (landed) landedCount++;
+    for (const site of c.sites) {
+      claimCount++;
+      const src = readDoc(site.file);
+      if (src === null) {
+        red(`${site.file}: listed as a site for forward claim \`${c.id}\` but the file could not be read`);
+        continue;
+      }
+      const present = src.includes(site.marker);
+      if (landed && present) {
+        // DIRECTION 1 — the claim EXPIRED: the artifact landed, the sentence still says it has not.
+        red(
+          `${site.file}: forward claim \`${c.id}\` has EXPIRED — ${describe(c.probe)}, but the doc still ` +
+            `says it is not built. RE-DERIVE the sentence; the doc now describes the repo as weaker than it is.\n` +
+            `    marker: ${JSON.stringify(site.marker)}`
+        );
+      } else if (!landed && !present) {
+        // DIRECTION 2 — the hedge was deleted while the artifact is still absent.
+        red(
+          `${site.file}: the forward-claim hedge for \`${c.id}\` is GONE, but the artifact is still absent ` +
+            `(${describe(c.probe)}). The doc now implies something exists that does not.\n` +
             `    expected: ${JSON.stringify(site.marker)}`
         );
       }
@@ -241,14 +315,17 @@ if (reds.length) {
   console.error(`SPECIFIED-MARKERS: RED — ${reds.length} drifted annotation(s)\n`);
   for (const r of reds) console.error(`  - ${r}`);
   console.error(
-    `\nManifest: ${MANIFEST}\n` + `This checks only the annotations that manifest LISTS. It cannot discover a new overclaim (P0).`
+    `\nManifest: ${MANIFEST}\n` +
+      `This checks only the annotations and forward claims that manifest LISTS. It cannot discover a new ` +
+      `overclaim, or a forward-looking claim nobody registered (P0).`
   );
   process.exit(1);
 }
 
 console.log(
   `SPECIFIED-MARKERS: GREEN — ${siteCount} annotation(s) across ${primitives.length} specified primitive(s) ` +
-    `(${liveCount} now live), ${named.length} named artifact(s) checked in ${TARGET}.\n` +
-    `NOTE (P0): this proves the LISTED annotations still match reality. It never means the docs are accurate — ` +
-    `an overclaim not in the manifest is invisible here.`
+    `(${liveCount} now live), ${claimCount} forward-claim site(s) across ${forward.length} registered claim(s) ` +
+    `(${landedCount} now landed), ${named.length} named artifact(s) checked in ${TARGET}.\n` +
+    `NOTE (P0): this proves the LISTED annotations and claims still match reality. It never means the docs are ` +
+    `accurate — an overclaim or an expired claim not in the manifest is invisible here.`
 );
