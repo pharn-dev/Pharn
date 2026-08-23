@@ -10,7 +10,7 @@ runs on Claude Code today, and the discipline itself ships as readable markdown 
 lenses, rules — that you read, diff, and version yourself. PHARN does not make anyone understand the
 code; it keeps a deterministic floor under it and the record available the moment someone needs it.
 
-[![pharn](https://img.shields.io/badge/pharn-2.7.13-blue)](./CHANGELOG.md)
+[![pharn](https://img.shields.io/badge/pharn-2.7.14-blue)](./CHANGELOG.md)
 [![License: Apache 2.0](https://img.shields.io/badge/license-Apache%202.0-green)](./LICENSE)
 [![CI](https://github.com/pharn-dev/pharn-oss/actions/workflows/ci.yml/badge.svg)](https://github.com/pharn-dev/pharn-oss/actions/workflows/ci.yml)
 [![CodeQL](https://github.com/pharn-dev/pharn-oss/actions/workflows/codeql.yml/badge.svg)](https://github.com/pharn-dev/pharn-oss/actions/workflows/codeql.yml)
@@ -57,7 +57,7 @@ This isn't hypothetical. A [2026 Anthropic RCT](https://www.anthropic.com/resear
 measured developers scoring ~17% lower on comprehension of code they shipped with AI assistance, even
 as the volume of AI-generated code keeps climbing — more code, understood less.
 
-PHARN doesn't force you to understand the code — nothing can, and anything that tries just gets bypassed. Instead it does two things it can guarantee: a deterministic floor that holds without you (secrets blocked, authorization checked, the plan actually built), and a markdown-canonical record — spec, constitution, diff, audit trail — kept in your repo, readable and diffable, available the moment you need it. The agent does the typing. PHARN keeps the result legible for whoever reads it next — if anyone does.
+PHARN doesn't force you to understand the code — nothing can, and anything that tries just gets bypassed. Instead it does two things it can guarantee: a deterministic floor that holds without you (secrets screened at the plan gate, every write confined to its declared scope, the plan actually built), and a markdown-canonical record — spec, constitution, diff, audit trail — kept in your repo, readable and diffable, available the moment you need it. The agent does the typing. PHARN keeps the result legible for whoever reads it next — if anyone does.
 
 > **Your chat history is gone. Your spec isn't.**
 

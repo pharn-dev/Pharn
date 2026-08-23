@@ -44,8 +44,9 @@ Packaging later = "ship root minus `.dev/`". `.dev/` (committed apparatus) is un
 ## SKILLS_VERSION discipline (versioning the shipped surface)
 
 `SKILLS_VERSION` (repo root) versions the **product surface** — the bytes a PHARN user receives (the
-`pharn` CLI installs them; `pharn status` / `pharn update` compare a user's install against this
-file). It does **not** version the build apparatus.
+planned `pharn` CLI — specified, **not built**; no installer exists yet — would install them, and its
+`pharn status` / `pharn update` would compare a user's install against this file). It does **not**
+version the build apparatus.
 
 - **Any change that alters product-surface bytes MUST bump `SKILLS_VERSION` and add a `CHANGELOG.md`
   entry — prose-only edits included.** A clarified `/pharn-*` command step, a reworded contract, or a
@@ -278,7 +279,8 @@ echo '{"tool_name":"Write","tool_input":{"file_path":"pharn/pharn-core/rules/x.m
 - **Dev tooling is real; the methodology stays stdlib-only.** The floor, the hook, and the commands
   have **zero runtime dependencies** (Node stdlib; Node 24). The repo carries **dev-only**
   devDependencies (ESLint, Prettier, markdownlint) wired as npm scripts: `npm run check`
-  (`format:check` + `lint` + `lint:md` + `docs:check` + `check:markers` + `check:badge` + `test`) is the
+  (`format:check` + `lint` + `lint:md` + `docs:check` + `check:markers` + `check:badge` +
+  `check:contributing` + `test`) is the
   aggregate gate, and `npm test` runs
   `node --test` over the hook, product-floor, and dev-floor suites (`.claude/hooks/*.test.cjs` +
   `pharn/floor/*.test.mjs` + `.dev/floor/*.test.mjs`) — **green** at this writing; read the count live
@@ -501,7 +503,8 @@ framework-specific`), via the first-match-wins procedure in `pharn/ARCHITECTURE.
   never against the index. The index's `type` / `concepts` columns are model-drafted values a human
   ratified at the promote gate, so **"typed `floor`" never means "about the floor"** — selecting on them
   is advisory context selection. **Every dev canon entry is now tagged** — the legacy L1–L17 were
-  retro-tagged, so the index renders `21 tagged · 0 malformed · 0 untagged` and **both** absence markers
+  retro-tagged, so the index renders every entry tagged (`0 malformed · 0 untagged`; read the live
+  counts from `docs/lessons-index.md`, never from this doc — P6) and **both** absence markers
   are now unexpected: a `-` means no tag line, i.e. an entry that reached canon without the promote
   gate's `type`/`concepts`; a `?` means a tag line is present but **failed its gate**. Read that entry in
   canon and flag it either way. (The PRODUCT twin keeps the benign reading of `-` on purpose — a user's
@@ -523,8 +526,9 @@ framework-specific`), via the first-match-wins procedure in `pharn/ARCHITECTURE.
     advisory: skipping it just yields a `STALE` the next plan degrades on.
   - **The two cores are deliberate SEPARATE COPIES** (`pharn/floor/lessons-index-core.mjs` vs
     `.dev/floor/lessons-index-core.mjs`), the `check-provenance.mjs` precedent. Four constants diverge on
-    purpose — `CANON_PATH`, `OUT_PATH`, `REGEN`, and the **absent/empty-canon semantics** (the product
-    copy treats no-canon as a benign no-op where the dev copy throws). ✧ tests in
+    purpose — `CANON_PATH`, `OUT_PATH`, `GEN`, `REGEN` — as does the **absent/empty-canon semantics**
+    (a divergent function, pinned separately: the product copy treats no-canon as a benign no-op where
+    the dev copy throws). ✧ tests in
     `.dev/floor/lessons-index-core.test.mjs` pin **both** halves: every shared constant must AGREE and
     those four must DIFFER. The pin lives on the dev side because a user's install ships `pharn/floor/`
     **without** `.dev/`, so the dependency may only point `.dev/` → `pharn/`; the honest consequence is
