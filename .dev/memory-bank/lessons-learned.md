@@ -1132,3 +1132,57 @@ local, and false.
   `pharn/pharn-contracts/eval-format.md:52`, `pharn/pharn-contracts/finding-shape.md`, and the seven
   grillers
 - promoted: 2026-08-23 via gated `/pharn-dev-memory-promote` (human-approved).
+
+## L34 — "For each X, assert P" says nothing when there are no X — a per-item assertion set certifies the suppressed emission
+
+type: floor · concepts: [vacuous-truth, empty-set, fail-closed, eval-design]
+
+**Lesson.** A checker assembled from per-item assertions passes **vacuously** over an empty domain, and
+a vacuous pass is indistinguishable from a real one at the verdict. `pharn/floor/check-structural.mjs`
+is the instance: its `field_equals`, `file_resolves` and `needle_absent_from_enum_gated` kinds all
+iterate `findings`, so an eval that wrote per-finding assertions but omitted `finding_count` certified a
+skill that emitted **nothing** — every assertion true, zero findings examined, GREEN. The eval a
+Capability ships as its specification (P1) was satisfied by the total absence of the behaviour it
+specifies. Remedy, now at `pharn/floor/check-structural.mjs:208-224`: guard the zero-item case
+explicitly — membership over the assertion kinds present, plus an integer length test, no judgment (P5).
+The legitimate "I expect nothing" intent MUST stay expressible, and that is exactly what distinguishes
+the two cases: an eval that genuinely expects an empty result says so with `finding_count == 0` and
+stays GREEN. Silence and asserted-silence are different claims; only the second is a specification.
+
+**The shape is widely RECOGNISED and still nothing ranges over it — recognition is not coverage.** Four
+other production sites defend the identical shape, each written by hand, sharing no helper (all five
+import Node stdlib only; zero cross-imports between them): `pharn/floor/check-verify.mjs:99` and
+`pharn/floor/check-regress.mjs:376` carry the byte-identical string `is empty — no gates captured`,
+written separately; `.dev/floor/check-variance.mjs:171` dies INCONCLUSIVE on `valid.length === 0`;
+`.dev/floor/check-contributing-gates.mjs:108` REDs `EMPTY_CHAIN` because "a set with no members is not a
+chain". Six further test files carry hand-written comments defending their **own** tests against passing
+vacuously — `check-ship-briefing`, `check-provenance`, `check-contributing-gates`, `command-hygiene`,
+`entry-point-guard`, `lessons-index-core`. So the failure mode is understood repo-wide, re-derived
+locally at each site, and enforced nowhere as a class — and the one place the hand-rolled guard was
+missing is `check-structural`, the checker that executes the eval contract itself.
+
+**Why it matters.** A vacuous pass is the **fail-OPEN** direction of a checker whose entire purpose is to
+fail closed, and it is invisible in the direction people look: a suppressed emission and a clean
+codebase produce the same GREEN. That makes it the highest-value silent regression an enforcement
+pipeline can carry — a lens that stops emitting is certified by its own eval, and P1's "evals are the
+spec" degrades to "evals are the spec, unless the output is empty." [[L20]] says a discipline-only
+remedy will recur and the second occurrence earns a floor check; here the count reached **five**
+hand-written guards before the sixth site slipped, which is that trigger long overdue rather than newly
+fired. [[L29]] says a remedy quantified over a set owes the **enumeration** as its deliverable — the
+five sites above are that enumeration, materialized in one place for the first time, and the honest
+residual is that nothing yet iterates it. Distinct from [[L23]], which also turned on an empty array
+hiding a defect: there the emptiness was the **happy path** concealing a self-referential gate conflict
+between a stage and its own artifact; here the emptiness is the **domain of quantification** itself, and
+the defect is that a universally-quantified claim over it is true for free. Same symptom, different
+mechanism — L23's remedy is to exempt an artifact from a gate, this one's is to assert the domain is
+non-empty.
+
+**Provenance.**
+
+- feature: `floor-hardening`
+- commit: `02c2d17e54f49b4b16395b98799726e5e77c5a01`
+- source: `.dev/features/floor-hardening/PLAN.md` (its L7 rows in `## Files` + the `## Guarantee audit`
+  line "L7 'per-finding assertions cannot pass vacuously' → **floor: enum-regex**") + the CHANGELOG
+  2.7.13 entry, with the five-site recurrence and the six recognition sites re-derived live at HEAD
+  `a0cfd0d`
+- promoted: 2026-08-23 via gated `/pharn-dev-memory-promote` (human-approved).
