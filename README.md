@@ -4,12 +4,12 @@
 
 **Code got cheap. Understanding got scarce.**
 
-PHARN is an audit-grade methodology for building software with AI agents. It installs into your repo as
-plain markdown — commands, grillers, review lenses, a constitution — and puts a deterministic floor under
-the agent: the intent is written down and approved before code is written, secret-shaped literals in a
-plan are found by a regex not a judgment call, an agent may only write the files its plan declared, and a
-build that skipped a declared file cannot report success. Everything the floor cannot guarantee is
-labeled advisory, in the same sentence.
+PHARN gives AI-assisted development a persistent engineering record: what you intended to build,
+how the agent planned it, what changed, and what was checked before shipping.
+
+Specs, plans, review artifacts, and rules stay in your repository as readable Markdown. Deterministic
+hooks and checkers enforce the parts that can actually be enforced; everything that still depends on
+model judgment is treated as advisory.
 
 ```bash
 npx @pharn-dev/pharn@latest init
@@ -34,12 +34,13 @@ npx @pharn-dev/pharn@latest init
 
 - [What PHARN does](#what-pharn-does)
 - [Quick start](#quick-start)
+- [Commands](#commands)
 - [What it catches](#what-it-catches)
 - [Why not just CLAUDE.md or AGENTS.md?](#why-not-just-claudemd-or-agentsmd)
 - [Guaranteed vs advisory](#guaranteed-vs-advisory)
 - [The pipeline](#the-pipeline)
 - [PHARN builds PHARN](#pharn-builds-pharn)
-- [Honest scope](#honest-scope)
+- [Current limitations](#current-limitations)
 - [Design docs](#design-docs)
 - [Contributing](#contributing)
 - [Security](#security)
@@ -49,43 +50,48 @@ npx @pharn-dev/pharn@latest init
 
 ## What PHARN does
 
-Vibe-coding with an agent is fast — until the chat history scrolls away and takes the _understanding_
-with it. Six months later nobody can say why the code is shaped the way it is, what the constraints
-were, or which decisions were deliberate.
+AI agents can write code quickly, but the reasoning behind a change usually disappears with the chat:
+why the change exists, what constraints mattered, what the agent planned, and what was actually checked.
 
-PHARN does not make anyone understand the code. Nothing can, and anything that claims to just gets
-bypassed. What it does is make the reasoning survive the session, and put deterministic checks around
-the parts that can be checked deterministically.
+PHARN keeps that reasoning in the repository as versioned artifacts and adds deterministic checks around
+the parts of the workflow that can be checked without trusting the model.
 
-**Before you write code** — you state the intent, and a human approves it. PHARN turns your prose into a
-structured `SPEC.md`, interrogates it for gaps, and waits. The model never approves its own spec. Once
-approved, the spec is pinned by a SHA-256 of its own body, so editing it after planning is detectable
-rather than silent.
+**Before code is written** — you describe the intent. PHARN turns it into a structured `SPEC.md`,
+interrogates it for gaps, and stops for explicit human approval. An approved spec is pinned by a SHA-256
+hash of its body, so later intent drift is detectable.
 
-**While the agent works** — the plan declares which files it will touch, and a pre-write hook denies
-everything else. Grillers interrogate the plan before a line is written: the security one runs a fixed
-regex set over it and flags AWS key ids, private-key headers, and secret-named fields assigned string
-literals. Afterwards, review lenses read the diff for injection, SSRF, path traversal, n-plus-one
-queries, swallowed exceptions, race conditions, and placeholder code shipped as done.
+**While the agent works** — the plan declares the files it expects to touch. Claude Code's
+Write/Edit/MultiEdit/NotebookEdit tools are restricted to the active write scope by deterministic hooks.
+Grillers interrogate the plan before implementation, while review lenses inspect code for classes of
+problems such as injection, SSRF, path traversal, n-plus-one queries, swallowed exceptions, race
+conditions, and placeholder code shipped as done.
 
-**After the change lands** — the repo holds a diffable trail: the spec, the plan, the grill log, the
-regression report, the verify report. If the plan declared a file the build never wrote, `/pharn-verify`
-returns `INCOMPLETE` rather than a pass. Your chat history is gone. Your spec isn't.
+**After the change** — PHARN leaves a diffable trail: the spec, plan, grill log, regression report, and
+verify report. Verification also checks build completeness at the filesystem level: if a concrete path
+declared by the plan does not exist after the build, verification reports `INCOMPLETE`.
 
-PHARN is meant to augment a whole team — the PM writes intent, the developer reviews architecture,
-everyone works off the same artifact. It does **not** replace developers.
+PHARN does **not** prove that a plan is good, that a finding is correct, or that the resulting code is
+correct or secure. Those remain model or human judgments. The point is to preserve the reasoning and
+make deterministic claims only where PHARN can actually support them.
 
 ---
 
 ## Quick start
 
-PHARN runs on [Claude Code](https://claude.com/claude-code). In your project root:
+PHARN runs on [Claude Code](https://claude.com/claude-code). The installer requires Node 20 or newer; CI
+runs it on Node 24. In your project root:
 
 ```bash
 npx @pharn-dev/pharn@latest init
 ```
 
-The installer reads your `package.json`, detects your project's archetype, and selects the capabilities
+Archetype detection is JS/TS-shaped: it reads `package.json` and scans for `next.config.*`, `app/`
+route handlers, `.tsx`/`.jsx`, `migrations/` and `.sql`, resolving to `ssr`, `backend`, `spa`, or `lib`.
+A repo with none of those still installs and gets the universal capabilities — 28 of the 35 grillers and
+lenses declare `applies: ["universal"]` and read code without assuming a language. The seven that do not
+are the SSR/SPA/backend-specific ones.
+
+The installer reads those signals, detects your project's archetype, and selects the capabilities
 that apply — showing you the full list, with a reason beside each one, before it writes anything. It
 then installs:
 
@@ -95,18 +101,76 @@ then installs:
   under `pharn/`,
 - and a `pharn.config.json` pinning the skills version and the exact commit it installed from.
 
-Then open Claude Code and run your first command:
+Concretely, that is:
 
 ```text
-/pharn-spec
+your-repo/
+├── .claude/
+│   ├── commands/pharn-*.md        # the 10 product commands
+│   ├── hooks/*.cjs                # the write guards
+│   └── settings.json              # wires the hooks (see the caveat below)
+├── pharn/
+│   ├── floor/*.mjs                # the deterministic checkers
+│   ├── pharn-contracts/           # artifact shapes
+│   ├── pharn-pipeline/grillers/   # plan interrogators
+│   └── pharn-review/              # code lenses
+├── pharn.config.json              # skills version + installed commit
+├── features/<name>/               # per increment, written as you run the pipeline:
+│                                  # SPEC PLAN GRILL BUILD REGRESSION VERIFY SHIP — commit these
+└── .pharn/                        # runtime scratch — add to .gitignore
 ```
 
-Describe what you want to build. PHARN writes a `SPEC.md`, asks about what you left out, and stops for
-your approval. From there, `/pharn-ship` runs the whole chain for you, or you can drive each stage
-yourself.
+The hooks only enforce anything once they are registered in `.claude/settings.json`. If your project
+already has that file, the installer **preserves it and does not wire the hooks** — it warns, and the
+wiring is then yours to copy over. Until you do, everything in
+[Guaranteed vs advisory](#guaranteed-vs-advisory) that depends on a `PreToolUse` hook is not in force.
 
-Already installed? `pharn status` reports your version and whether any installed file has drifted;
-`pharn update` re-fetches at the latest skills version; `pharn add <capability>` installs another one.
+Then open Claude Code and describe what you want built:
+
+```text
+/pharn-loop implement password reset with a one-time token
+```
+
+`/pharn-loop` runs the whole chain — spec, plan, grill, build, regress, verify — and iterates the
+build → regress → verify middle until a deterministic stop: floor-green, the iteration cap
+(`--max-iter N`, default 3), or the first terminal failure. It hands back to you at exactly two points, and no others: once to approve the
+`SPEC.md` before any code is written, and once after verification to decide merge, fix, or abandon.
+
+`/pharn-ship` is the same chain without the auto-iteration — one pass, then the PR. Every stage is also
+its own command if you want to stop somewhere and look; see [Commands](#commands).
+
+Already installed? `npx @pharn-dev/pharn status` reports your version and whether any installed file has
+drifted; `update` re-fetches at the latest skills version; `add` and `remove` manage individual
+capabilities; `list` prints what is installed. (`init` installs into the project, not onto your `PATH`,
+so keep the `npx` prefix unless you installed the CLI globally.)
+
+**Two version numbers, on purpose.** The `pharn` badge above tracks
+[`SKILLS_VERSION`](./SKILLS_VERSION) — the content an install receives, and what `status` and
+`CHANGELOG.md` are keyed to. The npm package `@pharn-dev/pharn` carries the installer's own version.
+They move independently and are not meant to match.
+
+---
+
+## Commands
+
+Two commands cover the normal case. The other eight are the stages those two run, available on their own
+when you want to drive a step yourself.
+
+| Command                 | What it does                                                                                                                                                     |
+| ----------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `/pharn-loop`           | The whole chain, auto-iterated until a deterministic stop (green, the `--max-iter` cap, default 3, or the first terminal failure). Two human gates, no `--yolo`. |
+| `/pharn-ship`           | The same chain, one pass, then the PR — gated on the same two human decisions.                                                                                   |
+| `/pharn-review`         | Review lenses over any code, run in parallel as subagents, findings merged deterministically. Not a pipeline stage: point it at anything, any time.              |
+| `/pharn-spec`           | Prose intent into a structured `SPEC.md`, gaps surfaced, stops for your approval, pinned by a body hash once approved.                                           |
+| `/pharn-plan`           | An approved `SPEC.md` into a `PLAN.md` — including the files the build is then allowed to touch.                                                                 |
+| `/pharn-grill`          | Grillers interrogate the plan before code exists, and the spec to plan hash chain is re-verified.                                                                |
+| `/pharn-build`          | Writes the implementation, scoped to the paths the plan declared.                                                                                                |
+| `/pharn-regress`        | Re-runs your existing suites to catch breakage outside the feature just built.                                                                                   |
+| `/pharn-verify`         | Checks the build against the plan's contracts; a declared file that was never written yields `INCOMPLETE`.                                                       |
+| `/pharn-memory-promote` | Gated promotion of a single lesson into your `memory-bank/`.                                                                                                     |
+
+The command names are generated and drift-guarded in the [inventory below](#pharn-builds-pharn); the
+one-line descriptions in this table are hand-written and are not.
 
 ---
 
@@ -126,58 +190,79 @@ duplicated logic, copy-paste drift, magic values, placeholder-as-done, and a tru
 Every capability ships with its own eval cases and expected outputs; the floor refuses a capability
 whose rules no eval exercises.
 
-This prose is hand-written and unguarded, so treat it as a tour rather than an inventory. The
-authoritative, drift-guarded lists are the generated ones: [`docs/capabilities/`](./docs/capabilities/README.md)
-and the [current-state block](#pharn-builds-pharn) below.
+This section is a tour, not the authoritative inventory. The drift-guarded lists are generated from the
+repository: [`docs/capabilities/`](./docs/capabilities/README.md) and the
+[current-state block](#pharn-builds-pharn) below.
 
 ---
 
 ## Why not just CLAUDE.md or AGENTS.md?
 
-Keep them. PHARN is not a replacement for a project instructions file — it adds the parts an
-instructions file structurally cannot provide, because an instructions file is text the model may follow.
+Keep them. PHARN is not a replacement for a project instructions file.
 
-- **A file states a rule. A hook enforces one.** "Don't edit the spec" is a sentence a model can be
-  talked out of. A `PreToolUse` hook that denies the write is not.
-- **Approval becomes a gate, not a habit.** The spec is `Draft` until a human flips it to `Approved`, and
-  downstream stages refuse a `Draft`. The model cannot flip it.
-- **Instructions drift; content-hashes don't.** An approved spec is pinned by a hash of its body, and
-  four later stages re-verify that pin.
-- **Findings cite stable rule IDs.** A review finding names the rule it violates, so the chain from a
-  line of code back to the intent that justified it is explicit rather than recalled.
-- **Untrusted text is fenced structurally.** Code under review, fetched docs and accumulated memory are
-  tagged untrusted, and no guaranteed decision reads a free-text field — because prompt injection is
-  unsolved, so trust cannot be the model's judgment call.
+`CLAUDE.md`, `AGENTS.md`, and similar files are instructions the model may follow. PHARN adds versioned
+workflow artifacts plus deterministic checks that do not depend on the model deciding that a sentence
+should be obeyed.
+
+```mermaid
+flowchart LR
+    A["agent proposes a write"] --> H{"PreToolUse hook"}
+    H -- "path is in the plan's declared scope" --> OK["write proceeds"]
+    H -- "trusted doc, or outside that scope" --> D["exit 2 — denied"]
+    BASH["the same write, issued via Bash"] -. "bypasses both hooks" .-> OK
+```
+
+- **A file states a rule. A hook can enforce one.** PHARN's `PreToolUse` hooks can deny writes through
+  Claude Code's standard write/edit tools.
+- **Approval becomes an explicit workflow gate.** A spec remains `Draft` until the user explicitly
+  approves it. Downstream stages refuse a Draft or drifted spec.
+- **Approved intent is pinned.** A content hash makes later edits to the approved spec body detectable.
+- **Findings cite stable rule IDs.** A review finding names the rule it violates instead of relying on
+  remembered chat context.
+- **Guaranteed decisions avoid free-text judgment.** Deterministic gates operate on paths, hashes,
+  enums, regex matches, exit codes, and other bounded values rather than asking the model whether
+  something "looks safe."
+
+PHARN still relies on agent orchestration to invoke parts of the workflow. It does not turn an LLM into
+a trusted execution environment.
 
 ---
 
 ## Guaranteed vs advisory
 
-This distinction is the whole point, so it is stated once and applied everywhere. A **guarantee** must
-reduce to one of three deterministic, non-LLM operations — a hook, a content-hash comparison, or an
-enum/regex check. Anything else is **advisory**, and is labeled advisory wherever it appears.
+This distinction is the core design rule.
 
-**Guaranteed** — each of these is a named checker you can read:
+A **guarantee** must reduce to a deterministic, non-LLM operation such as a hook decision, content-hash
+comparison, enum/set-membership check, regex scan, or filesystem check. Anything that depends on model
+judgment is **advisory**.
 
-| Guarantee                                                                        | The check behind it                                                                     |
-| -------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
-| The four trusted docs cannot be edited by the agent through Write/Edit/MultiEdit | `.claude/hooks/protect-trusted-paths.cjs`                                               |
-| A command writes only the paths it declared                                      | `set-writes-scope.cjs` + `enforce-writes-scope.cjs`, fail-closed                        |
-| An approved spec is pinned, so a later edit is detectable                        | `check-spec.mjs --hash`, re-verified at grill, build, regress and verify                |
-| Secret-shaped literals in a plan are detected                                    | `scan-plan-secrets.mjs` — a fixed regex set, immune to prose claiming the plan is clean |
-| A plan-declared file the build never wrote yields `INCOMPLETE`, not a pass       | `check-build-complete.mjs` feeding `check-verify.mjs`                                   |
-| Which lenses run, and how their findings merge                                   | `count-lenses.mjs` reads frontmatter; `merge-findings.mjs` keys on enum fields only     |
+**Guaranteed** — examples of narrow claims backed by named checkers:
 
-**Advisory** — everything a model judges: whether a plan is wise, whether a lens's finding is real,
-whether a severity is right, whether a griller actually ran its scanner. These surface for a human. They
-never gate.
+| Guarantee                                                                                                                                      | The check behind it                                                                                                                                                                                        |
+| ---------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| The four trusted docs — and the guards' own control surface — cannot be edited through Claude Code's Write/Edit/MultiEdit/NotebookEdit surface | `.claude/hooks/protect-trusted-paths.cjs`                                                                                                                                                                  |
+| That same tool surface is restricted to the active write scope, fail-closed to a default-safe set when none is active                          | `set-writes-scope.cjs` + `enforce-writes-scope.cjs`                                                                                                                                                        |
+| An approved spec is pinned, so later body drift is detectable                                                                                  | `check-spec.mjs --hash` at approval; re-verified at plan, grill, build, regress, verify and ship by `check-spec-approved.mjs` (directly at plan and ship, through `check-plan-spec-agree.mjs` at the rest) |
+| Secret-shaped literals in a plan can be detected by the shipped regex scanner                                                                  | `scan-plan-secrets.mjs`                                                                                                                                                                                    |
+| A missing concrete path declared by the plan yields an incomplete build signal                                                                 | `check-build-complete.mjs` feeding `check-verify.mjs`                                                                                                                                                      |
+| Which lenses run, and how structured findings merge                                                                                            | `count-lenses.mjs` + `merge-findings.mjs`                                                                                                                                                                  |
 
-**And the bounds, stated rather than buried.** The write-guards gate the Write/Edit/MultiEdit tool
-surface; **writes made through the Bash tool bypass them entirely**, which is the largest hole in that
-guard and no amount of path matching narrows it. `scan-plan-secrets` proves a pattern is present, never
-that the literal is a live secret — and it runs inside a griller, which surfaces findings and never
-blocks. `check-build-complete` proves a declared path exists, never that its contents are right. A green
-floor means the named checks passed. It never means the code is correct.
+**Advisory** — everything a model judges: whether a plan is wise, whether a review finding is real,
+whether a severity is right, whether the code satisfies the product intent, and whether the resulting
+system is well designed. These findings are surfaced for a human; they are not converted into guarantees
+by wording them strongly.
+
+**Important bounds:**
+
+- The write guards cover Claude Code's Write/Edit/MultiEdit/NotebookEdit tool surface.
+  **Writes performed through Bash bypass those hooks.**
+- `scan-plan-secrets` detects configured patterns; it does not prove that a matched literal is a live
+  secret or that an unmatched plan contains none.
+- `check-build-complete` proves that declared concrete paths exist. It does not prove that the build
+  modified them, or that their contents are correct.
+- A green PHARN floor means the named deterministic checks passed. It does not mean the code is correct.
+
+See [`LIMITS.md`](./LIMITS.md) for the full set of bounds.
 
 ---
 
@@ -186,31 +271,41 @@ floor means the named checks passed. It never means the code is correct.
 Seven typed stages. Each emits a versioned artifact carrying the `spec_id`, and each reads what the
 previous stage produced:
 
-```text
-spec → plan → grill → build → regress → verify → ship
+```mermaid
+flowchart LR
+    S["spec"] --> G1{{"human approves<br/>the SPEC"}}
+    G1 --> P["plan"] --> GR["grill"] --> B["build"] --> R["regress"] --> V["verify"]
+    V -- "not green, under the cap<br/>(/pharn-loop only)" --> B
+    V -- "green, cap reached,<br/>or terminal failure" --> G2{{"human decides<br/>merge / fix / abandon"}}
+    G2 --> SH["ship"]
 ```
 
-`/pharn-ship` runs that chain for you and stops at the two human gates — spec approval, and the
-post-verify merge/fix/abandon decision. It never self-approves and has no `--yolo`.
+`/pharn-ship` orchestrates that chain and preserves two human decision points: explicit spec approval
+before planning, and the final merge/fix/abandon decision after verification.
 
-`/pharn-loop` runs the same chain, but iterates the build→regress→verify middle until a deterministic
-stop: green, a bounded iteration cap, or the first terminal failure. The stop is computed by a tested
-checker whose only inputs are the two floor verdicts, so no advisory stage can keep the loop running.
+The orchestration itself is not a deterministic guarantee: the agent invokes the stages. The proceed/stop
+decisions inside the pipeline are read from the deterministic verdicts emitted by the relevant checkers.
 
-**Standalone:** `/pharn-review` is the one command that is not a pipeline stage. It runs the review
-lenses in parallel as subagents and merges their findings deterministically, keyed on enum-gated fields
-only. Point it at code whenever you want, pipeline or not.
+`/pharn-loop` iterates the build → regress → verify middle until a deterministic stop condition: green,
+a bounded iteration cap, or a terminal failure.
+
+**Standalone:** `/pharn-review` is not a pipeline stage. It runs review lenses in parallel as subagents
+and merges their structured findings deterministically. You can run it against code independently of the
+shipping pipeline.
 
 ---
 
 ## PHARN builds PHARN
 
-PHARN is self-hosting: it is built with its own tooling, one approved increment at a time, and the
-audit trail of every increment is committed in this repo.
+PHARN is built with its own workflow, one increment at a time, and the resulting development artifacts
+are committed in this repository.
+
+That means the repository contains real specs, plans, grill reports, reviews, regression reports, and
+verification records produced while building PHARN itself. You can inspect the process instead of taking
+the README's claims on trust.
 
 The inventory below is **generated** from the live repository by `npm run docs:generate` and guarded
-byte-for-byte by `npm run docs:check`, so it cannot quietly drift from what is actually built. The prose
-around it is hand-written and carries no such guarantee.
+byte-for-byte by `npm run docs:check`, so it cannot quietly drift from what is actually built.
 
 <!-- CURRENT-STATE:BEGIN — GENERATED by .dev/floor/gen-capability-catalog.mjs. DO NOT EDIT BETWEEN MARKERS. Regenerate: npm run docs:generate -->
 
@@ -223,67 +318,76 @@ around it is hand-written and carries no such guarantee.
 
 <!-- CURRENT-STATE:END -->
 
-The evidence worth reading is a defect the loop caught in PHARN's own code.
-[`.dev/features/span-redos-linear/REVIEW.md`](./.dev/features/span-redos-linear/REVIEW.md) records
-finding F1 against an increment whose entire purpose was to repair a false performance claim in a floor
-checker — and whose replacement claim was false in the same way:
-
-> the increment repairing a false bound in a floor file shipped a second, weaker false bound in the same
-> paragraph
-
-That finding is marked `severity: blocking` and was fixed inside the increment that raised it. The
-review that caught it was PHARN's own.
+For concrete examples, browse [`.dev/features/`](./.dev/features/). The development history includes
+cases where PHARN's own review workflow raised defects in PHARN changes before those increments were
+finished — see [`.dev/features/span-redos-linear/REVIEW.md`](./.dev/features/span-redos-linear/REVIEW.md),
+where the review caught a false bound shipped by the very increment that was repairing a false bound.
 
 ---
 
-## Honest scope
+## Current limitations
 
-**Not yet built.** `pharn-audits`, `pharn-skills-*`, `pharn-stack-*`, and the rest of `pharn-core` — the
-constitution engine, the agnostic rule set, and the memory-bank commands beyond promotion. As the
-generated inventory above shows, no `validator`, `verifier` or `auditor` capability has been authored:
-`/pharn-verify` ships the verifier plug-in slot empty, deliberately, because adding one before a real
-need is the speculation the constitution forbids.
+PHARN is deliberately narrower than the claims many AI-development tools make.
 
-**Not guaranteed.** [`LIMITS.md`](./LIMITS.md) states plainly what PHARN does not promise, and
-[`THREAT-MODEL.md`](./THREAT-MODEL.md) states the attack surface — starting from the assumption that
-prompt injection is unsolved. Both are worth reading before you rely on anything here. Claims in the
-shipped docs that describe a check which is specified but not yet running are marked
-`(specified; ships with the guarded surface)`, and a checker in CI fails the build if such a marker
-survives after the check goes live, or is deleted while it is still absent.
+- **Claude Code only today.** The current shipped integration uses Claude Code commands and hooks.
+- **Shell writes are outside the write guard.** Bash can modify files without passing through the
+  `PreToolUse` write-scope hooks.
+- **Model judgment remains model judgment.** Architecture quality, review correctness, severity,
+  completeness of intent, and semantic correctness are advisory unless a specific deterministic checker
+  covers the claim.
+- **Build completeness is filesystem-level.** PHARN can detect that a concrete declared path is missing;
+  it cannot prove that an existing path was actually modified or implemented correctly.
+- **Prompt injection is not solved.** PHARN narrows which data may influence guaranteed decisions, but it
+  does not claim to eliminate prompt injection.
+- **No verifier/auditor capability ships yet.** `/pharn-verify` uses the shipped floor and project gates;
+  the verifier plug-in slot remains empty.
+- **Several announced modules are not built.** `pharn-audits`, `pharn-skills-*`, `pharn-stack-*`, and the
+  rest of `pharn-core` — the constitution engine, the agnostic rule set, and the memory-bank commands
+  beyond promotion. What exists is what the generated inventory above lists.
+- **Per-stage model routing is not wired yet.** `pharn.config.json` carries a `models` block, and the
+  installer validates it and prints it back, but no product command reads it — the pipeline runs on
+  whatever model your Claude Code session is using. Treat the block as reserved, not as a control.
+- **It is token-hungry by construction.** `/pharn-grill` runs the grillers over your plan and
+  `/pharn-review` fans every applicable lens out as its own parallel subagent; `/pharn-loop` repeats
+  build → regress → verify up to the cap. That buys parallel scrutiny and costs tokens accordingly.
+  Budget for it, or drive individual stages instead of the loop.
+- **Packaging is still pre-release shaped.** There are no GitHub releases or git tags yet; the installer
+  currently fetches the repository's `main` and records the exact installed commit.
+- **Not every design doc ships into an install.** The installer copies `pharn/CONSTITUTION.md` and
+  `pharn/ARCHITECTURE.md` only; `THREAT-MODEL.md` and `LIMITS.md` are read here, in the repository.
 
-**Packaging.** No git tags and no GitHub releases yet; the installer fetches this repository's current
-`main`. Two of the four design documents (`THREAT-MODEL.md` and `LIMITS.md`) are not currently copied
-into an install — read them here.
+[`LIMITS.md`](./LIMITS.md) documents what PHARN does not guarantee.
+[`THREAT-MODEL.md`](./THREAT-MODEL.md) documents the attack surface and trust assumptions.
 
 ---
 
 ## Design docs
 
-The architecture is fully specified in four documents. Read them in this order:
+The architecture is specified in four documents:
 
-1. [`pharn/CONSTITUTION.md`](./pharn/CONSTITUTION.md) — eight principles (P0–P7) that override every
-   command, rule and agent decision here, including the process of building PHARN itself. P0 is the one
-   the rest exists to serve: a guarantee reduces to a deterministic floor operation, or it is labeled
-   advisory.
-2. [`pharn/ARCHITECTURE.md`](./pharn/ARCHITECTURE.md) — the floor, the three primitives, the layer tree,
-   the pipeline.
-3. [`THREAT-MODEL.md`](./THREAT-MODEL.md) — the security foundation and the attack surface.
+1. [`pharn/CONSTITUTION.md`](./pharn/CONSTITUTION.md) — the principles that govern commands, rules,
+   guarantees, and PHARN's own development process.
+2. [`pharn/ARCHITECTURE.md`](./pharn/ARCHITECTURE.md) — the floor, primitives, layer tree, and pipeline.
+3. [`THREAT-MODEL.md`](./THREAT-MODEL.md) — the security foundation and attack surface.
 4. [`LIMITS.md`](./LIMITS.md) — what PHARN does **not** guarantee.
 
-These four are trusted and human-only: a `PreToolUse` write-guard denies agent edits to them through the
-Write, Edit and MultiEdit tools. As noted above, that guard does not cover writes made through Bash.
+These trusted docs are protected from edits through Claude Code's Write/Edit/MultiEdit/NotebookEdit tool
+surface. As described above, Bash writes are outside that protection, and only the first two are copied
+into an install (see [Current limitations](#current-limitations)).
 
 ---
 
 ## Contributing
 
-PHARN is small-surface on purpose: a rule or enforcer is added only in response to a real failure, never
-a hypothetical. See [`CONTRIBUTING.md`](./CONTRIBUTING.md) for the read-first order, the gates to run
-before pushing, and the build loop. Conduct expectations live in
-[`CODE_OF_CONDUCT.md`](./CODE_OF_CONDUCT.md); release history is in [`CHANGELOG.md`](./CHANGELOG.md).
+PHARN is small-surface on purpose: a rule or enforcer is added in response to a real failure, not merely
+because a hypothetical checker could exist.
 
-The floor and the hooks carry **zero runtime dependencies** (Node stdlib, Node 24); ESLint, Prettier and
-markdownlint are dev-only.
+See [`CONTRIBUTING.md`](./CONTRIBUTING.md) for the read-first order, required gates, and development loop.
+Conduct expectations live in [`CODE_OF_CONDUCT.md`](./CODE_OF_CONDUCT.md); release history is in
+[`CHANGELOG.md`](./CHANGELOG.md).
+
+The floor and hooks carry **zero runtime dependencies** beyond the Node standard library; ESLint,
+Prettier, and markdownlint are development-only.
 
 ## Security
 
