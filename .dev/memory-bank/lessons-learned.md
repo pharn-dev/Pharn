@@ -1186,3 +1186,52 @@ non-empty.
   2.7.13 entry, with the five-site recurrence and the six recognition sites re-derived live at HEAD
   `a0cfd0d`
 - promoted: 2026-08-23 via gated `/pharn-dev-memory-promote` (human-approved).
+
+## L35 — When one fact is stored twice, retire the second copy — a sync check is a third thing to keep in sync
+
+type: process · concepts: [redundant-identity, remedy-design, version-discipline, sync-cost]
+
+**Lesson.** When the same fact is stored in two places, the first question is whether the second copy
+should exist at all — **not** how to keep them agreeing. A sync check is itself a third artifact with its
+own wiring, its own invoker and its own failure mode, and it makes the redundancy **permanent by making
+it maintained**. Three identities carried the product version: `package.json`'s `version`,
+`SKILLS_VERSION`, and the README shields badge. The first read `1.0.0` as a "foundation tag" and sat
+stale through the entire 2.x line while every gate stayed green, because nothing bound it and nothing
+could have bound it without becoming the fourth thing to maintain. The remedy chosen in `#164` was to
+**neutralise the identity, not bind it**: `package.json:4` is now `"version": "0.0.0"` and
+`package.json:3` is a `_version_comment` stating the inertness **in the file itself**, so the fact is
+self-documenting rather than documented somewhere a reader must find.
+`.dev/floor/check-version-badge.mjs` then deliberately does **not** read `package.json` — it names the
+field only in its own honest-bounds header (`:26-40`) — and pins the two identities that genuinely
+remain: `SKILLS_VERSION` 2.7.15 == the README badge 2.7.15.
+
+**The precise remedy is "retire", not "delete" — and that distinction is the transferable part.** npm
+requires a `version` key, so the redundant copy could not be removed; it was drained of authority
+instead, which is the general move when a mandatory slot holds a fact that belongs elsewhere. Give the
+slot a value that cannot be mistaken for the truth (`0.0.0`, never a plausible-looking number), and put
+the reason **at the slot** rather than in a doc. The rejected alternative — pinning `package.json` to
+`SKILLS_VERSION` — is recorded, not silently dropped, in `.dev/features/apparatus-batch/PLAN.md` under
+"Open questions (HALT)": option (b) "creates a third identity to keep in sync, which is the defect being
+fixed."
+
+**Why it matters.** [[L20]] says a discipline-only invariant has earned a floor check on its second
+occurrence, and read alone it will send you to build a checker every time. This is the qualifier: **a
+sync check is the right remedy only once you have established the second copy must exist.** Reach for it
+first and you have converted a deletable redundancy into a maintained one, plus a checker whose own
+wiring must now be pinned by a test — the cost L20 never charges. Distinct from [[L31]], and exactly
+opposite in prescription: L31 governs copies that must **both** exist (the deliberate `check-provenance`
+and `lessons-index-core` product/dev pairs, which cannot be merged because a user's install ships
+`pharn/floor/` without `.dev/`) and asks what **ranges over** them; this governs a copy that should
+**not** exist and says draining beats binding. Both readings are live in this repo, and the question
+that separates them is the same one in both directions: _must the second copy exist?_ — asked before
+choosing a remedy, never after.
+
+**Provenance.**
+
+- feature: `apparatus-batch`
+- commit: `a0916b8b7ce84f51b97b3dbe053eda7d96d9e804`
+- source: `.dev/features/apparatus-batch/PLAN.md` "Open questions (HALT)" (the L11 option-(a)-over-(b)
+  record) + the CHANGELOG entry for `#164`, with `package.json:3-4`,
+  `.dev/floor/check-version-badge.mjs:26-40` and the live `SKILLS_VERSION`/badge agreement re-derived at
+  HEAD `a0cfd0d`
+- promoted: 2026-08-23 via gated `/pharn-dev-memory-promote` (human-approved).
