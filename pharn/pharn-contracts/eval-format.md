@@ -49,7 +49,7 @@ purpose: "<one line>"
 skill_kind: deterministic | llm | llm-judge # how the eval is CHECKED — see below (not `role`/`model_tier`)
 ---
 assertions:
-  structural: # enum-gated → FLOOR-reducible. No LLM. (the checker that runs these is the NEXT increment)
+  structural: # enum-gated → FLOOR-reducible. No LLM. (run by pharn/floor/check-structural.mjs)
     - kind: finding_count
       op: "==" # enum: == | >= | <=
       value: 1

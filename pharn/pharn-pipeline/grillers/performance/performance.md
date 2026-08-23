@@ -149,7 +149,10 @@ griller and `finding-shape.md`'s 3c runner defer it). No half-specified runner i
   fields + `needle_absent_from_enum_gated`) is **floor-CHECKED at eval time** by `check-structural.mjs`
   (primitive #3). This pins the griller's behavior on known inputs and proves the trust-fence holds — it
   is **NOT** a runtime guarantee that "slow at scale" is deterministic. (Two clocks: the checker is floor
-  and tested, but no runner yet invokes it over this griller's live output — deferred P7.)
+  and tested, and the 3c runner has landed — `/pharn-dev-eval` runs it over live-emitted findings, and
+  `/pharn-verify` / `/pharn-dev-verify` per committed `(expected, findings.json)` pair — but this griller
+  commits no `findings.json`, so no `structural:*` gate fires over its output today, and nothing fires at
+  grill time at all.)
 - **No new floor primitive (P0/P7).** A "mentions performance" scan's verdict is **launderable** → not
   injection-immune → **not floor** (named and rejected above, the error-handling precedent). This griller
   reuses `pharn/floor/count-grillers.mjs` (membership) and `pharn/floor/check-structural.mjs` (eval-time),

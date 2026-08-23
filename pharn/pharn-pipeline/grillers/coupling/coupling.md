@@ -169,8 +169,11 @@ half-specified runner is built here, and the `writes:` path is **not** an active
   human, never gates.
 - **Fixture behavior** → the finding **output** on the two committed fixtures (present/absent + enum-gated
   fields + `needle_absent_from_enum_gated`) is **floor-CHECKED at eval time** by `check-structural.mjs`
-  (primitive #3). Two clocks (be honest): the checker is floor and hermetically tested, but **no live
-  runner yet invokes it over this griller's output** (deferred P7). This pins behavior on known inputs and
+  (primitive #3). Two clocks (be honest): the checker is floor and hermetically tested, and the 3c runner has
+  landed — `/pharn-dev-eval` runs it over live-emitted findings, and `/pharn-verify` / `/pharn-dev-verify` per
+  committed `(expected, findings.json)` pair — but this griller commits **no** `findings.json`, so **no
+  `structural:*` gate fires over its output today**, and nothing fires at **grill time** at all. This pins
+  behavior on known inputs and
   proves the trust-fence holds — it is **NOT** a runtime guarantee that "entanglement" is deterministic.
 - **No new floor primitive.** The one injection-immune lexical signal (a declared cross-boundary path) is
   architecture's P3 signal, kept advisory there; a `scan-plan-coupling.mjs` here would duplicate

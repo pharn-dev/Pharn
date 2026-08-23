@@ -176,10 +176,13 @@ when the **live griller runner** lands (deferred P7 — exactly as the testabili
   mention never registers. This is the **only runtime floor guarantee**.
 - **Present/absent detection** → the present/absent **output** is `finding_count`-expressible and
   floor-**checked on the eval fixtures** by `pharn/floor/check-structural.mjs` (primitive #3). **Two clocks
-  (be honest):** `check-structural.mjs` **is** floor and is hermetically tested, but **no runner yet
-  invokes it over this griller's live output** — that wiring is deferred (P7, as for every griller and
-  `finding-shape.md`'s 3c runner). So at build/verify time the backstop is **the checker's own tests + the
-  committed fixtures**, not a wired runner; and at **runtime over a novel plan** the presence _reading_ is
+  (be honest):** `check-structural.mjs` **is** floor and is hermetically tested, and the 3c runner it once
+  waited on **has landed** — `/pharn-dev-eval` runs it over each live-emitted `runs/<i>/findings.json`, and
+  `/pharn-verify` / `/pharn-dev-verify` run it per committed `(expected, findings.json)` pair. **The bound
+  that survives, and it is the operative one here:** this griller commits **no** `findings.json`, so by the
+  absent-if-none membership rule **no `structural:*` gate fires over its output today**, and nothing fires at
+  **grill time** at all. So at build/verify time the backstop is **the checker's own tests + the committed
+  fixtures**, not a wired runner; and at **runtime over a novel plan** the presence _reading_ is
   the griller's **judgment (ADVISORY)**, backstopped by the eval. `finding_count` captures the **output**,
   not the finding's **correctness** (that rests on `field_equals` + `needle_absent_from_enum_gated` + the
   `semantic[]` judge).

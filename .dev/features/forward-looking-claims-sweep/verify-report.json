@@ -1,0 +1,28 @@
+{
+  "feature": "forward-looking-claims-sweep",
+  "verdict": "PASS",
+  "failing_gates": [],
+  "gates": {
+    "test": 0,
+    "validate": 0,
+    "lint": 0,
+    "format:check": 0,
+    "lint:md": 0,
+    "docs:check": 0,
+    "check:markers": 0,
+    "check:badge": 0,
+    "check:contributing": 0
+  },
+  "tests": { "total": 1620, "pass": 1620, "fail": 0 },
+  "structural_gates": [],
+  "structural_gates_note": "ABSENT-IF-NONE, and this is the increment's own subject matter. /pharn-verify Step 3b pairs <capDir>/evals/expected/*.json with a committed <capDir>/findings.json. There are ZERO committed findings.json on the product surface, so no (expected, actual) pair exists and no structural:* gate is emitted. This is the membership rule working as specified, not a skipped gate.",
+  "verifiers": [],
+  "verifiers_note": "Zero role: verifier capabilities are authored (P7). The advisory layer is empty; floor gates own the verdict (fix #3).",
+  "defect_caught_at_this_stage": {
+    "what": "The first-pass Class C rewrite claimed /pharn-verify and /pharn-dev-verify 'run it per committed eval pair (this griller ships them)'.",
+    "why_wrong": "The grillers ship evals/expected/*.json + evals/cases/*.md but NO findings.json. Step 3b requires the (expected, findings.json) pair, so no structural gate fires for any of the seven.",
+    "polarity": "The original prose UNDERCLAIMED (said no runner exists); the first-pass fix OVERCLAIMED (said a gate fires that does not). The second is the P0 disease proper.",
+    "fixed_in": "all 7 griller files + the CHANGELOG entry, re-derived to name the landed 3c runner AND state the operative bound (no gate fires over griller output today; nothing fires at grill time)."
+  },
+  "bound": "'PASS' means EXACTLY 'the named gates exited 0'. It is NOT a judgment that the 31 rewritten sentences are true — no floor primitive reads shipped prose for its tense, which is the gap this increment documents and does not close (P0)."
+}

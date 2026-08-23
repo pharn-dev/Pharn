@@ -72,9 +72,9 @@ code is **cryptographically correct / secure**. "Detected a weak-crypto primitiv
 **"the crypto is correct" is not** — novel/aliased algorithm references, split literals, or a weak primitive
 from an unlisted library evade a fixed regex set.
 
-> **Two clocks (be honest).** The scanner's **output** is FLOOR (a deterministic regex verdict). But until the
-> live isolated lens runner lands (deferred P7, as for every lens/griller), the review stage **applies this
-> lens inline** — so the lens's **act** of invoking the scanner is **advisory orchestration**, backstopped by
+> **Two clocks (be honest).** The scanner's **output** is FLOOR (a deterministic regex verdict). The isolated lens runner has LANDED —
+> `/pharn-review` Step 4 spawns **one subagent per lens**, each writing its own `findings.json` (the
+> per-GRILLER runner is still deferred, P7) — but the lens's **act** of invoking the scanner is **advisory orchestration**, backstopped by
 > the scanner's own tests and this lens's eval. The guarantee is "the scanner IS deterministic", not "the
 > model always ran it".
 

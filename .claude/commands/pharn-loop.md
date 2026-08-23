@@ -92,8 +92,10 @@ There is **no `--yolo`** and no self-approving mode — see "What `/pharn-loop` 
   slug.
 - **`--max-iter N`** sets the cap `M` (a positive integer). **Absent ⇒ default `M = 3`.** The cap is the
   deterministic bound; `check-loop.mjs` enforces it structurally (`iter >= cap` → `STOP_CAP`). A config-file
-  cap key (`pharn.config.json`) is **deferred** (P7 — no project config consumer exists yet; the floor bound
-  is identical either way).
+  cap key (`pharn.config.json`) is **deferred** (P7 — no real need has surfaced, and the floor bound is
+  identical either way: `check-loop.mjs` reads `--cap`, whatever set it). Note the deferral rests on P7
+  alone, **not** on the absence of a config consumer — `/pharn-build` already reads the `seam` block and
+  `/pharn-ship` reads `ship.requireAttestation` from that file.
 
 ### Step 1b — read the PRIOR record for this slug, if one exists (context only; it gates NOTHING)
 

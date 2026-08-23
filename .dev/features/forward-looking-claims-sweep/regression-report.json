@@ -1,0 +1,20 @@
+{
+  "feature": "forward-looking-claims-sweep",
+  "verdict": "no-regressions",
+  "baseline_commit": "f7c3caa",
+  "head": "working-tree",
+  "regressions": [],
+  "gates": [
+    { "gate": "format:check", "baseline_exit": 0, "head_exit": 0, "flipped": false },
+    { "gate": "lint", "baseline_exit": 0, "head_exit": 0, "flipped": false },
+    { "gate": "lint:md", "baseline_exit": 0, "head_exit": 0, "flipped": false },
+    { "gate": "docs:check", "baseline_exit": 0, "head_exit": 0, "flipped": false },
+    { "gate": "check:markers", "baseline_exit": 0, "head_exit": 0, "flipped": false },
+    { "gate": "check:badge", "baseline_exit": 0, "head_exit": 0, "flipped": false },
+    { "gate": "check:contributing", "baseline_exit": 0, "head_exit": 0, "flipped": false },
+    { "gate": "test", "baseline_exit": 0, "head_exit": 0, "flipped": false }
+  ],
+  "baseline_method": "aggregate",
+  "baseline_note": "The baseline was captured as one green `npm run check` at f7c3caa before any edit. `scripts.check` is &&-chained, so a green aggregate ENTAILS all 8 gate exits were 0 — a derivation, not an assumption. HEAD exits were measured per-gate individually.",
+  "bound": "This compares the exit codes of the project's OWN deterministic gates at baseline vs HEAD. It catches exactly what those gates catch, nothing more. 'no-regressions' NEVER means 'nothing broke' (P0)."
+}

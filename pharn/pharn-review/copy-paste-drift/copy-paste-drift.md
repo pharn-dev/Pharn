@@ -78,8 +78,8 @@ varying slot, e.g. `MAX_X`/`MAX_Y`/`MAX_X`) is **out of scope** and can mis-rank
 masked away (invisible); **multi-line block** repetitions are not grouped (single-line members, v0.1.0); the scan is
 **single-file**. **This is NOT semantic/intent analysis** — that is the advisory layer, never this floor.
 
-> **Two clocks (be honest).** The scanner's **output** is FLOOR (a deterministic verdict). But until the live
-> isolated lens runner lands (deferred P7, as for every lens), the review stage **applies this lens inline** — so the
+> **Two clocks (be honest).** The scanner's **output** is FLOOR (a deterministic verdict). The isolated lens runner has LANDED —
+> `/pharn-review` Step 4 spawns **one subagent per lens**, each writing its own `findings.json` — but the
 > lens's **act** of invoking the scanner is **advisory orchestration**, backstopped by the scanner's own tests and
 > this lens's eval. The guarantee is "the scanner IS deterministic", not "the model always ran it".
 
