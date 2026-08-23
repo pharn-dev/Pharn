@@ -259,3 +259,157 @@ test("the GREEN line states its own P0 bound (the manifest is not a discovery me
   assert.equal(r.code, 0, r.out);
   assert.match(r.out, /never means the docs are accurate/);
 });
+
+// ------------------------------------------------------ forward-looking claims (the second class)
+//
+// Same two directions, different vocabulary: direction 1 is the claim EXPIRING (artifact landed, hedge
+// remains), direction 2 is the hedge being DELETED while the artifact is still absent. L4 again — the
+// RED paths are driven with real fixture trees, and the ✧ cases are mutants.
+
+const HEDGE = "no `pharn-eval` command exists";
+
+/**
+ * Fixture for the forward-claim class. `opts.landed` creates the probed artifact;
+ * `opts.hedge === false` omits the hedge sentence from the doc.
+ * `opts.forward` overrides the manifest's forward_claims wholesale (including omitting it).
+ */
+function fwFixture(opts = {}) {
+  const dir = mkdtempSync(join(tmpdir(), "pharn-forward-"));
+  mkdirSync(join(dir, ".claude", "commands"), { recursive: true });
+  if (opts.landed) writeFileSync(join(dir, ".claude", "commands", "pharn-eval.md"), "# stub\n");
+  writeFileSync(join(dir, "DOC.md"), opts.hedge === false ? "intro\noutro\n" : `intro\n${HEDGE}\noutro\n`);
+
+  const manifest = { specified_primitives: [] };
+  if (!opts.omitForward) {
+    manifest.forward_claims = opts.forward ?? [
+      {
+        id: "pharn-eval",
+        probe: { type: "path", path: ".claude/commands/pharn-eval.md" },
+        sites: [{ file: "DOC.md", marker: HEDGE }],
+      },
+    ];
+  }
+  const mPath = join(dir, "manifest.json");
+  writeFileSync(mPath, JSON.stringify(manifest));
+  return { dir, mPath, cleanup: () => rmSync(dir, { recursive: true, force: true }) };
+}
+
+test("GREEN — artifact absent and the hedge is present (the steady state)", () => {
+  const f = fwFixture();
+  const r = run(f.dir, f.mPath);
+  f.cleanup();
+  assert.equal(r.code, 0, r.out);
+  assert.match(r.out, /GREEN/);
+});
+
+test("GREEN — artifact landed and the hedge was re-derived away (the healthy transition)", () => {
+  const f = fwFixture({ landed: true, hedge: false });
+  const r = run(f.dir, f.mPath);
+  f.cleanup();
+  assert.equal(r.code, 0, r.out);
+});
+
+test("✧ DIRECTION 1 — the artifact LANDED and the hedge remains: the claim EXPIRED, RED", () => {
+  const f = fwFixture({ landed: true });
+  const r = run(f.dir, f.mPath);
+  f.cleanup();
+  assert.equal(r.code, 1, r.out);
+  assert.match(r.out, /EXPIRED/);
+  assert.match(r.out, /pharn-eval/);
+  assert.match(r.out, /DOC\.md/);
+});
+
+test("✧ DIRECTION 1 names the marker to re-derive, not merely the file", () => {
+  const f = fwFixture({ landed: true });
+  const r = run(f.dir, f.mPath);
+  f.cleanup();
+  assert.match(r.out, /marker: /);
+  assert.match(r.out, /no `pharn-eval` command exists/);
+});
+
+test("✧ DIRECTION 2 — the hedge was DELETED while the artifact is still absent, RED", () => {
+  const f = fwFixture({ hedge: false });
+  const r = run(f.dir, f.mPath);
+  f.cleanup();
+  assert.equal(r.code, 1, r.out);
+  assert.match(r.out, /is GONE/);
+  assert.match(r.out, /implies something exists that does not/);
+});
+
+test("✧ L34 — a PRESENT but EMPTY forward_claims array is exit 2 (EMPTY_CLASS), never GREEN", () => {
+  const f = fwFixture({ forward: [] });
+  const r = run(f.dir, f.mPath);
+  f.cleanup();
+  assert.equal(r.code, 2, r.out);
+  assert.match(r.out, /EMPTY_CLASS/);
+  assert.match(r.out, /vacuously/);
+});
+
+test("✧ L34 — the EMPTY_CLASS refusal names the escape (omit the key), so the honest state stays expressible", () => {
+  const f = fwFixture({ forward: [] });
+  const r = run(f.dir, f.mPath);
+  f.cleanup();
+  assert.match(r.out, /OMIT the `forward_claims` key/);
+});
+
+test("GREEN — OMITTING forward_claims entirely is the expressible 'none registered' state", () => {
+  const f = fwFixture({ omitForward: true });
+  const r = run(f.dir, f.mPath);
+  f.cleanup();
+  assert.equal(r.code, 0, r.out);
+  assert.match(r.out, /0 registered claim/);
+});
+
+test("✧ a forward_claims key that is not an array fails CLOSED (exit 2)", () => {
+  const f = fwFixture({ forward: { id: "not-an-array" } });
+  const r = run(f.dir, f.mPath);
+  f.cleanup();
+  assert.equal(r.code, 2, r.out);
+  assert.match(r.out, /not an array/);
+});
+
+test("✧ a forward-claim site whose file cannot be read is RED, not a silent skip", () => {
+  const f = fwFixture({
+    forward: [
+      {
+        id: "pharn-eval",
+        probe: { type: "path", path: ".claude/commands/pharn-eval.md" },
+        sites: [{ file: "NOPE.md", marker: HEDGE }],
+      },
+    ],
+  });
+  const r = run(f.dir, f.mPath);
+  f.cleanup();
+  assert.equal(r.code, 1, r.out);
+  assert.match(r.out, /could not be read/);
+});
+
+test("✧ a malformed forward-claim record fails CLOSED (exit 2), same validator as primitives", () => {
+  const f = fwFixture({ forward: [{ id: "pharn-eval", probe: { type: "path", path: "x" } }] });
+  const r = run(f.dir, f.mPath);
+  f.cleanup();
+  assert.equal(r.code, 2, r.out);
+  assert.match(r.out, /`sites` must be an array/);
+});
+
+test("✧ an unknown probe type on a forward claim fails CLOSED, never 'not landed'", () => {
+  const f = fwFixture({
+    forward: [{ id: "pharn-eval", probe: { type: "vibes" }, sites: [{ file: "DOC.md", marker: HEDGE }] }],
+  });
+  const r = run(f.dir, f.mPath);
+  f.cleanup();
+  assert.equal(r.code, 2, r.out);
+  assert.match(r.out, /unknown probe type/);
+});
+
+test("integration — the REAL manifest registers at least one forward claim (the class stays live)", () => {
+  const r = run(REPO);
+  assert.equal(r.code, 0, r.out);
+  const m = r.out.match(/across (\d+) registered claim/);
+  assert.ok(m && Number(m[1]) >= 1, `expected >= 1 registered forward claim, got: ${r.out}`);
+});
+
+test("the GREEN line reports the forward-claim counts, so a silently emptied class is visible", () => {
+  const r = run(REPO);
+  assert.match(r.out, /forward-claim site\(s\) across \d+ registered claim\(s\)/);
+});

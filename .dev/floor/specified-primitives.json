@@ -102,5 +102,54 @@
       "citation": "(security\ngriller,",
       "must_exist": "pharn/pharn-pipeline/grillers/security"
     }
+  ],
+
+  "$forward_claims_comment": [
+    "FORWARD-LOOKING CLAIMS: sentences that are TRUE when written and become FALSE the moment the named",
+    "artifact lands. Computed by the SAME two directions as specified_primitives (a probe + an exact",
+    "substring), because the semantics are identical — an expired forward claim IS direction 1, the doc",
+    "understating reality. Registered here rather than in a second checker: a parallel manifest+checker",
+    "would be a second identity with its own wiring and invoker, which lessons-learned L35 says to",
+    "refuse when the existing one already computes the answer.",
+    "",
+    "WHAT IS DELIBERATELY NOT REGISTERED, so the absence does not read as an oversight:",
+    "  * The ~20 P7 'future increment, added when a real need surfaces' statements across",
+    "    pharn/pharn-review/* and the scan-code-* scanners. Those assert a POLICY (we do not build",
+    "    speculatively), which stays true whether or not the thing is later built for a real reason.",
+    "    They are conditional design postures, not pinned predictions; registering them would fire on",
+    "    correct sentences and train the reader to ignore the check.",
+    "  * The `live griller runner` class (13+ sites across every griller) and /pharn-verify's verifier",
+    "    runner. Both are real expiring claims, but neither subject has a NAMED path in this repo, so a",
+    "    probe would have to invent one. Deferred rather than guessed (P6). Reopens when the runner is",
+    "    named in a plan or built, or when the first `role: verifier` capability is authored.",
+    "",
+    "An EMPTY forward_claims array is exit 2 (EMPTY_CLASS), never GREEN — per-claim assertions are",
+    "vacuously true over zero claims (lessons-learned L34). To express 'none registered', OMIT the key."
+  ],
+
+  "forward_claims": [
+    {
+      "id": "pharn-eval",
+      "what": "the product /pharn-eval twin of /pharn-dev-eval — DEFERRED 2026-08-23, reopening when the first role:-bearing capability is authored outside PHARN's own shipped surface",
+      "probe": { "type": "path", "path": ".claude/commands/pharn-eval.md" },
+      "sites": [
+        {
+          "file": "CLAUDE.md",
+          "marker": "no `pharn-eval` command exists"
+        }
+      ]
+    },
+
+    {
+      "id": "product-capability-catalog",
+      "what": "a generated capability catalog on the PRODUCT surface — DEFERRED 2026-08-07, reopening on the same trigger",
+      "probe": { "type": "path", "path": "pharn/floor/gen-capability-catalog.mjs" },
+      "sites": [
+        {
+          "file": "CLAUDE.md",
+          "marker": "nothing under `pharn/floor/` renders one"
+        }
+      ]
+    }
   ]
 }
