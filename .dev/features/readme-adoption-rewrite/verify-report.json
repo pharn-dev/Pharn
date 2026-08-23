@@ -1,0 +1,35 @@
+{
+  "feature": "readme-adoption-rewrite",
+  "gates": {
+    "check:badge": 0,
+    "check:contributing": 0,
+    "check:markers": 0,
+    "docs:check": 0,
+    "format:check": 0,
+    "lint": 0,
+    "lint:md": 0,
+    "test": 0,
+    "validate": 0
+  },
+  "verdict": "PASS",
+  "failing_gates": [],
+  "completeness": {
+    "declared": [
+      "README.md",
+      "SECURITY.md",
+      "CONTRIBUTING.md",
+      "CLAUDE.md",
+      "CHANGELOG.md"
+    ],
+    "skipped": [],
+    "missing": [],
+    "complete": true,
+    "verdict": "complete",
+    "note": "Computed with pharn/floor/check-build-complete.mjs and reported as information only. /pharn-dev-verify passes no --complete flag, so this value was NOT an input to the verdict above."
+  },
+  "verifiers": {
+    "registered": 0,
+    "findings": [],
+    "note": "Zero role: verifier capabilities exist (P7 - none authored). Floor gates only. A verifier finding could never flip the verdict in any case (fix #3)."
+  }
+}

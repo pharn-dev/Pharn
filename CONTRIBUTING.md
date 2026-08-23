@@ -1,6 +1,6 @@
 # Contributing to PHARN
 
-Thanks for your interest in improving PHARN. This repository **is PHARN-OSS** — the audit-grade methodology for AI-native development, built using its own minimal tooling (PHARN builds PHARN; self-hosting). It is early-stage and in active development. There is no application code: the product is a _methodology expressed as markdown specs_ plus a few deterministic Node helpers (`.mjs`/`.cjs`). Treat the markdown as the source, not as docs about source.
+Thanks for your interest in improving PHARN. This repository **is PHARN-OSS** — the audit-grade methodology for AI-native development, built using its own minimal tooling (PHARN builds PHARN; self-hosting). It is ready to install and use with Claude Code today; active development continues, and functionality that has not shipped yet is explicitly labeled. There is no application code: the product is a _methodology expressed as markdown specs_ plus a few deterministic Node helpers (`.mjs`/`.cjs`). Treat the markdown as the source, not as docs about source.
 
 ## Read first
 

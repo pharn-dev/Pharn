@@ -1,0 +1,30 @@
+{
+  "feature": "readme-adoption-rewrite",
+  "base": "HEAD",
+  "base_sha": "71e71ee03c7e2a0ad1bbfee9daa4c8336addf615",
+  "inside": [
+    "README.md",
+    "SECURITY.md",
+    "CONTRIBUTING.md",
+    "CLAUDE.md",
+    "CHANGELOG.md"
+  ],
+  "escape_exempt": [
+    ".dev/features/readme-adoption-rewrite/GRILL.md",
+    ".dev/features/readme-adoption-rewrite/PLAN.md"
+  ],
+  "scope_exit": 0,
+  "outside_gates": {
+    "check:badge": { "base": 0, "head": 0 },
+    "check:contributing": { "base": 0, "head": 0 },
+    "check:markers": { "base": 0, "head": 0 },
+    "docs:check": { "base": 0, "head": 0 },
+    "format:check": { "base": 0, "head": 0 },
+    "lint": { "base": 0, "head": 0 },
+    "lint:md": { "base": 0, "head": 0 },
+    "test": { "base": 0, "head": 0 }
+  },
+  "regressions": [],
+  "pre_existing": [],
+  "verdict": "no-regressions"
+}
