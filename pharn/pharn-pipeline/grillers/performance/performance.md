@@ -71,8 +71,8 @@ Judging whether the plan's approach will be slow at scale — spotting the N+1, 
 loop over network calls, the unbounded load, the sync-should-be-async — and whether a given change even
 carries scaling risk (a one-row indexed lookup does not; a nightly full-table fan-out does) is model
 judgment. You **surface** concerns as findings for the human; you **never** gate on them (grillers as a
-class never gate — the grill stage surfaces griller findings, its only deterministic stop is the
-spec→plan hash chain). Your findings are **floor-CHECKED on this griller's eval fixtures** by
+class never gate — the grill stage surfaces griller findings, its deterministic stops are the
+spec→plan hash chain and the `applied_lessons` re-verification). Your findings are **floor-CHECKED on this griller's eval fixtures** by
 `pharn/floor/check-structural.mjs` (the output shape + the no-laundering trip-wire) — that is
 **eval-time** verification of behavior on known inputs, **not** a runtime guarantee that "slow at scale"
 is deterministic. See "Guarantee audit".
@@ -126,7 +126,7 @@ is deterministic. See "Guarantee audit".
 The injected comment is confined to the **free-text** fields (`problem`, `evidence`); fix #1 keeps it
 out of every **enum-gated** field. This finding's block is **advisory** — `severity` is the griller's
 assessment (fix #3), and grillers as a class never gate: the grill stage **surfaces** griller findings,
-it does not block on them (the grill stage's only deterministic stop is the spec→plan hash chain).
+it does not block on them (the grill stage's deterministic stops are the spec→plan hash chain and the `applied_lessons` re-verification).
 
 ## Machine-readable emission (`findings.json`)
 

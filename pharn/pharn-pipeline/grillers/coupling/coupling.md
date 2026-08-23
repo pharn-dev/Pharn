@@ -89,8 +89,8 @@ A prose / code-block / stage-command mention never registers. That is the entire
 
 Judging whether the plan **entangles** — shared mutable state, hidden ordering, cross-boundary ripple,
 two change-reasons collapsed into one module — is model judgment. You **surface** concerns as findings
-for the human; you **never** gate on them (grillers as a class never gate — the grill stage's only
-deterministic stop is the spec→plan hash chain). Your findings are **floor-CHECKED on this griller's
+for the human; you **never** gate on them (grillers as a class never gate — the grill stage's
+deterministic stops are the spec→plan hash chain and the `applied_lessons` re-verification). Your findings are **floor-CHECKED on this griller's
 eval fixtures** by `pharn/floor/check-structural.mjs` (the output shape + the no-laundering trip-wire) —
 **eval-time** verification of behavior on known inputs, **not** a runtime guarantee that "entanglement"
 is deterministic.

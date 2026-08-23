@@ -94,7 +94,7 @@ operation** (a mass delete, an admin endpoint, a privileged action) planned with
 validation consideration**; an **injection surface**; **unsafe handling of untrusted input**; **missing
 input validation** on a security-sensitive path. This is irreducible judgment. You **surface** concerns as
 findings for the human; you **never** gate on them (grillers as a class never gate — the grill stage's
-only deterministic stop is the spec→plan hash chain).
+deterministic stops are the spec→plan hash chain and the `applied_lessons` re-verification).
 
 > **The REJECTED floor candidate, named honestly (P0/P7).** "Presence of an authz mention when a
 > sensitive op is planned" is **NOT floor** — identifying that an operation is _sensitive/destructive_
@@ -140,7 +140,7 @@ FINDING`; `rule_id: P2`; `severity: important` (advisory assignment, fix #3); `f
 The injected comment is confined to the **free-text** fields (`problem`, `evidence`); fix #1 keeps it out
 of every **enum-gated** field. This finding's block is **advisory** — `severity` is the griller's
 assessment (fix #3), and grillers as a class never gate: the grill stage **surfaces** griller findings, it
-does not block on them (the grill stage's only deterministic stop is the spec→plan hash chain).
+does not block on them (the grill stage's deterministic stops are the spec→plan hash chain and the `applied_lessons` re-verification).
 
 ## Machine-readable emission (`findings.json`)
 

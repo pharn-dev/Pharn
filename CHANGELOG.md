@@ -8,6 +8,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+<!-- Keep a Changelog groups by TYPE within a release, and markdownlint MD024 is `siblings_only`, so
+     this section carries exactly ONE heading per type. A new entry joins its existing group at that
+     group's top — it does not open a second `### Added`. -->
+
 ### Deferred
 
 - **Recorded that PHARN interrogates observability at plan time only, and never against the code that
@@ -854,6 +858,69 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
   that has never promoted a lesson migrates with that single line. Full behavior below.
 
 ### Added
+
+- **`applied_lessons` is re-verified by a stage that did not author it — `SKILLS_VERSION` `2.7.15` →
+  `2.8.0` (minor: a newly wired deterministic gate on a shipped command).** Until now the field was
+  **self-attested**: `/pharn-plan` and `/pharn-dev-plan` each self-checked the declaration they had just
+  written, and nothing downstream ever re-read it, so a PLAN edited after its approval halt — or one
+  citing a lesson id later removed from canon — reached build unnoticed. This closes the
+  `grill-lessons-reverify` follow-up named in `CLAUDE.md` and `.dev/features/applied-lessons/PLAN.md`
+  (Q2).
+
+  **No new floor primitive.** `pharn/floor/check-plan-lessons.mjs` is reused **byte-for-byte**; what
+  changed is **who** invokes it. Six commands now do, each against its own surface's canon:
+  `/pharn-grill` and `/pharn-dev-grill` re-verify it as a deterministic RED before interrogating, and
+  `/pharn-ship` / `/pharn-dev-ship` read that exit code as a proceed/stop input. The product grill now
+  has **two** floor stops (the spec→plan hash chain and this), and `/pharn-dev-grill` — previously
+  advisory end-to-end — now has exactly **one**, kept structurally separate from its interrogation
+  findings so an LLM-assigned `severity` can never be read as a floor verdict (fix #3).
+
+  **`/pharn-ship`'s verdict read was the load-bearing fix, not the docs.** It branched on a _single_
+  exit code, so a stale-declaration RED would have been **invisible** to it and the orchestrator would
+  have proceeded straight past the stop being added. Surfaced by `/pharn-dev-grill` against this
+  increment's own plan, whose `## Files` had swept the two grill commands and stopped before the
+  orchestrators that consume a grill verdict.
+
+  **A project with no `memory-bank/` is unblocked by construction, not by exception** — `none`
+  short-circuits before the lessons file is read (verified live against a missing path), so a fresh
+  install is GREEN with nothing granted anywhere.
+
+  **The bound is unchanged, and it is the point (P0):** re-verification **narrows** self-attestation; it
+  does **not** close the declaration-vs-application gap. A plan may cite `[L1]` having ignored L1
+  entirely and every stop stays GREEN. "The grill verified the lessons were applied" is **struck**.
+
+  All six call sites are enumerated once in `PLAN_LESSONS_WIRING`
+  (`.dev/floor/command-hygiene.test.mjs`, apparatus — no bump) with the rules iterating the set, so a
+  seventh inherits every rule for free (L29/L31). The discriminating axis is the **lessons-file
+  argument**, not the checker path — unlike the index copy-pair, `check-plan-lessons.mjs` is a single
+  checker both surfaces invoke, so what must not cross is the **canon it is pointed at**; a dev command
+  aimed at the user's `memory-bank/` is a RED, and vice versa, both directions mutation-tested. Honest
+  scope: this pins that the prose **contains** the invocation — never that a run executed it.
+
+  **The review then found the half the plan had not swept, and it was the larger half.** Wiring the
+  new stop falsified every sentence that _describes_ the grill stage's stop set, and the increment had
+  swept only the sites it was already editing. `/pharn-dev-review` (F1, blocking) found **24 sites
+  across all 13 shipped grillers** still asserting "the grill stage's only deterministic stop is the
+  spec→plan hash chain" — a shipped-surface P0 contradiction against `pharn-grill.md` in the same
+  release. All 24 are corrected; the **enclosing** "grillers as a class never gate" claim was left
+  untouched, because it stays true — no griller gained gating power, and only the parenthetical
+  justification had gone stale. Three smaller sites went with it: `pharn-loop.md`'s guarantee audit
+  (which **enumerates** the front chain's checkers and so, unlike its Step 2, does not inherit the fix
+  by citation), `pharn-dev-grill.md`'s trust audit (which claimed no guaranteed decision rests on the
+  stage **at all** — true of the fields it authors, false of the stage since `/pharn-dev-ship` reads
+  its exit code), and `pharn-grill.md`'s installed-skills note (which named one gate where the
+  residual paragraph in the same file already named both). All fold into this `2.8.0` bump.
+
+  **Why the increment's own lessons did not prevent it, which is the part worth keeping.** L33
+  prescribes exactly the right technique and the plan even names it — "scanning for the shortest
+  invariant substrings" — but ran it over the **two files already in `## Files`**. The same grep, run
+  repo-wide and unrestricted, surfaces all 24 in one command. The gap was never the technique; it was
+  the domain it was run over. Also worth pinning: `only deterministic stop` finds 22 of the 24 and
+  misses `coupling.md` entirely, because the phrase wraps across lines — the shorter
+  `deterministic stop` finds all 24.
+
+  Full reasoning, the grill's six findings and their dispositions, and the review's five:
+  `.dev/features/grill-lessons-reverify/`.
 
 - **`/pharn-ship` now records the MEASURED token cost of the run on `features/<name>/ship-record.json`
   (`SKILLS_VERSION` 2.6.2 → 2.7.0, minor — a newly shipped checker + contract surface).** New

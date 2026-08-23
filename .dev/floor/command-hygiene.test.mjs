@@ -231,3 +231,109 @@ test("✧ the lessons-index wiring set is non-vacuous — every named command ex
   assert.deepEqual(missing, [], `these wiring-set members name no live command file: ${missing.join(", ")}`);
   assert.equal(LESSONS_SWEEP_WIRING.length, 4, "expected both surfaces x both sites (dev/product x check/regenerate)");
 });
+
+// ── The `applied_lessons` re-verification wiring (check-plan-lessons.mjs) ─────────────────────────────
+//
+// A SEPARATE set from LESSONS_SWEEP_WIRING above, deliberately. That one ranges over the lessons INDEX
+// tooling (check-lessons-index / gen-lessons-index — a derived address book); this one ranges over
+// check-plan-lessons.mjs, a different checker answering a different question (is the PLAN's declaration
+// well-formed and resolvable?). Merging them would put two obligations behind one `length` assertion,
+// which is the failure L29 names, not a tidier version of it.
+//
+// WHY the set spans SIX commands and not the two that re-verify. The obligation is "every command whose
+// procedure branches on this checker INVOKES it", and that is what must be enumerated — not the subset
+// that happens to be interesting. Two PLAN stages self-check the field they just wrote; two GRILL stages
+// re-verify a field they did NOT author (which is what makes the declaration stop being self-attested);
+// two SHIP orchestrators read the exit code as a proceed/stop input. A seventh site added later inherits
+// every rule below for free.
+//
+// The LESSONS-FILE ARGUMENT is the discriminating axis here, NOT the checker path. Unlike the index
+// pair above — where `.dev/floor/…` vs `pharn/floor/…` separates the copies — check-plan-lessons.mjs is
+// a SINGLE checker under pharn/floor/ that BOTH surfaces invoke. What must not cross the boundary is the
+// CANON it is pointed at: a dev command pointed at the user's `memory-bank/` (or a product command at
+// this repo's `.dev/memory-bank/`) would check the wrong canon and every other gate would stay green.
+// So each member pins its own full invocation, argument included.
+//
+// Honest scope, the same narrow kind as FORBIDDEN / STEP_2B_GATES / LESSONS_SWEEP_WIRING above: this
+// pins that the command PROSE contains the invocation with the right canon argument. It CANNOT prove a
+// run executed it, that the exit-code branch is obeyed, or that a RED actually stops the stage —
+// "the wiring is pinned" NEVER means "the declaration was re-verified" (P0).
+const CHECKER = String.raw`node\s+pharn\/floor\/check-plan-lessons\.mjs`;
+const PLAN_LESSONS_WIRING = [
+  // `\s+\S+\s+` is the PLAN.md argument; the trailing group is the canon this site must point at.
+  {
+    file: "pharn-plan.md",
+    role: "self-checks the declaration it just wrote",
+    re: new RegExp(`${CHECKER}\\s+\\S+\\s+memory-bank\\/lessons-learned\\.md`),
+  },
+  {
+    file: "pharn-dev-plan.md",
+    role: "self-checks the declaration it just wrote",
+    re: new RegExp(`${CHECKER}\\s+\\S+\\s+\\.dev\\/memory-bank\\/lessons-learned\\.md`),
+  },
+  {
+    file: "pharn-grill.md",
+    role: "re-verifies a declaration it did not author",
+    re: new RegExp(`${CHECKER}\\s+\\S+\\s+memory-bank\\/lessons-learned\\.md`),
+  },
+  {
+    file: "pharn-dev-grill.md",
+    role: "re-verifies a declaration it did not author",
+    re: new RegExp(`${CHECKER}\\s+\\S+\\s+\\.dev\\/memory-bank\\/lessons-learned\\.md`),
+  },
+  {
+    file: "pharn-ship.md",
+    role: "reads the exit code as a proceed/stop input",
+    re: new RegExp(`${CHECKER}\\s+\\S+\\s+memory-bank\\/lessons-learned\\.md`),
+  },
+  {
+    file: "pharn-dev-ship.md",
+    role: "reads the exit code as a proceed/stop input",
+    re: new RegExp(`${CHECKER}\\s+\\S+\\s+\\.dev\\/memory-bank\\/lessons-learned\\.md`),
+  },
+];
+
+for (const site of PLAN_LESSONS_WIRING) {
+  test(`✧ ${site.file} ${site.role} — the invocation is present, not merely described`, () => {
+    assert.match(
+      commandBody(site.file),
+      site.re,
+      `${site.file} must INVOKE check-plan-lessons.mjs against its own canon, not name the condition in prose`
+    );
+  });
+
+  // L4: an authored assertion passes by construction. Pin the matcher's DISCRIMINATION directly.
+  test(`✧ the ${site.file} lessons-reverify rule DISCRIMINATES — it fails on a body with the invocation removed`, () => {
+    const stripped = commandBody(site.file).replace(new RegExp(site.re.source, "g"), "<<removed>>");
+    assert.doesNotMatch(stripped, site.re, `the ${site.file} matcher must not still pass once the invocation is gone`);
+  });
+
+  // The CROSS-SURFACE guard, and it is the load-bearing half: a dev command must NOT invoke the checker
+  // against the user's `memory-bank/`, and a product command must NOT reach into this repo's
+  // `.dev/memory-bank/`. Asserting only presence would let a pasted line check the wrong canon silently.
+  test(`✧ ${site.file} points the checker at ITS OWN canon — the other surface's path does not appear on the invocation`, () => {
+    const isDev = site.file.startsWith("pharn-dev-");
+    const wrong = isDev
+      ? new RegExp(`${CHECKER}\\s+\\S+\\s+memory-bank\\/lessons-learned\\.md`)
+      : new RegExp(`${CHECKER}\\s+\\S+\\s+\\.dev\\/memory-bank\\/lessons-learned\\.md`);
+    assert.doesNotMatch(
+      commandBody(site.file),
+      wrong,
+      `${site.file} invokes check-plan-lessons.mjs against the ${isDev ? "PRODUCT" : "DEV"} canon — the surfaces must not cross`
+    );
+  });
+}
+
+test("✧ the lessons-reverify wiring set is non-vacuous — every named command exists on disk", () => {
+  // Without this, renaming a command would make the rules above throw ENOENT rather than pass, and a
+  // member naming no live file would certify over an empty domain (L34: a per-item assertion set says
+  // nothing when there are no items).
+  const present = new Set(commandFiles());
+  const missing = PLAN_LESSONS_WIRING.filter((s) => !present.has(s.file)).map((s) => s.file);
+  assert.deepEqual(missing, [], `these wiring-set members name no live command file: ${missing.join(", ")}`);
+  assert.equal(
+    PLAN_LESSONS_WIRING.length,
+    6,
+    "expected both surfaces x three roles (dev/product x plan-selfcheck/grill-reverify/ship-read)"
+  );
+});

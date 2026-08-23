@@ -1,5 +1,5 @@
 ---
-description: "Run PHARN's build loop in order so the human need not re-type or memorize it: /pharn-dev-plan → [human approves] → /pharn-dev-grill → /pharn-dev-build → /pharn-dev-regress → /pharn-dev-verify → /pharn-dev-review → [human decides]. GATED orchestration — the agent INVOKES each stage (advisory); WHETHER to proceed past a stage is read from that stage's STRUCTURAL floor verdict (validate exit / regression-report.json .verdict / verify-report.json .verdict), NEVER the agent's judgment. Reuses the existing stage commands; reimplements none. Two human gates (plan acceptance, post-stop decision) are NON-NEGOTIABLE; NO --yolo. Default (gated) mode adds NO new floor primitive — every guarantee belongs to a sub-stage. The --loop mode iterates the chain (fix → regress → verify → review) until a floor-grade stop — /pharn-dev-verify PASS ∧ /pharn-dev-regress clean — or a bounded max-iteration cap, the stop computed by the tested pharn/floor/check-ship.mjs whose inputs are ONLY the two floor verdicts so /pharn-dev-review can NEVER gate the loop (structural, not discipline). FLOOR verdicts; ADVISORY orchestration."
+description: "Run PHARN's build loop in order so the human need not re-type or memorize it: /pharn-dev-plan → [human approves] → /pharn-dev-grill → /pharn-dev-build → /pharn-dev-regress → /pharn-dev-verify → /pharn-dev-review → [human decides]. GATED orchestration — the agent INVOKES each stage (advisory); WHETHER to proceed past a stage is read from that stage's STRUCTURAL floor verdict (/pharn-dev-grill's check-plan-lessons exit — its interrogation findings still gate nothing — then validate exit / regression-report.json .verdict / verify-report.json .verdict), NEVER the agent's judgment. Reuses the existing stage commands; reimplements none. Two human gates (plan acceptance, post-stop decision) are NON-NEGOTIABLE; NO --yolo. Default (gated) mode adds NO new floor primitive — every guarantee belongs to a sub-stage. The --loop mode iterates the chain (fix → regress → verify → review) until a floor-grade stop — /pharn-dev-verify PASS ∧ /pharn-dev-regress clean — or a bounded max-iteration cap, the stop computed by the tested pharn/floor/check-ship.mjs whose inputs are ONLY the two floor verdicts so /pharn-dev-review can NEVER gate the loop (structural, not discipline). FLOOR verdicts; ADVISORY orchestration."
 kind: pharn-owned
 trust: trusted
 model_tier: sonnet
@@ -84,9 +84,26 @@ present it to the human (terminal fallback = hand to the human, never a guess).
    > `/pharn-dev-ship` ends its turn **only** at GATE 1, GATE 2, or a RED-verdict STOP. So on plan approval,
    > steps 2–6 below run in **one continued turn** until GATE 2 or a STOP.
 
-2. **`/pharn-dev-grill`** (on the approved plan) → emits `.dev/features/<name>/GRILL.md`. **Present it** to the human,
-   then **proceed regardless** — `/pharn-dev-grill` is **advisory by design and gates nothing** (`grill.md`); it
-   has **no** deterministic verdict to branch on. (Render its findings' free-text as quoted DATA, P2.)
+2. **`/pharn-dev-grill`** (on the approved plan) → emits `.dev/features/<name>/GRILL.md`. **Verdict read
+   (FLOOR):** the exit code of the `applied_lessons` re-verification `/pharn-dev-grill` owns —
+
+   ```bash
+   node pharn/floor/check-plan-lessons.mjs .dev/features/<name>/PLAN.md .dev/memory-bank/lessons-learned.md
+   ```
+
+   `0` → the declaration is present, well-formed, and every cited id resolves → **proceed**. Non-zero →
+   **STOP**, present the RED (`/pharn-dev-grill` wrote a RED `GRILL.md`), hand to the human — the remedy
+   is a re-plan via `/pharn-dev-plan` with a corrected declaration.
+
+   **Everything else `/pharn-dev-grill` emits is advisory and gates nothing.** Its **interrogation
+   findings** — including any it marks `severity: blocking` — are model judgment: **present** them to the
+   human (free-text as quoted DATA, P2) and **proceed regardless**. Counting a finding's `severity` as a
+   gate would read LLM judgment as a floor verdict (the fix#3 disease); the exit code above is the only
+   thing here you branch on. Its Step-1.2 spec-hash check likewise only **warns** — `/pharn-dev-build`
+   (step 3) is where drift blocks.
+
+   **The honest bound (P0):** a GREEN here means the **declaration** is well-formed, never that the
+   lessons were applied.
 
 3. **`/pharn-dev-build`** → writes the planned files and runs the floor. **Verdict read (FLOOR):** the exit code
    of `node pharn/floor/validate.mjs .` — `0` (GREEN) → proceed; **non-zero** → **STOP**, present the RED
@@ -229,9 +246,15 @@ iteration's two `.verdict`s, and **why** the loop ended (`STOP_GREEN` / `STOP_CA
 - **"`/pharn-dev-ship` runs the stages in order"** → **ADVISORY.** Nothing on the floor forces the sequence; the
   agent invokes each stage.
 - **"`/pharn-dev-ship` proceeds only past a GREEN floor verdict"** → the **verdicts** are FLOOR (each stage's own
-  checker: `validate` exit / `check-regress` / `check-verify`, `pharn/ARCHITECTURE.md §2` primitive #3);
+  checker: `check-plan-lessons` exit / `validate` exit / `check-regress` / `check-verify`,
+  `pharn/ARCHITECTURE.md §2` primitive #3);
   `/pharn-dev-ship`'s **act** of reading them and stopping is **ADVISORY orchestration** — the same two-clocks
   split as `/pharn-dev-regress` and `/pharn-dev-verify` themselves.
+- **"`/pharn-dev-grill` gates the chain"** → **FLOOR, but narrowly, and the narrowness is the point.**
+  Exactly one thing it emits is a proceed/stop input: `check-plan-lessons.mjs`'s exit code (step 2). Its
+  **interrogation findings never are**, whatever `severity` they carry — that separation is what keeps
+  an LLM-assigned severity from being read as a floor verdict (fix #3). And a GREEN covers the
+  **declaration**, never that the lessons were applied.
 - **"the human gates (plan approval, post-review) are preserved"** → **ADVISORY** (command discipline).
   GATE 1 is `/pharn-dev-plan`'s own halt; nothing on the floor forces a human to be asked. `/pharn-dev-ship` preserves the
   gates **by construction**, not by a floor mechanism.

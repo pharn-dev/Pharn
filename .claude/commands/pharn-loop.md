@@ -331,8 +331,12 @@ iter < cap`; `STOP_TERMINAL` on any real red) — enum membership, `pharn/ARCHIT
   forces a human to be asked — labeled honestly, exactly like `/pharn-ship`; backstopped (not replaced) by
   `/pharn-plan`'s deterministic approved-input gate.
 - **The front chain's verdicts are FLOOR, but owned by the SUB-STAGES.** `/pharn-loop` reuses `/pharn-ship`'s
-  gated front, whose proceed verdicts belong to `check-spec-approved` / `check-plan-spec-agree` / the build
-  project-gate / `check-regress` / `check-verify` — `/pharn-loop` adds **no** primitive there.
+  gated front, whose proceed verdicts belong to `check-spec-approved` / `check-plan-spec-agree` /
+  `check-plan-lessons` / the build project-gate / `check-regress` / `check-verify` — `/pharn-loop` adds
+  **no** primitive there. (`/pharn-grill` owns **two** of those exits, not one: the spec→plan chain
+  **and** the `applied_lessons` re-verification. Step 2 above inherits both by citing `/pharn-ship`
+  Step 2 rather than restating it — this enumeration is the one place the set is written out, so it is
+  the one place that goes stale when a member is added.)
 - **Net:** `/pharn-loop` owns **two** floor primitives, and they are cleanly separated by what they range
   over. `pharn/floor/check-loop.mjs` — the tested Design-B **stop core** (justified, P7, by the loop's
   autonomy: no human between iterations) — guarantees the **stop** (retryable-only, terminal-immediate,
