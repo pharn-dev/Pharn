@@ -57,8 +57,6 @@ const REQUIRED_SECTIONS = ["intent", "scope", "acceptance criteria", "constraint
 const STATE_ENUM = ["Draft", "Approved"]; // the spec lifecycle (ARCHITECTURE §6)
 const HASH_RE = /^[0-9a-f]{64}$/; // a SHA-256 hex digest
 
-import { FM_RE, stripBom } from "./frontmatter-core.mjs";
-
 const reds = [];
 function red(kind, detail) {
   reds.push({ kind, detail });

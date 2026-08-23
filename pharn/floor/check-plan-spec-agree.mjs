@@ -64,10 +64,6 @@ const here = dirname(fileURLToPath(import.meta.url));
 const CHECK_SPEC_APPROVED = join(here, "check-spec-approved.mjs");
 const CHECK_SPEC = join(here, "check-spec.mjs");
 
-// The leading YAML frontmatter block — the same FM_RE mechanism as check-spec.mjs / check-spec-approved.mjs,
-// re-implemented IN-FILE (no sibling import, P3). We need exactly one field from the PLAN: spec_content_hash.
-import { FM_RE, stripBom } from "./frontmatter-core.mjs";
-
 const HASH_RE = /^[0-9a-f]{64}$/; // a SHA-256 hex digest — the enum-gate applied to BOTH hashes (P2/P5)
 
 function stripQuotes(v) {

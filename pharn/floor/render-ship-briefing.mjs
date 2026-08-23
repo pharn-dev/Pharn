@@ -87,7 +87,6 @@ const HEADING_RE = /^#{1,6}[ \t]+\S/;
 
 // The leading YAML frontmatter block (product PLAN/SPEC shape). Re-implemented in-file (P3) — the same
 // mechanism `check-spec.mjs` / `check-plan-lessons.mjs` use.
-import { FM_RE, stripBom } from "./frontmatter-core.mjs";
 
 const REGRESS_ENUM = new Set(["no-regressions", "regressions", "inconclusive"]);
 const VERIFY_ENUM = new Set(["PASS", "FAIL", "INCOMPLETE", "INCONCLUSIVE"]);

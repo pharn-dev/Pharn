@@ -82,9 +82,6 @@ const DECISION_ENUM = new Set(["STOP_GREEN", "STOP_CAP", "STOP_TERMINAL", "INCON
 // shape, so the check is list equality, not set membership.
 const HANDOFF_SECTIONS = ["investigated", "learned", "next_steps"];
 
-// The leading YAML frontmatter block — re-implemented in-file (no sibling/cross-tree import, P3).
-import { FM_RE, stripBom } from "./frontmatter-core.mjs";
-
 // The value grammars (primitive #3). Each is applied ONLY after cleanScalar (see below).
 const ITER_RE = /^\d+$/;
 const COMMIT_RE = /^([0-9a-f]{7,40}|unknown)$/; // `unknown` = an honest absence, never a fabricated SHA
