@@ -22,8 +22,8 @@ code; it keeps a deterministic floor under it and the record available the momen
 
 > **Status: early, active development.** This repository, **PHARN-OSS**, is PHARN's open-source
 > edition: the architecture is specified and the methodology is being built incrementally, in the
-> open, using its own tooling (PHARN builds PHARN). The `1.0.0` tag marks that foundation — the spec,
-> the build tooling, and the pipeline commands — **not** an adoptable release. It is **not yet ready
+> open, using its own tooling (PHARN builds PHARN). The foundation is in place — the spec, the build
+> tooling, and the pipeline commands — but that is **not** an adoptable release. It is **not yet ready
 > to adopt**: the pipeline runs here (self-hosting), but there is no installer or packaged release you
 > can drop into your own repo yet. Star or watch to follow along; see
 > [Current state](#current-state) for exactly what exists today.

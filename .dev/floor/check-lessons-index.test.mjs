@@ -232,3 +232,54 @@ test("the verdict rests on BYTES, not on canon's meaning — an injected title c
     rmSync(dir, { recursive: true, force: true });
   }
 });
+
+// ── ✧ L4: ENUM_ERROR must blame CANON, not the derived index (backport of the product twin's pin) ──
+
+// `file` is the enum-gated field a consumer trusts to name the file to open. On ENUM_ERROR the derived
+// index is NOT the thing to fix: the generator refuses exactly the invalid canon the checker refused, so
+// naming the output prescribes a regenerate that cannot succeed. The product twin was corrected first
+// and pinned it; the dev copy kept the defect for the whole 2.x line because nothing ranged over the
+// pair (lessons-learned L31). This is that pin, backported.
+
+test("✧ L4: ENUM_ERROR cites CANON_PATH, not the derived index", () => {
+  const dir = fixture("## L1 — a\n\nx\n\n## L1 — b\n\ny\n"); // duplicate id -> the core refuses
+  try {
+    const r = checkLessonsIndex(dir);
+    assert.equal(r.ok, false);
+    assert.equal(r.findings[0].type, "ENUM_ERROR");
+    assert.equal(r.findings[0].file, CANON_PATH, "an invalid canon must blame canon, not the derived file");
+    assert.notEqual(r.findings[0].file, OUT_PATH, "naming the generated output sends the reader to the wrong file");
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("✧ L4: the CLI does not prescribe a regenerate that cannot succeed", () => {
+  const dir = fixture("## L1 — a\n\nx\n\n## L1 — b\n\ny\n");
+  try {
+    const cli = runCli(dir);
+    assert.equal(cli.status, 1);
+    assert.match(cli.stdout, /cannot succeed/, "the ENUM_ERROR branch must say the regenerate cannot work");
+    assert.match(cli.stdout, new RegExp(CANON_PATH.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")), "and must name canon");
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("✧ L4: MISSING and DRIFT still correctly name the OUTPUT file", () => {
+  // The fix is scoped to ONE branch — asserting the others did not move is what makes that true.
+  const dir = fixture();
+  try {
+    const missing = checkLessonsIndex(dir); // no index written yet
+    assert.equal(missing.findings[0].type, "MISSING");
+    assert.equal(missing.findings[0].file, OUT_PATH, "a missing OUTPUT file is genuinely about the output");
+
+    generate(dir);
+    writeFileSync(join(dir, OUT_PATH), "drifted bytes\n");
+    const drift = checkLessonsIndex(dir);
+    assert.equal(drift.findings[0].type, "DRIFT");
+    assert.equal(drift.findings[0].file, OUT_PATH, "drifted OUTPUT bytes are genuinely about the output");
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
