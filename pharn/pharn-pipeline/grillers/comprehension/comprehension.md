@@ -202,7 +202,10 @@ Every claim is reduced or labeled:
   fields + `needle_absent_from_enum_gated`) is **floor-CHECKED at eval time** by `check-structural.mjs`
   (primitive #3). This pins behavior on known inputs and proves the trust-fence holds — it is **NOT** a
   runtime guarantee that "comprehension" is deterministic. (Two clocks, honest: the checker is floor and
-  tested, but no runner yet invokes it over live output — deferred P7, as for every griller.)
+  tested, and the 3c runner has landed — `/pharn-dev-eval` runs it over live-emitted findings, and
+  `/pharn-verify` / `/pharn-dev-verify` per committed `(expected, findings.json)` pair — but this griller
+  commits no `findings.json`, so no `structural:*` gate fires over its output today, and nothing fires at
+  grill time at all.)
 - **No new floor primitive (P0/P7).** A "mentions rationale / has a `## Why` section" scan's **present**
   verdict is **launderable** → not injection-immune → **not floor** (named and rejected above). This
   griller reuses `pharn/floor/count-grillers.mjs` (membership) and `pharn/floor/check-structural.mjs`

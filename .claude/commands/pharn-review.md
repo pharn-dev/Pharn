@@ -81,7 +81,9 @@ scanner binding, consistency-tested by `lens-scanner-map.test.mjs`):
   target** (an honestly-labeled advisory bound, not a floor claim).
 
 The scanner's **output** is FLOOR (a deterministic regex verdict); using it to **choose the slice** is
-**advisory orchestration** (the isolated per-lens runner is deferred, P7 — as for every lens today).
+**advisory orchestration** — nothing on the floor forces the slice to be derived this way, or at all.
+(The isolated per-lens runner itself is **not** deferred: Step 4 below spawns one subagent per lens. The
+per-GRILLER runner remains deferred, P7 — `/pharn-grill` applies a griller inline.)
 
 ## Step 3b — Discover the user's installed skills (ADVISORY context for the lenses; enumeration gates nothing)
 

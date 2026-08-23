@@ -88,9 +88,9 @@ this floor.
 two hits for that one line — emit one finding per hit; both point at the same dangerous line the developer must
 fix (mirrors `injection`, where a line matching >1 pattern yields >1 hit).
 
-> **Two clocks (be honest).** The scanner's **output** is FLOOR (a deterministic regex verdict). But until the
-> live isolated lens runner lands (deferred P7, as for every lens/griller), the review stage **applies this lens
-> inline** — so the lens's **act** of invoking the scanner is **advisory orchestration**, backstopped by the
+> **Two clocks (be honest).** The scanner's **output** is FLOOR (a deterministic regex verdict). The isolated lens runner has LANDED —
+> `/pharn-review` Step 4 spawns **one subagent per lens**, each writing its own `findings.json` (the per-GRILLER
+> runner is still deferred, P7) — but the lens's **act** of invoking the scanner is **advisory orchestration**, backstopped by the
 > scanner's own tests and this lens's eval. The guarantee is "the scanner IS deterministic", not "the model
 > always ran it".
 

@@ -1076,3 +1076,59 @@ reporting a repaired drift, and only an independent check of the canonical name 
   `.dev/features/contributing-gate-chain/PLAN.md` "Trust audit (P2)", with the 301-vs-200 divergence
   and the identical `created_at` reproduced live before the fix was scoped
 - promoted: 2026-08-23 via gated `/pharn-dev-memory-promote` (human-approved).
+
+## L33 — A "not yet built" claim expires the moment the work lands — nothing reads shipped prose, and the repair pass misses the variant spellings
+
+type: process · concepts: [doc-drift, shipped-surface, false-green, enumeration]
+
+**Lesson.** Forward-looking prose — "not yet built", "the NEXT increment", "deferred", "no runner yet
+invokes it" — is TRUE when written and becomes FALSE at the exact moment the work lands, in a file
+nobody is editing. Nothing detects the transition: `pharn/floor/validate.mjs` walks capability
+frontmatter, not claims; the four trusted docs are `.prettierignore`d and markdownlint-excluded; and no
+checker anywhere reads a shipped sentence for its tense. Verified live at HEAD `f7c3caa` with
+`npm run check` GREEN — 8 gates, 1620/1620 tests — over every site below. Two instances, the second
+sharper. (1) `pharn/pharn-contracts/eval-format.md:52` still reads "(the checker that runs these is the
+NEXT increment)" while `pharn/floor/check-structural.mjs` ships, is tested, and is invoked by five
+commands. `#165` (`71e71ee`, `SKILLS_VERSION` 2.7.14) was the increment whose **entire purpose** was
+re-deriving this claim class, and its CHANGELOG entry **names `eval-format.md` as a site it corrected —
+for this exact sentence**. It fixed one instance and left a second in the file it named. (2) Seven
+product-surface files claim "no runner yet invokes it over … output" — the `a11y`, `comprehension`,
+`coupling`, `documentation`, `error-handling`, `migrations`, `performance` grillers — while
+`pharn/pharn-contracts/finding-shape.md` now says the opposite: `/pharn-verify` and `/pharn-dev-verify`
+run the checker per committed eval pair, and `/pharn-dev-eval` (increment 3c) runs it over each
+live-emitted `runs/<i>/findings.json`. **Five of the seven cite `finding-shape.md`'s 3c runner by
+name**, so they cite a deferral their own source no longer records. All seven ship committed eval
+pairs.
+
+**The enumeration failed twice before it succeeded, and that is the transferable part.** The proposing
+prompt named six grillers. A whitespace-normalized scan for `no runner yet invokes it` also found six.
+The seventh — `coupling` — spells it `no **live** runner yet invokes it`, and only a scan anchored on
+the shortest invariant substring (`runner yet invokes`) found all seven. A claim class does not ship in
+one spelling. Remedy: (a) derive the enumeration from the shortest substring that is invariant across
+paraphrase, never from the sentence you happened to read; (b) treat every prior enumeration — a
+CHANGELOG's list, a prompt's list, your own first grep — as a **lower bound to beat**, never a set to
+confirm.
+
+**Why it matters.** This is the P0 disease with its polarity reversed. Everywhere else the danger is
+prose that OVERCLAIMS a guarantee; here the prose UNDERCLAIMS — it describes the repo as weaker than it
+is — and _that is why nobody looks_: an honest-sounding "not yet built" reads as conservative, so it
+survives review by seeming careful. The cost is real: five grillers point a reader at
+`finding-shape.md` for a bound that document no longer states, so a contributor re-deriving the
+guarantee from the cite gets a stale answer down a trusted-looking chain. [[L20]] says a
+discipline-only remedy WILL recur and the second occurrence earns a floor check — this class recurred
+**inside** the increment that named it, in the file it named, which is that trigger fired at the
+shortest possible range. [[L29]] says a remedy quantified over a set owes the ENUMERATION as its
+deliverable; this says which claims silently **join** that set, and demonstrated the failure in its own
+evidence-gathering, twice. Distinct from [[L25]], which is about a rationale that did not TRAVEL to
+sibling files: these sentences travelled fine, they simply **expired** — a comment can be complete,
+local, and false.
+
+**Provenance.**
+
+- feature: `docs-drift-resync`
+- commit: `71e71ee03c7e2a0ad1bbfee9daa4c8336addf615`
+- source: `.dev/features/docs-drift-resync/PLAN.md` + the CHANGELOG `[Unreleased]` 2.7.13 → 2.7.14
+  entry naming `eval-format.md` as a corrected site, re-derived live at HEAD `f7c3caa` against
+  `pharn/pharn-contracts/eval-format.md:52`, `pharn/pharn-contracts/finding-shape.md`, and the seven
+  grillers
+- promoted: 2026-08-23 via gated `/pharn-dev-memory-promote` (human-approved).

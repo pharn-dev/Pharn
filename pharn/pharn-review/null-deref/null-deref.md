@@ -88,8 +88,8 @@ branch than the deref, or a same-named binding in a later scope, can skew it; an
 template/regex literal in the scanned span can skew the paren-match. **This is NOT null-safety analysis** — that
 is the advisory layer, never this floor.
 
-> **Two clocks (be honest).** The scanner's **output** is FLOOR (a deterministic verdict). But until the live
-> isolated lens runner lands (deferred P7, as for every lens), the review stage **applies this lens inline** — so
+> **Two clocks (be honest).** The scanner's **output** is FLOOR (a deterministic verdict). The isolated lens runner has LANDED —
+> `/pharn-review` Step 4 spawns **one subagent per lens**, each writing its own `findings.json` — but
 > the lens's **act** of invoking the scanner is **advisory orchestration**, backstopped by the scanner's own tests
 > and this lens's eval. The guarantee is "the scanner IS deterministic", not "the model always ran it".
 

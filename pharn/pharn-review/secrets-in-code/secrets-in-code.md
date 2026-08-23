@@ -67,9 +67,9 @@ line; it does **not** decide the literal is a live/real secret vs a placeholder,
 whether the code is "secret-free". "Detected a secret-shaped literal" is a real guarantee; **"the code has
 no secrets" is not** — novel formats, encodings, or split literals evade a fixed regex set.
 
-> **Two clocks (be honest).** The scanner's **output** is FLOOR (a deterministic regex verdict). But until
-> the live isolated lens runner lands (deferred P7, as for every lens/griller), the review stage **applies
-> this lens inline** — so the lens's **act** of invoking the scanner is **advisory orchestration**,
+> **Two clocks (be honest).** The scanner's **output** is FLOOR (a deterministic regex verdict). The isolated lens runner has
+> LANDED — `/pharn-review` Step 4 spawns **one subagent per lens**, each writing its own `findings.json`
+> (the per-GRILLER runner is still deferred, P7) — but the lens's **act** of invoking the scanner is **advisory orchestration**,
 > backstopped by the scanner's own tests and this lens's eval. The guarantee is "the scanner IS
 > deterministic", not "the model always ran it".
 

@@ -304,8 +304,10 @@ chain to `/pharn-grill` or `/pharn-build` (later stages). **End your turn.**
   `enforce-writes-scope.cjs` pin the one declared path).
 - **"The plan carries `spec_content_hash` forward"** → a **deterministic copy** of a floor-verified
   value into the PLAN.md frontmatter — checkable in principle; **not** independently floor-checked at
-  this stage (the consumer that re-verifies spec↔plan is a later stage, not built yet — P7). Honest
-  label: deterministic, not yet re-verified.
+  this stage. The consumer that re-verifies spec↔plan is a later stage and **is built**:
+  `pharn/floor/check-plan-spec-agree.mjs`, run by `/pharn-grill` (the first re-verifier), then again by
+  `/pharn-build`, `/pharn-regress` and `/pharn-verify`. Honest label: deterministic, **not re-verified at
+  THIS stage** — the pin is checked downstream, never here.
 - **"The plan's CONTENT is correct / complete"** → **ADVISORY**. Model judgment; downstream
   grill / build / verify check it. Claiming `/pharn-plan` "ensures a correct plan" would be the disease —
   struck.
