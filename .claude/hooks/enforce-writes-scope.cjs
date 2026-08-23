@@ -286,7 +286,15 @@ function deny(blockedPath, scope, record, notInsideRoot = false) {
 
 const payload = (() => {
   try {
-    return JSON.parse(readStdin() || "{}");
+    const parsed = JSON.parse(readStdin() || "{}");
+    // JSON.parse("null") returns null, JSON.parse("42") a number, JSON.parse("[]") an array — NONE of
+    // them throws, so the `catch` above never fires, and every one then dereferences into an uncaught
+    // TypeError. That exit 1 is treated as NON-BLOCKING by Claude Code, so the write PROCEEDS: a crash
+    // in a write-guard is a fail-OPEN bypass, which is the one failure mode this file may not have.
+    // Mirrors the guard `protect-trusted-paths.cjs` already carries — the two hooks run on the same
+    // PreToolUse payload and must not disagree about what a payload IS.
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return {};
+    return parsed;
   } catch {
     return {};
   }
