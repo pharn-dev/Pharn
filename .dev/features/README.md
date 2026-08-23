@@ -9,8 +9,8 @@ holding its **process and audit artifacts** from the build loop (the `pharn-dev-
 
 These record _how_ an increment of PHARN was specified, planned, grilled, built, and reviewed. This is
 the **developer / contributor** side of the dev/product boundary — the apparatus a PHARN contributor
-uses, **not** what a PHARN user receives. The built capabilities themselves live in their modules at the
-repo root (`pharn-contracts/`, `pharn-review/`, …); the PRODUCT pipeline's artifacts live in the
+uses, **not** what a PHARN user receives. The built capabilities themselves live in their modules under
+`pharn/` (`pharn/pharn-contracts/`, `pharn/pharn-review/`, …); the PRODUCT pipeline's artifacts live in the
 **root-level `features/`** (see `../../features/README.md`).
 
 Artifacts are written only when they genuinely exist. An increment that had no SPEC or PLAN — e.g. a

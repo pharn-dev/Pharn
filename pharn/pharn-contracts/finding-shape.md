@@ -56,9 +56,9 @@ the finding object defined above (zero or more) — **in addition to** any human
   split is a real JSON field boundary at the capability's output, it is **structural**, not something
   a downstream model re-interprets from prose.
 - **Naming/location:** the file is named `findings.json` and is colocated with the capability's
-  human-facing output (the same directory it `writes:`). Example: `trust-fence` writes
-  `features/trust-fence/REVIEW.md`, so its findings array is `features/trust-fence/findings.json`.
-- **Consumer (cited):** this is exactly the `actual.json` that `floor/check-structural.mjs` reads; the
+  human-facing output (the same directory it `writes:`). Example: `trust-fence`'s dogfood run wrote
+  `.dev/features/trust-fence/REVIEW.md`, so its findings array is `.dev/features/trust-fence/findings.json`.
+- **Consumer (cited):** this is exactly the `actual.json` that `pharn/floor/check-structural.mjs` reads; the
   emission contract is what gives that checker a real capability output to range over.
 
 ### Emission enforcement audit (P0) — what is and is NOT floor-backed
@@ -71,21 +71,23 @@ for "therefore guaranteed." The `MUST` above is a **three-way split**, not one b
   fix #7) pins the **path** — a hook reduction (`pharn/ARCHITECTURE.md §2`): the Capability may write its
   findings array only where it declared, nowhere else.
 - **Emitting it at all → advisory.** Nothing on the floor forces a Capability to declare or write
-  `findings.json` — `floor/validate.mjs` does not check for it, and no hook fabricates an emission. So
+  `findings.json` — `pharn/floor/validate.mjs` does not check for it, and no hook fabricates an emission. So
   `MUST emit` is a **conformance requirement** on a conforming Capability, **not** a floor-guaranteed
   production. Labeled plainly per P0, lest the `MUST` read as a guarantee that the artifact exists.
-- **Shape + the no-laundering trip-wire → floor-checkable at eval time, once the 3c runner lands (not
-  at write time).** The array's structure, and the rule that no `trust: untrusted` needle reaches an
-  enum-gated field, reduce to `floor/check-structural.mjs` (enum / regex-substring / path-resolution —
-  `pharn/ARCHITECTURE.md §2`). That **primitive exists and is tested today**, but **no runner yet invokes it
-  over a capability's emitted `findings.json`** — that wiring is increment **3c, not yet built**. So
-  this facet is **floor-reducible-but-not-yet-enforced**: honest today, it must **not** be read as an
-  always-on guarantee until 3c lands.
+- **Shape + the no-laundering trip-wire → floor-checked at eval time (never at write time).** The
+  array's structure, and the rule that no `trust: untrusted` needle reaches an enum-gated field,
+  reduce to `pharn/floor/check-structural.mjs` (enum / regex-substring / path-resolution —
+  `pharn/ARCHITECTURE.md §2`). That primitive exists and is tested, and the runners that invoke it
+  over emitted output have landed: `/pharn-verify` / `/pharn-dev-verify` run it per committed eval
+  pair, and the dev-side `/pharn-dev-eval` (increment 3c) runs it over each live-emitted
+  `runs/<i>/findings.json` via `.dev/floor/check-variance.mjs`. **Still bounded (P0):** it fires when
+  those stages run — nothing checks at write time, so this facet is eval-time enforcement, never an
+  always-on guarantee.
 
-So: **declaring** the path is guaranteed _today_ (fix #7, live); **shape/laundering** is
-floor-reducible but **not enforced until the 3c runner lands** (`check-structural.mjs` exists and is
-tested; the wiring over emitted output is unbuilt); **emitting at all** is an advisory conformance
-requirement. No reading of the `MUST` above is a blanket floor guarantee that the artifact exists.
+So: **declaring** the path is guaranteed _today_ (fix #7, live); **shape/laundering** is floor-checked
+**at eval time, when a verify/eval stage runs** (`check-structural.mjs` and its invokers exist;
+nothing checks at write time); **emitting at all** is an advisory conformance requirement. No reading
+of the `MUST` above is a blanket floor guarantee that the artifact exists.
 
 ## The rule of the contract (P0, P2)
 

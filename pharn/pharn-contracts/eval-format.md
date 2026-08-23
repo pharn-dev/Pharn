@@ -136,17 +136,20 @@ v0.80 routed all eight through one LLM judge.
 Honest scope, because the disease this repo exists to prevent is "written in the contract" mistaken
 for "therefore guaranteed":
 
-- **`structural[]` is floor-reducible, not yet floor-enforced.** Each kind maps to an enum / regex /
-  path-resolution primitive (table above). But the deterministic checker that _executes_ the reduction
-  is the **next increment**. Until it lands, `structural[]` assertions are
-  **floor-reducible-but-not-yet-enforced** — this contract must **not** call them "guaranteed" today.
-  The named floor backstop is that next-increment checker.
+- **`structural[]` is floor-executable — the checker has landed.** Each kind maps to an enum / regex /
+  path-resolution primitive (table above), and the deterministic checker that _executes_ the reduction
+  is **`pharn/floor/check-structural.mjs`** (see `pharn/floor/README.md`). Run against a finding
+  output, a violated assertion is a deterministic **RED**. **Still bounded (P0):** it fires only when
+  invoked — `/pharn-verify` / `/pharn-dev-verify` run it per committed eval pair, `/pharn-dev-eval`
+  per live run — and **nothing invokes it at write time**, so "floor-executable" never means
+  "always-on guarantee".
 - **`semantic[]` is advisory** — an LLM judge, no floor reduction. It never alone gates a guaranteed
   decision (`pharn/ARCHITECTURE.md §8`).
 - **`skill_kind` partitions evaluation by enum membership** (`{deterministic, llm, llm-judge}`) —
-  floor-reducible (enum check), enforced when the checker lands.
-- **The only floor guarantee about this contract _today_** is that the file passes
-  `floor/validate.mjs` — including CHECK 5, by documenting the enum-gated vs free-text split here.
+  floor-reducible (enum check), executed by `check-structural.mjs`: a `deterministic` skill with a
+  non-empty `semantic[]` is a RED.
+- **The floor guarantee about this contract file _itself_** is that it passes
+  `pharn/floor/validate.mjs` — including CHECK 5, by documenting the enum-gated vs free-text split here.
 
 ## Trust class (P2)
 

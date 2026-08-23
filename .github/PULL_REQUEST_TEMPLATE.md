@@ -18,7 +18,7 @@ Closes #<!-- issue number -->
 
 ## Checklist
 
-- [ ] I read the four trusted docs (`CONSTITUTION.md` → `ARCHITECTURE.md` → `THREAT-MODEL.md` → `LIMITS.md`) and did **not** edit them — they are human-only and hook-protected.
+- [ ] I read the four trusted docs (`pharn/CONSTITUTION.md` → `pharn/ARCHITECTURE.md` → `THREAT-MODEL.md` → `LIMITS.md`) and did **not** edit them — they are human-only and hook-protected.
 - [ ] No constitutional principle (P0–P7) is violated.
 - [ ] If this adds a Capability: it has a `role:` and ships evals (`evals/cases/` + `evals/expected/`), and every `enforces` rule_id is produced by ≥1 eval case (P1).
 - [ ] Findings cite a file-qualified `rule_id`; no guarantee is claimed without a floor reduction, otherwise it is labeled `advisory` (P0).
@@ -26,8 +26,8 @@ Closes #<!-- issue number -->
 
 ## Quality gates
 
-- [ ] `npm run check` passes locally (`format:check` + `lint` + `lint:md` + `test`).
-- [ ] `node floor/validate.mjs .` is GREEN.
+- [ ] `npm run check` passes locally (every gate `package.json`'s `scripts.check` chains — the authoritative list).
+- [ ] `node pharn/floor/validate.mjs .` is GREEN.
 
 ## Notes for the reviewer
 

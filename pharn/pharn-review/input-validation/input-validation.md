@@ -148,10 +148,11 @@ input reaches an enum-gated field). That the lens **emits** it at all, and emits
   - `needle_absent_from_enum_gated` + `file_resolves`) is floor-CHECKED at **eval time** by
     `pharn/floor/check-structural.mjs` (primitive #3, exit 1 on RED / 0 on GREEN). It pins behavior on known inputs
     and proves the needle cannot be laundered into an enum-gated field. **Honestly bounded (P0):** the _automated_
-    runner over a live-emitted `findings.json` is increment **3c** (not yet wired — `finding-shape.md` §Emission);
-    today the trip-wire is realized when `check-structural.mjs` is run against the committed expected + actual
-    (e.g. at `/pharn-dev-verify`). It is **NOT** a runtime guarantee that "input is validated" is deterministic
-    (mirrors `trust-fence` / `injection` exactly).
+    runner over a live-emitted `findings.json` is the dev-side `/pharn-dev-eval` (increment **3c** — landed; no
+    product twin ships, a recorded deferral — `finding-shape.md` §Emission); otherwise the trip-wire is realized
+    when `check-structural.mjs` is run against the committed expected + actual
+    (e.g. at `/pharn-verify` / `/pharn-dev-verify`). It is **NOT** a runtime guarantee that "input is validated" is
+    deterministic (mirrors `trust-fence` / `injection` exactly).
 - **Fixture behavior** → the finding OUTPUT on the committed fixtures is floor-CHECKED at eval time by
   `check-structural.mjs` (primitive #3). It pins behavior on known inputs and proves the trust-fence holds — it
   is **NOT** a runtime guarantee that a clean read means "validated". The **clean** fixture's `finding_count ==

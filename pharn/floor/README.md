@@ -67,11 +67,13 @@ run the skill; it checks an output the skill already produced.
 
 **What this changes (P0).** Before, `eval-format.md` labeled `structural[]`
 **floor-reducible-but-not-yet-enforced** and named this checker as the backstop. With it landed,
-`structural[]` is **floor-executable and CI-tested** (but not yet auto-enforced — `/pharn-dev-build` does not
-invoke `check-structural.mjs`, and its live-eval wiring is still deferred): when the checker is run,
-if a model laundered an untrusted needle (e.g. `skip authz`) into an enum-gated field, or routed a
-`deterministic` skill's judgment through `semantic[]`, that is a deterministic **RED**, not a hope —
-but you must run it; nothing in the build loop invokes it automatically yet.
+`structural[]` is **floor-executable and CI-tested**, and the invokers now exist at the verify/eval
+stages — `/pharn-verify` and `/pharn-dev-verify` run it per committed eval pair, and `/pharn-dev-eval`
+runs it over each live-emitted run via `.dev/floor/check-variance.mjs` (`/pharn-dev-build` still does
+**not** invoke it): when the checker is run, if a model laundered an untrusted needle (e.g. `skip
+authz`) into an enum-gated field, or routed a `deterministic` skill's judgment through `semantic[]`,
+that is a deterministic **RED**, not a hope — the enforcement moment is the verify/eval stage, never
+the write.
 
 **Honest scope (P0) — the boundary that keeps this from overselling.** The checker enforces
 `structural[]` **over a provided finding output**. It does **not** run the skill and does **not**
@@ -83,7 +85,7 @@ never evaluates a `judge` string (no LLM).
 ## Wire the write-guard hooks
 
 Two `PreToolUse` hooks are wired in `.claude/settings.json` (committed), both on
-`Write|Edit|MultiEdit`; a deny from **either** blocks. **`protect-trusted-paths.cjs` (fix #2)** blocks
+`Write|Edit|MultiEdit|NotebookEdit`; a deny from **either** blocks. **`protect-trusted-paths.cjs` (fix #2)** blocks
 any write to a protected path. Paths are matched **repo-relative and exact**, case-folded, against the
 guard's own location — never by bare basename, so a user's own `docs/ARCHITECTURE.md` stays writable.
 The default set is the four trusted spec docs (`pharn/CONSTITUTION.md`, `pharn/ARCHITECTURE.md`,

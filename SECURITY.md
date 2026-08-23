@@ -10,7 +10,7 @@ PHARN's security model (`THREAT-MODEL.md`, threat model B) starts from one axiom
 
 ## Supported versions
 
-We patch security issues against the **latest** released version only. The current version is recorded in [`SKILLS_VERSION`](./SKILLS_VERSION) and `package.json`.
+We patch security issues against the **latest** released version only. The current version is recorded in [`SKILLS_VERSION`](./SKILLS_VERSION) — the one version of record (`package.json`'s `version` is deliberately inert; see the [`CHANGELOG.md`](./CHANGELOG.md) preamble).
 
 | Version  | Supported          |
 | -------- | ------------------ |

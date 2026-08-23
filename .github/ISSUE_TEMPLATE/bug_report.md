@@ -12,7 +12,7 @@ A clear description of the bug.
 
 ## Which part of PHARN
 
-- **Artifact**: <!-- e.g. /plan, /build, /review, the floor (floor/validate.mjs), the write-guard hook, a capability under pharn-review/, or a rule_id -->
+- **Artifact**: <!-- e.g. /pharn-plan, /pharn-build, /pharn-review (or a /pharn-dev-* command), the floor (pharn/floor/validate.mjs), the write-guard hook, a capability under pharn/pharn-review/, or a rule_id -->
 - **PHARN version** (`SKILLS_VERSION`):
 
 ## Steps to reproduce
@@ -37,4 +37,4 @@ What actually happened. Paste the relevant Claude Code output (redact any secret
 
 ## Additional context
 
-Anything else that helps — the relevant files, and the floor output (`node floor/validate.mjs .`).
+Anything else that helps — the relevant files, and the floor output (`node pharn/floor/validate.mjs .`).
