@@ -1,0 +1,52 @@
+{
+  "base": "ca36b9ab76e2deeafcf1c7beada03dc754338c81",
+  "inside": [
+    ".claude/commands/pharn-dev-grill.md",
+    ".claude/commands/pharn-dev-ship.md",
+    ".claude/commands/pharn-grill.md",
+    ".claude/commands/pharn-loop.md",
+    ".claude/commands/pharn-ship.md",
+    ".dev/features/grill-lessons-reverify/GRILL.md",
+    ".dev/features/grill-lessons-reverify/PLAN.md",
+    ".dev/features/grill-lessons-reverify/REGRESSION.md",
+    ".dev/features/grill-lessons-reverify/REVIEW.md",
+    ".dev/features/grill-lessons-reverify/VERIFY.md",
+    ".dev/features/grill-lessons-reverify/regression-report.json",
+    ".dev/features/grill-lessons-reverify/verify-report.json",
+    ".dev/floor/command-hygiene.test.mjs",
+    "CHANGELOG.md",
+    "CLAUDE.md",
+    "README.md",
+    "SKILLS_VERSION",
+    "pharn/pharn-pipeline/grillers/a11y/a11y.md",
+    "pharn/pharn-pipeline/grillers/architecture/architecture.md",
+    "pharn/pharn-pipeline/grillers/comprehension/comprehension.md",
+    "pharn/pharn-pipeline/grillers/coupling/coupling.md",
+    "pharn/pharn-pipeline/grillers/documentation/documentation.md",
+    "pharn/pharn-pipeline/grillers/error-handling/error-handling.md",
+    "pharn/pharn-pipeline/grillers/i18n/i18n.md",
+    "pharn/pharn-pipeline/grillers/migrations/migrations.md",
+    "pharn/pharn-pipeline/grillers/observability/observability.md",
+    "pharn/pharn-pipeline/grillers/performance/performance.md",
+    "pharn/pharn-pipeline/grillers/privacy/privacy.md",
+    "pharn/pharn-pipeline/grillers/security/security.md",
+    "pharn/pharn-pipeline/grillers/testability/testability.md"
+  ],
+  "outside_gates": {
+    "structural:expected-injection-comment": {
+      "base": 0,
+      "head": 0
+    },
+    "tests": {
+      "base": 0,
+      "head": 0
+    },
+    "validate": {
+      "base": 0,
+      "head": 0
+    }
+  },
+  "regressions": [],
+  "pre_existing": [],
+  "verdict": "no-regressions"
+}
